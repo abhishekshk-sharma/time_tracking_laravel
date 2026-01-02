@@ -29,6 +29,14 @@
                 <input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->format('Y-m-d')) }}">
             </div>
             <div class="form-group" style="margin-bottom: 0; min-width: 150px;">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="active" {{ request('status', 'active') === 'active' ? 'selected' : '' }}>Active</option>
+                    <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    <option value="all" {{ request('status') === 'all' ? 'selected' : '' }}>All</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0; min-width: 150px;">
                 <label class="form-label">Department</label>
                 <select name="department" class="form-control">
                     <option value="all">All Departments</option>
@@ -57,13 +65,37 @@
         $presentDays = 0;
         $absentDays = 0;
         $lateArrivals = 0;
+        $totalWorkingMinutes = 0;
+        $workingDaysCount = 0;
         
         foreach($employees as $employee) {
-            foreach($employee->timeEntries as $entry) {
-                if($entry->entry_type === 'punch_in') $presentDays++;
-                if($entry->entry_type === 'punch_in' && $entry->entry_time->format('H:i:s') > '09:00:00') $lateArrivals++;
+            $timeEntriesByDate = $employee->timeEntries->groupBy(function($entry) {
+                return $entry->entry_time->format('Y-m-d');
+            });
+            
+            foreach($timeEntriesByDate as $date => $entries) {
+                $punchIn = $entries->where('entry_type', 'punch_in')->first();
+                $punchOut = $entries->where('entry_type', 'punch_out')->first();
+                
+                if($punchIn) {
+                    $presentDays++;
+                    if($punchIn->entry_time->format('H:i:s') > '09:15:00') $lateArrivals++;
+                    
+                    if($punchOut) {
+                        $workingMinutes = $punchIn->entry_time->diffInMinutes($punchOut->entry_time);
+                        
+                        if($workingMinutes > 0) {
+                            $totalWorkingMinutes += $workingMinutes;
+                            $workingDaysCount++;
+                        }
+                    }
+                } else {
+                    $absentDays++;
+                }
             }
         }
+        
+        $avgWorkingHours = $workingDaysCount > 0 ? round($totalWorkingMinutes / $workingDaysCount / 60, 1) : 0;
     @endphp
     
     <div class="stat-card">
@@ -79,7 +111,7 @@
         <div class="stat-label">Late Arrivals</div>
     </div>
     <div class="stat-card">
-        <div class="stat-number">8.5h</div>
+        <div class="stat-number">{{ $avgWorkingHours }}h</div>
         <div class="stat-label">Avg Working Hours</div>
     </div>
 </div>
@@ -137,30 +169,42 @@
                             
                             if ($lunchStart && $lunchEnd) {
                                 $lunchMinutes = $lunchStart->entry_time->diffInMinutes($lunchEnd->entry_time);
-                                $workingMinutes -= $lunchMinutes;
-
-                               
                             }
                             
                             $netHours = $workingMinutes > 0 ? floor($workingMinutes / 60) . ':' . sprintf('%02d', $workingMinutes % 60) : '-';
                             $lunchDuration = $lunchMinutes > 0 ? floor($lunchMinutes / 60) . ':' . sprintf('%02d', $lunchMinutes % 60). ':' . (($lunchMinutes * 60) % 60) : '-';
                             
-                            $status = 'Present';
-                            $statusClass = 'success';
+                            // Determine all applicable statuses
+                            $statuses = [];
+                            $isLate = false;
+                            $isShortHours = false;
+                            $isLongLunch = false;
                             
                             if (!$punchIn) {
                                 // Check if it's a weekend
                                 $dateCarbon = \Carbon\Carbon::parse($date);
                                 if ($dateCarbon->isSunday() || ($dateCarbon->isSaturday() && in_array(ceil($dateCarbon->day / 7), [2, 4]))) {
-                                    $status = 'Week Off';
-                                    $statusClass = 'info';
+                                    $statuses[] = ['text' => 'Week Off', 'color' => '#17a2b8', 'bg' => '#d1ecf1'];
                                 } else {
-                                    $status = 'Absent';
-                                    $statusClass = 'danger';
+                                    $statuses[] = ['text' => 'Absent', 'color' => '#dc3545', 'bg' => '#f8d7da'];
                                 }
-                            } elseif ($punchIn->entry_time->format('H:i') > '09:15') {
-                                $status = 'Late';
-                                $statusClass = 'warning';
+                            } else {
+                                $statuses[] = ['text' => 'Present', 'color' => '#28a745', 'bg' => '#d4edda'];
+                                
+                                if ($punchIn->entry_time->format('H:i') > '09:15') {
+                                    $statuses[] = ['text' => 'Late', 'color' => '#ffc107', 'bg' => '#fff3cd'];
+                                    $isLate = true;
+                                }
+                            }
+                            
+                            if ($lunchMinutes > 60) {
+                                $statuses[] = ['text' => 'Long Lunch', 'color' => '#fd7e14', 'bg' => '#ffeaa7'];
+                                $isLongLunch = true;
+                            }
+                            
+                            if ($workingMinutes < 480 && $workingMinutes > 0) {
+                                $statuses[] = ['text' => 'Short Hours', 'color' => '#e83e8c', 'bg' => '#f8d7da'];
+                                $isShortHours = true;
                             }
                         @endphp
                         <tr>
@@ -172,13 +216,9 @@
                             <td>{{ $lunchDuration }}Min.</td>
                             <td>{{ $netHours }}</td>
                             <td>
-                                <span class="badge badge-{{ $statusClass }}">{{ $status }}</span>
-                                @if($lunchMinutes > 60)
-                                    <span class="badge badge-warning">Long Lunch</span>
-                                @endif
-                                @if($workingMinutes < 480 && $workingMinutes > 0)
-                                    <span class="badge badge-warning">Short Hours</span>
-                                @endif
+                                @foreach($statuses as $status)
+                                    <span style="display: inline-block; padding: 2px 8px; margin: 1px; border-radius: 12px; font-size: 11px; font-weight: 600; color: {{ $status['color'] }}; background-color: {{ $status['bg'] }}; border: 1px solid {{ $status['color'] }};">{{ $status['text'] }}</span>
+                                @endforeach
                             </td>
                         </tr>
                         @empty

@@ -1,421 +1,279 @@
-@extends('admin.layouts.app')
+@extends('super-admin.layouts.app')
 
 @section('title', 'Reports')
 
 @section('content')
 <div class="page-header">
     <h1 class="page-title">Reports & Analytics</h1>
-    <p class="page-subtitle">Generate comprehensive reports and insights</p>
+    <p class="page-subtitle">Generate comprehensive reports and insights with salary data</p>
 </div>
 
 <!-- Report Categories -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
     
+    <!-- Salary Reports -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-money-bill-wave" style="color: #ff6b35; margin-right: 10px;"></i>
+                Salary Reports
+            </h3>
+        </div>
+        <div class="card-body">
+            <p style="color: #565959; margin-bottom: 20px;">Generate detailed salary reports for all employees.</p>
+            
+            <form action="{{ route('super-admin.salary-reports.generate') }}" method="POST">
+                @csrf
+                <div class="form-group">
+                    <label class="form-label">Month</label>
+                    <select name="month" class="form-control" required>
+                        @for($m = 1; $m <= 12; $m++)
+                            <option value="{{ $m }}" {{ $m == date('n') ? 'selected' : '' }}>
+                                {{ date('F', mktime(0, 0, 0, $m, 1)) }}
+                            </option>
+                        @endfor
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Year</label>
+                    <select name="year" class="form-control" required>
+                        @for($y = date('Y') - 1; $y <= date('Y') + 1; $y++)
+                            <option value="{{ $y }}" {{ $y == date('Y') ? 'selected' : '' }}>{{ $y }}</option>
+                        @endfor
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-cogs"></i> Generate All Salary Reports
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Attendance Reports -->
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">
-                <i class="fas fa-calendar-check" style="color: #ff9900; margin-right: 10px;"></i>
+                <i class="fas fa-calendar-check" style="color: #10b981; margin-right: 10px;"></i>
                 Attendance Reports
             </h3>
         </div>
         <div class="card-body">
-            <p style="color: #565959; margin-bottom: 20px;">Generate detailed attendance reports for employees and departments.</p>
+            <p style="color: #565959; margin-bottom: 20px;">Generate detailed attendance reports for all employees.</p>
             
-            <div class="form-group">
-                <label class="form-label">Report Type</label>
-                <select id="attendanceReportType" class="form-control">
-                    <option value="daily">Daily Attendance</option>
-                    <option value="weekly">Weekly Summary</option>
-                    <option value="monthly">Monthly Report</option>
-                    <option value="custom">Custom Date Range</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Department</label>
-                <select id="attendanceDepartment" class="form-control">
-                    <option value="">All Departments</option>
-                    @foreach($departments as $department)
-                        <option value="{{ $department->name }}">{{ $department->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="generateAttendanceReport()">
-                    <i class="fas fa-chart-line"></i> Generate
+            <form action="{{ route('super-admin.attendance-reports.generate') }}" method="POST">
+                @csrf
+                <div class="form-group">
+                    <label class="form-label">Month</label>
+                    <select name="month" class="form-control" required>
+                        @for($m = 1; $m <= 12; $m++)
+                            <option value="{{ $m }}" {{ $m == date('n') ? 'selected' : '' }}>
+                                {{ date('F', mktime(0, 0, 0, $m, 1)) }}
+                            </option>
+                        @endfor
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Year</label>
+                    <select name="year" class="form-control" required>
+                        @for($y = date('Y') - 1; $y <= date('Y') + 1; $y++)
+                            <option value="{{ $y }}" {{ $y == date('Y') ? 'selected' : '' }}>{{ $y }}</option>
+                        @endfor
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-file-excel"></i> Generate Excel Report
                 </button>
-                <button class="btn btn-secondary" onclick="exportAttendanceReport()">
-                    <i class="fas fa-download"></i> Export
-                </button>
-            </div>
+            </form>
         </div>
     </div>
 
-    <!-- Leave Reports -->
-    <div class="card">
+    @if($salaryReports->count() > 0)
+    <!-- Generated Salary Reports -->
+    <div class="card mt-4" style="grid-column: 1 / -1;">
         <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-file-alt" style="color: #067d62; margin-right: 10px;"></i>
-                Leave Reports
-            </h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <h3 class="card-title">
+                    <i class="fas fa-table" style="color: #10b981; margin-right: 10px;"></i>
+                    Generated Salary Reports
+                </h3>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label style="font-size: 12px; color: #666; margin: 0;">Per Page:</label>
+                    <select id="per-page-select" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                        <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
+                        <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                    </select>
+                </div>
+            </div>
         </div>
+        
+        <!-- Search Filters -->
+        <div class="card-body" style="border-bottom: 1px solid #e9ecef; padding-bottom: 15px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Search Employee</label>
+                    <input type="text" id="employee-search" placeholder="Employee ID or Name" 
+                           style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 100%;" 
+                           value="{{ request('search') }}">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Month</label>
+                    <select id="month-filter" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 100%;">
+                        <option value="">All Months</option>
+                        @for($m = 1; $m <= 12; $m++)
+                            <option value="{{ $m }}" {{ request('month') == $m ? 'selected' : '' }}>
+                                {{ date('F', mktime(0, 0, 0, $m, 1)) }}
+                            </option>
+                        @endfor
+                    </select>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Year</label>
+                    <select id="year-filter" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 100%;">
+                        <option value="">All Years</option>
+                        @for($y = date('Y') - 2; $y <= date('Y') + 1; $y++)
+                            <option value="{{ $y }}" {{ request('year') == $y ? 'selected' : '' }}>{{ $y }}</option>
+                        @endfor
+                    </select>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="applyFilters()" class="btn btn-primary" style="padding: 6px 15px; font-size: 12px;">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <button onclick="clearFilters()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <div class="card-body">
-            <p style="color: #565959; margin-bottom: 20px;">Analyze leave patterns and application statistics.</p>
-            
-            <div class="form-group">
-                <label class="form-label">Report Period</label>
-                <select id="leaveReportPeriod" class="form-control">
-                    <option value="current_month">Current Month</option>
-                    <option value="last_month">Last Month</option>
-                    <option value="quarter">This Quarter</option>
-                    <option value="year">This Year</option>
-                </select>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Month/Year</th>
+                            <th>Net Salary</th>
+                            <th>Status</th>
+                            <th>Report Quality</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($salaryReports as $report)
+                            <tr>
+                                <td>
+                                    <strong>{{ $report->emp_name }}</strong><br>
+                                    <small class="text-muted">{{ $report->emp_id }}</small>
+                                </td>
+                                <td>{{ $report->department }}</td>
+                                <td>{{ date('F Y', mktime(0, 0, 0, $report->month, 1, $report->year)) }}</td>
+                                <td>
+                                    <span class="{{ $report->net_salary < 0 ? 'text-danger' : 'text-success' }}">
+                                        ₹{{ number_format($report->net_salary, 2) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ $report->status == 'generated' ? 'warning' : ($report->status == 'reviewed' ? 'info' : 'success') }}">
+                                        {{ ucfirst($report->status) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($report->has_negative_salary)
+                                        <span class="badge bg-danger me-1">Negative Salary</span>
+                                    @endif
+                                    @if($report->has_missing_data)
+                                        <span class="badge bg-warning me-1">Missing Data</span>
+                                    @endif
+                                    @if($report->needs_review)
+                                        <span class="badge bg-info me-1">Needs Review</span>
+                                    @endif
+                                    @if(!$report->has_negative_salary && !$report->has_missing_data && !$report->needs_review)
+                                        <span class="badge bg-success">Good</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <a href="{{ route('super-admin.salary-reports.edit', $report->id) }}" 
+                                       class="btn btn-sm btn-warning me-1">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <a href="{{ route('super-admin.salary-reports.download', $report->id) }}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-download"></i> Download PDF
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
             
-            <div class="form-group">
-                <label class="form-label">Leave Type</label>
-                <select id="leaveType" class="form-control">
-                    <option value="">All Types</option>
-                    <option value="casual_leave">Casual Leave</option>
-                    <option value="sick_leave">Sick Leave</option>
-                    <option value="half_day">Half Day</option>
-                </select>
-            </div>
-            
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="generateLeaveReport()">
-                    <i class="fas fa-chart-pie"></i> Generate
-                </button>
-                <button class="btn btn-secondary" onclick="exportLeaveReport()">
-                    <i class="fas fa-download"></i> Export
-                </button>
-            </div>
+            {{ $salaryReports->appends(request()->query())->links() }}
         </div>
     </div>
+    @endif
 
-    <!-- Employee Performance -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-users" style="color: #c7511f; margin-right: 10px;"></i>
-                Employee Performance
-            </h3>
-        </div>
-        <div class="card-body">
-            <p style="color: #565959; margin-bottom: 20px;">Track individual employee performance metrics.</p>
-            
-            <div class="form-group">
-                <label class="form-label">Employee</label>
-                <select id="performanceEmployee" class="form-control">
-                    <option value="">All Employees</option>
-                    @foreach($employees as $employee)
-                        <option value="{{ $employee->emp_id }}">{{ $employee->username }}</option>
-                    @endforeach
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Metrics</label>
-                <select id="performanceMetrics" class="form-control">
-                    <option value="attendance">Attendance Rate</option>
-                    <option value="punctuality">Punctuality Score</option>
-                    <option value="overtime">Overtime Hours</option>
-                    <option value="comprehensive">Comprehensive Report</option>
-                </select>
-            </div>
-            
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="generatePerformanceReport()">
-                    <i class="fas fa-chart-bar"></i> Generate
-                </button>
-                <button class="btn btn-secondary" onclick="exportPerformanceReport()">
-                    <i class="fas fa-download"></i> Export
-                </button>
-            </div>
-        </div>
-    </div>
+    
 
-    <!-- System Analytics -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-analytics" style="color: #7c3aed; margin-right: 10px;"></i>
-                System Analytics
-            </h3>
-        </div>
-        <div class="card-body">
-            <p style="color: #565959; margin-bottom: 20px;">Overall system usage and trend analysis.</p>
-            
-            <div class="form-group">
-                <label class="form-label">Analytics Type</label>
-                <select id="analyticsType" class="form-control">
-                    <option value="usage">System Usage</option>
-                    <option value="trends">Attendance Trends</option>
-                    <option value="patterns">Work Patterns</option>
-                    <option value="insights">Business Insights</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Time Range</label>
-                <select id="analyticsRange" class="form-control">
-                    <option value="7days">Last 7 Days</option>
-                    <option value="30days">Last 30 Days</option>
-                    <option value="90days">Last 90 Days</option>
-                    <option value="1year">Last Year</option>
-                </select>
-            </div>
-            
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="generateAnalyticsReport()">
-                    <i class="fas fa-chart-area"></i> Generate
-                </button>
-                <button class="btn btn-secondary" onclick="exportAnalyticsReport()">
-                    <i class="fas fa-download"></i> Export
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Reports -->
-<div class="card" style="margin-top: 30px;">
-    <div class="card-header">
-        <h3 class="card-title">Recent Reports</h3>
-    </div>
-    <div class="card-body">
-        <div class="table-container">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Report Name</th>
-                        <th>Type</th>
-                        <th>Generated By</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($recentReports as $report)
-                    <tr>
-                        <td>{{ $report['name'] }}</td>
-                        <td><span class="badge badge-secondary">{{ $report['type'] }}</span></td>
-                        <td>{{ $report['generated_by'] }}</td>
-                        <td>{{ $report['date'] }}</td>
-                        <td><span class="badge badge-success">{{ $report['status'] }}</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-secondary" title="Download">
-                                <i class="fas fa-download"></i>
-                            </button>
-                            <button class="btn btn-sm btn-secondary" title="View">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
+    
 </div>
 @endsection
 
 @push('scripts')
 <script>
-function generateAttendanceReport() {
-    const type = document.getElementById('attendanceReportType').value;
-    const department = document.getElementById('attendanceDepartment').value;
+function toggleEmployeeSearch() {
+    const type = $('#salaryEmployeeType').val();
+    const searchGroup = $('#employeeSearchGroup');
     
-    Swal.fire({
-        title: 'Generating Report...',
-        text: 'Please wait while we generate your attendance report.',
-        icon: 'info',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    $.ajax({
-        url: '/admin/reports/generate',
-        method: 'POST',
-        data: {
-            report_type: 'attendance',
-            type: type,
-            department: department,
-            _token: $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function(response) {
-            Swal.fire({
-                title: 'Report Generated!',
-                html: `<div style="text-align: left;">
-                    <p><strong>Total Employees:</strong> ${response.summary.total_employees}</p>
-                    <p><strong>Average Attendance Rate:</strong> ${response.summary.avg_attendance_rate}%</p>
-                    <p><strong>Total Hours:</strong> ${response.summary.total_hours}</p>
-                </div>`,
-                icon: 'success',
-                confirmButtonColor: '#3b82f6'
-            });
-        },
-        error: function() {
-            Swal.fire({
-                title: 'Error!',
-                text: 'Failed to generate report. Please try again.',
-                icon: 'error',
-                confirmButtonColor: '#ef4444'
-            });
-        }
-    });
+    if (type === 'search') {
+        searchGroup.show();
+    } else {
+        searchGroup.hide();
+        $('#selectedEmployeeId').val('');
+        $('#salaryEmployeeSearch').val('');
+    }
 }
 
-function generateLeaveReport() {
-    const period = document.getElementById('leaveReportPeriod').value;
-    const type = document.getElementById('leaveType').value;
+// Salary Reports Search Functions
+function applyFilters() {
+    const search = document.getElementById('employee-search').value;
+    const month = document.getElementById('month-filter').value;
+    const year = document.getElementById('year-filter').value;
+    const perPage = document.getElementById('per-page-select').value;
     
-    Swal.fire({
-        title: 'Generating Report...',
-        text: 'Please wait while we generate your leave report.',
-        icon: 'info',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (month) params.append('month', month);
+    if (year) params.append('year', year);
+    if (perPage) params.append('per_page', perPage);
     
-    $.ajax({
-        url: '/admin/reports/generate',
-        method: 'POST',
-        data: {
-            report_type: 'leave',
-            period: period,
-            leave_type: type,
-            _token: $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function(response) {
-            Swal.fire({
-                title: 'Leave Report Generated!',
-                html: `<div style="text-align: left;">
-                    <p><strong>Total Applications:</strong> ${response.data.total_applications}</p>
-                    <p><strong>Approved:</strong> ${response.data.approved}</p>
-                    <p><strong>Rejected:</strong> ${response.data.rejected}</p>
-                    <p><strong>Pending:</strong> ${response.data.pending}</p>
-                </div>`,
-                icon: 'success',
-                confirmButtonColor: '#3b82f6'
-            });
-        },
-        error: function() {
-            Swal.fire({
-                title: 'Error!',
-                text: 'Failed to generate report. Please try again.',
-                icon: 'error',
-                confirmButtonColor: '#ef4444'
-            });
-        }
-    });
+    window.location.href = '{{ route("super-admin.reports") }}?' + params.toString();
 }
 
-function generatePerformanceReport() {
-    const employee = document.getElementById('performanceEmployee').value;
-    const metrics = document.getElementById('performanceMetrics').value;
-    
-    Swal.fire({
-        title: 'Generating Report...',
-        text: 'Please wait while we generate your performance report.',
-        icon: 'info',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    setTimeout(() => {
-        Swal.fire({
-            title: 'Report Generated!',
-            text: 'Your performance report has been generated successfully.',
-            icon: 'success',
-            confirmButtonColor: '#ff9900'
-        });
-    }, 2000);
+function clearFilters() {
+    document.getElementById('employee-search').value = '';
+    document.getElementById('month-filter').value = '';
+    document.getElementById('year-filter').value = '';
+    document.getElementById('per-page-select').value = '10';
+    window.location.href = '{{ route("super-admin.reports") }}';
 }
 
-function generateAnalyticsReport() {
-    const type = document.getElementById('analyticsType').value;
-    const range = document.getElementById('analyticsRange').value;
-    
-    Swal.fire({
-        title: 'Generating Analytics...',
-        text: 'Please wait while we generate your analytics report.',
-        icon: 'info',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    setTimeout(() => {
-        Swal.fire({
-            title: 'Analytics Generated!',
-            text: 'Your analytics report has been generated successfully.',
-            icon: 'success',
-            confirmButtonColor: '#ff9900'
-        });
-    }, 2000);
-}
+// Per page change handler
+document.getElementById('per-page-select').addEventListener('change', function() {
+    applyFilters();
+});
 
-function exportAttendanceReport() {
-    const type = document.getElementById('attendanceReportType').value;
-    const department = document.getElementById('attendanceDepartment').value;
-    
-    const params = new URLSearchParams({
-        type: type,
-        department: department
-    });
-    
-    window.open(`/admin/reports/export/attendance?${params.toString()}`, '_blank');
-}
-
-function exportLeaveReport() {
-    const period = document.getElementById('leaveReportPeriod').value;
-    const leaveType = document.getElementById('leaveType').value;
-    
-    const params = new URLSearchParams({
-        period: period,
-        leave_type: leaveType
-    });
-    
-    window.open(`/admin/reports/export/leave?${params.toString()}`, '_blank');
-}
-
-function exportPerformanceReport() {
-    const employee = document.getElementById('performanceEmployee').value;
-    const metrics = document.getElementById('performanceMetrics').value;
-    
-    const params = new URLSearchParams({
-        employee: employee,
-        metrics: metrics
-    });
-    
-    window.open(`/admin/reports/export/performance?${params.toString()}`, '_blank');
-}
-
-function exportAnalyticsReport() {
-    const type = document.getElementById('analyticsType').value;
-    const range = document.getElementById('analyticsRange').value;
-    
-    const params = new URLSearchParams({
-        type: type,
-        range: range
-    });
-    
-    window.open(`/admin/reports/export/analytics?${params.toString()}`, '_blank');
-}
+// Enter key handler for search input
+document.getElementById('employee-search').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        applyFilters();
+    }
+});
 </script>
 @endpush

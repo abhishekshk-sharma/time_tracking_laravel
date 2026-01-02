@@ -20,6 +20,7 @@ class Employee extends Authenticatable
         'phone',
         'department',
         'department_id',
+        'region_id',
         'position',
         'hire_date',
         'end_date',
@@ -102,5 +103,10 @@ class Employee extends Authenticatable
     public function assignedEmployees()
     {
         return $this->hasMany(Employee::class, 'referrance', 'emp_id');
+    }
+
+    public function region()
+    {
+        return $this->belongsTo(Region::class);
     }
 }

@@ -3,199 +3,249 @@
 @section('title', 'Schedule Management')
 
 @section('content')
-<div class="page-header">
-    <h1 class="page-title">Schedule Management</h1>
-    <p class="page-subtitle">Manage holidays and employee schedules</p>
-</div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i> &nbsp; Schedule Management</h3>
+                        <form method="GET" class="d-flex align-items-center">
+                            <select name="month" class="form-select form-select-sm me-2" onchange="this.form.submit()">
+                                @for($m = 1; $m <= 12; $m++)
+                                    <option value="{{ $m }}" {{ $currentMonth == $m ? 'selected' : '' }}>
+                                        {{ date('F', mktime(0, 0, 0, $m, 1)) }}
+                                    </option>
+                                @endfor
+                            </select>
+                            <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+                                @for($y = date('Y') - 1; $y <= date('Y') + 1; $y++)
+                                    <option value="{{ $y }}" {{ $currentYear == $y ? 'selected' : '' }}>{{ $y }}</option>
+                                @endfor
+                            </select>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Legend -->
+                    {{-- <div class="mb-3 p-2 bg-light rounded">
+                        <div class="d-flex flex-wrap gap-3">
+                            <span><span class="legend-square bg-danger me-1"></span>Holiday</span>
+                            <span><span class="legend-square bg-success me-1"></span>Working Day</span>
+                            <span><span class="legend-square bg-warning me-1"></span>Weekend</span>
+                            <span><span class="legend-square bg-primary me-1"></span>Today</span>
+                        </div>
+                    </div> --}}
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
-
-<!-- Month Navigation -->
-<div class="card">
-    <div class="card-body">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>{{ date('F Y', mktime(0, 0, 0, $currentMonth, 1, $currentYear)) }}</h3>
-            <div>
-                <a href="{{ route('admin.schedule', ['month' => $currentMonth == 1 ? 12 : $currentMonth - 1, 'year' => $currentMonth == 1 ? $currentYear - 1 : $currentYear]) }}" class="btn btn-secondary">
-                    <i class="fas fa-chevron-left"></i> Previous
-                </a>
-                <a href="{{ route('admin.schedule', ['month' => $currentMonth == 12 ? 1 : $currentMonth + 1, 'year' => $currentMonth == 12 ? $currentYear + 1 : $currentYear]) }}" class="btn btn-secondary">
-                    Next <i class="fas fa-chevron-right"></i>
-                </a>
+                    <!-- Calendar -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered calendar-table">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="text-center">Sun</th>
+                                    <th class="text-center">Mon</th>
+                                    <th class="text-center">Tue</th>
+                                    <th class="text-center">Wed</th>
+                                    <th class="text-center">Thu</th>
+                                    <th class="text-center">Fri</th>
+                                    <th class="text-center">Sat</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($calendar as $week)
+                                    <tr>
+                                        @foreach($week as $day)
+                                            <td class="calendar-day {{ !$day['is_current_month'] ? 'text-muted bg-light' : '' }} 
+                                                {{ $day['date']->isToday() ? 'today' : '' }}
+                                                {{ $day['exception'] ? 'exception-' . $day['exception']->type : '' }}" 
+                                                data-date="{{ $day['date']->format('Y-m-d') }}">
+                                                
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <span class="day-number">{{ $day['date']->format('j') }}</span>
+                                                    @if($day['exception'])
+                                                        <span class="badge bg-{{ $day['exception']->type == 'holiday' ? 'danger' : ($day['exception']->type == 'working_day' ? 'success' : 'warning') }}">
+                                                            {{ ucfirst(str_replace('_', ' ', $day['exception']->type)) }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                
+                                                @if($day['exception'] && $day['exception']->description)
+                                                    <small class="text-muted d-block mb-2">{{ Str::limit($day['exception']->description, 25) }}</small>
+                                                @endif
+                                                
+                                                @if($day['is_current_month'])
+                                                    <div class="btn-group-vertical w-100">
+                                                        <button class="btn btn-sm btn-outline-primary mb-1" 
+                                                                data-bs-toggle="modal" data-bs-target="#scheduleModal"
+                                                                onclick="showScheduleModal('{{ $day['date']->format('Y-m-d') }}', '{{ $day['exception'] ? $day['exception']->type : '' }}', '{{ $day['exception'] ? addslashes($day['exception']->description) : '' }}')">
+                                                            {{ $day['exception'] ? 'Edit' : 'Set' }}
+                                                        </button>
+                                                        @if($day['exception'])
+                                                            <button class="btn btn-sm btn-outline-danger" 
+                                                                    onclick="deleteScheduleException('{{ $day['date']->format('Y-m-d') }}')">
+                                                                Delete
+                                                            </button>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Add Holiday Form -->
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Add Holiday</h3>
-    </div>
-    <div class="card-body">
-        <form method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
-            @csrf
-            <input type="hidden" name="add_holiday" value="1">
-            
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Holiday Title</label>
-                <input type="text" name="title" class="form-control" required>
+<!-- Schedule Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Schedule Exception</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Start Date</label>
-                <input type="date" name="start_date" class="form-control" required>
+            <div class="modal-body">
+                <form id="scheduleForm">
+                    <input type="hidden" id="scheduleDate" name="date">
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="text" class="form-control" id="scheduleDateDisplay" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" id="scheduleType" name="type" required>
+                            <option value="">Select Type</option>
+                            <option value="holiday">Holiday</option>
+                            <option value="working_day">Working Day</option>
+                            <option value="weekend">Weekend</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-control" id="scheduleDescription" name="description" placeholder="Optional description">
+                    </div>
+                </form>
             </div>
-            
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">End Date (Optional)</label>
-                <input type="date" name="end_date" class="form-control">
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveScheduleException()">Save</button>
             </div>
-            
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Description</label>
-                <input type="text" name="description" class="form-control">
-            </div>
-            
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Holiday
-            </button>
-        </form>
-    </div>
-</div>
-
-<!-- Current Holidays -->
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Current Month Holidays</h3>
-    </div>
-    <div class="card-body" style="padding: 0;">
-        @if($holidays->count() > 0)
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Holiday</th>
-                            <th>Employees Affected</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($holidays as $holiday)
-                        <tr>
-                            <td>{{ \Carbon\Carbon::parse($holiday['entry_time'])->format('M d, Y') }}</td>
-                            <td>
-                                @php
-                                    $notes = $holiday['notes'];
-                                    if (strpos($notes, 'Holiday: ') === 0) {
-                                        $notes = substr($notes, 9);
-                                    }
-                                @endphp
-                                {{ $notes }}
-                            </td>
-                            <td>{{ $holiday['employee_count'] }} employees</td>
-                            <td>
-                                <button class="btn btn-sm btn-warning" onclick="editHoliday('{{ $holiday['entry_time'] }}', '{{ addslashes($notes) }}')" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteHoliday('{{ $holiday['entry_time'] }}')" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @else
-            <div style="text-align: center; padding: 40px; color: #565959;">
-                <i class="fas fa-calendar" style="font-size: 48px; margin-bottom: 15px; opacity: 0.3;"></i>
-                <h3>No holidays found</h3>
-                <p>Add holidays for this month using the form above</p>
-            </div>
-        @endif
+        </div>
     </div>
 </div>
 
-@endsection
+<style>
+.calendar-table {
+    font-size: 0.9rem;
+}
 
-@push('scripts')
+.calendar-day {
+    height: 120px;
+    vertical-align: top;
+    position: relative;
+    padding: 8px;
+}
+
+.calendar-day.today {
+    background-color: #e3f2fd !important;
+    border: 2px solid #2196f3;
+}
+
+.calendar-day.exception-holiday {
+    background-color: #ffebee;
+    border-left: 4px solid #f44336;
+}
+
+.calendar-day.exception-working_day {
+    background-color: #e8f5e8;
+    border-left: 4px solid #4caf50;
+}
+
+.calendar-day.exception-weekend {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.legend-square {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    vertical-align: middle;
+}
+
+.day-number {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+</style>
+
 <script>
-function editHoliday(date, notes) {
-    const parts = notes.split(' - ');
-    const title = parts[0];
-    const description = parts.length > 1 ? parts[1] : '';
+function showScheduleModal(date, type, description) {
+    document.getElementById('scheduleDate').value = date;
+    document.getElementById('scheduleDateDisplay').value = new Date(date).toLocaleDateString();
+    document.getElementById('scheduleType').value = type;
+    document.getElementById('scheduleDescription').value = description || '';
+}
+
+function saveScheduleException() {
+    const form = document.getElementById('scheduleForm');
+    const formData = new FormData(form);
     
-    Swal.fire({
-        title: 'Edit Holiday',
-        html: `
-            <div style="text-align: left;">
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Holiday Title</label>
-                    <input type="text" id="swal-title" class="swal2-input" value="${title}" style="width: 100%; margin: 0;">
-                </div>
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Description</label>
-                    <input type="text" id="swal-description" class="swal2-input" value="${description}" style="width: 100%; margin: 0;">
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Update Holiday',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#ff9900',
-        cancelButtonColor: '#6c757d',
-        preConfirm: () => {
-            const title = document.getElementById('swal-title').value;
-            const description = document.getElementById('swal-description').value;
-            
-            if (!title) {
-                Swal.showValidationMessage('Holiday title is required');
-                return false;
-            }
-            
-            return { title, description };
+    fetch('{{ route("admin.schedule.exception.store") }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            date: formData.get('date'),
+            type: formData.get('type'),
+            description: formData.get('description')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
         }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.innerHTML = `
-                @csrf
-                <input type="hidden" name="update_holiday" value="${date}">
-                <input type="hidden" name="title" value="${result.value.title}">
-                <input type="hidden" name="description" value="${result.value.description}">
-            `;
-            document.body.appendChild(form);
-            form.submit();
-        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving schedule exception');
     });
 }
 
-function deleteHoliday(date) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: 'This will delete the holiday for all employees on this date.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d13212',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.innerHTML = `
-                @csrf
-                <input type="hidden" name="delete_holiday" value="1">
-                <input type="hidden" name="holiday_time" value="${date}">
-            `;
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
+function deleteScheduleException(date) {
+    if (confirm('Are you sure you want to delete this schedule exception?')) {
+        fetch('{{ route("admin.schedule.exception.delete") }}', {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ date: date })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting schedule exception');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting schedule exception');
+        });
+    }
 }
 </script>
-@endpush
+@endsection

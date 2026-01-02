@@ -17,16 +17,23 @@ class AdminController extends Controller
 
     public function dashboard()
     {
+        $adminEmpId = auth()->user()->emp_id;
+        
         $stats = [
-            'total_employees' => Employee::where('role', 'employee')->count(),
-            'active_employees' => Employee::where(['status' => 'active', 'role' => 'employee'])->count(),
-            'inactive_employees' => Employee::where(['status' => 'inactive', 'role' => 'employee'])->count(),
+            'total_employees' => Employee::where('role', 'employee')->where('referrance', $adminEmpId)->count(),
+            'active_employees' => Employee::where(['status' => 'active', 'role' => 'employee'])->where('referrance', $adminEmpId)->count(),
+            'inactive_employees' => Employee::where(['status' => 'inactive', 'role' => 'employee'])->where('referrance', $adminEmpId)->count(),
             'present_today' => $this->getPresentToday(),
-            'pending_applications' => Application::where('status', 'pending')->count(),
+            'pending_applications' => Application::whereHas('employee', function($q) use ($adminEmpId) {
+                $q->where('referrance', $adminEmpId);
+            })->where('status', 'pending')->count(),
             'total_departments' => Department::count(),
         ];
 
         $recentApplications = Application::with('employee')
+            ->whereHas('employee', function($q) use ($adminEmpId) {
+                $q->where('referrance', $adminEmpId);
+            })
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -38,7 +45,10 @@ class AdminController extends Controller
 
     public function employees(Request $request)
     {
-        $query = Employee::where('role', 'employee');
+        $adminEmpId = auth()->user()->emp_id;
+        
+        $query = Employee::where('role', 'employee')
+            ->where('referrance', $adminEmpId);
         
         if ($request->has('search') && $request->search) {
             $search = $request->search;
@@ -67,12 +77,28 @@ class AdminController extends Controller
 
     public function showEmployee(Employee $employee)
     {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        // Check if the employee belongs to the current admin
+        if ($employee->referrance !== $adminEmpId) {
+            return redirect()->route('admin.employees')
+                ->with('error', 'You do not have permission to view this employee.');
+        }
+        
         $employee->load('department');
         return view('admin.employees.show', compact('employee'));
     }
     
     public function employeeTimeHistory(Request $request, Employee $employee)
     {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        // Check if the employee belongs to the current admin
+        if ($employee->referrance !== $adminEmpId) {
+            return redirect()->route('admin.employees')
+                ->with('error', 'You do not have permission to view this employee.');
+        }
+        
         $filter = $request->get('filter', 'this_month');
         
         $query = TimeEntry::where('employee_id', $employee->emp_id);
@@ -154,12 +180,28 @@ class AdminController extends Controller
 
     public function editEmployee(Employee $employee)
     {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        // Check if the employee belongs to the current admin
+        if ($employee->referrance !== $adminEmpId) {
+            return redirect()->route('admin.employees')
+                ->with('error', 'You do not have permission to edit this employee.');
+        }
+        
         $departments = Department::all();
         return view('admin.employees.edit', compact('employee', 'departments'));
     }
 
     public function updateEmployee(Request $request, Employee $employee)
     {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        // Check if the employee belongs to the current admin
+        if ($employee->referrance !== $adminEmpId) {
+            return redirect()->route('admin.employees')
+                ->with('error', 'You do not have permission to update this employee.');
+        }
+        
         $request->validate([
             'username' => 'required|string|max:255',
             'email' => 'required|email|unique:employees,email,' . $employee->id,
@@ -188,7 +230,12 @@ class AdminController extends Controller
 
     public function applications(Request $request)
     {
-        $query = Application::with('employee');
+        $adminEmpId = auth()->user()->emp_id;
+        
+        $query = Application::with('employee')
+            ->whereHas('employee', function($q) use ($adminEmpId) {
+                $q->where('referrance', $adminEmpId);
+            });
 
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
@@ -196,6 +243,19 @@ class AdminController extends Controller
 
         if ($request->has('type') && $request->type) {
             $query->where('req_type', $request->type);
+        }
+        
+        if ($request->has('search') && $request->search) {
+            $query->whereHas('employee', function($q) use ($request) {
+                $q->where('username', 'like', '%' . $request->search . '%')
+                  ->orWhere('emp_id', 'like', '%' . $request->search . '%');
+            });
+        }
+        
+        if ($request->has('employee_status') && $request->employee_status !== 'all') {
+            $query->whereHas('employee', function($q) use ($request) {
+                $q->where('status', $request->employee_status);
+            });
         }
 
         $applications = $query->orderBy('created_at', 'desc')->paginate(15);
@@ -228,11 +288,15 @@ class AdminController extends Controller
 
     public function attendance(Request $request)
     {
+        $adminEmpId = auth()->user()->emp_id;
         $date = $request->get('date', today()->format('Y-m-d'));
         $department = $request->get('department');
+        $search = $request->get('search');
+        $perPage = $request->get('per_page', 15);
 
         $query = Employee::where('role', 'employee')
             ->where('status', 'active')
+            ->where('referrance', $adminEmpId)
             ->with(['department', 'timeEntries' => function($q) use ($date) {
                 $q->whereDate('entry_time', $date)->orderBy('entry_time');
             }]);
@@ -240,8 +304,15 @@ class AdminController extends Controller
         if ($department) {
             $query->where('department_id', $department);
         }
+        
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('username', 'like', '%' . $search . '%')
+                  ->orWhere('emp_id', 'like', '%' . $search . '%');
+            });
+        }
 
-        $employees = $query->get();
+        $employees = $query->paginate($perPage);
         $departments = Department::all();
         
         // Check if the date is Sunday or 2nd/4th Saturday
@@ -309,15 +380,22 @@ class AdminController extends Controller
 
     private function getPresentToday()
     {
+        $adminEmpId = auth()->user()->emp_id;
+        
         return TimeEntry::whereDate('entry_time', today())
             ->where('entry_type', 'punch_in')
+            ->whereHas('employee', function($q) use ($adminEmpId) {
+                $q->where('referrance', $adminEmpId);
+            })
             ->distinct('employee_id')
             ->count();
     }
 
     private function getTodayAttendanceStats()
     {
-        $totalEmployees = Employee::where('role', 'employee')->count();
+        $adminEmpId = auth()->user()->emp_id;
+        
+        $totalEmployees = Employee::where('role', 'employee')->where('referrance', $adminEmpId)->count();
         $presentToday = $this->getPresentToday();
         $absentToday = $totalEmployees - $presentToday;
 
@@ -346,45 +424,7 @@ class AdminController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function timeEntries(Request $request)
-    {
-        $query = TimeEntry::with('employee');
-        
-        if ($request->employee) {
-            $query->where('employee_id', $request->employee);
-        }
-        
-        if ($request->from_date) {
-            $query->whereDate('entry_time', '>=', $request->from_date);
-        }
-        
-        if ($request->to_date) {
-            $query->whereDate('entry_time', '<=', $request->to_date);
-        }
-        
-        $timeEntries = $query->orderBy('entry_time')->paginate(20);
-        $employees = Employee::where('role', 'employee')->get();
-        
-        // Return JSON for AJAX requests
-        if ($request->wantsJson() || $request->ajax()) {
-            // Convert times to IST for JSON response
-            $entries = collect($timeEntries->items())->map(function($entry) {
-                return [
-                    'id' => $entry->id,
-                    'employee_id' => $entry->employee_id,
-                    'entry_type' => $entry->entry_type,
-                    'entry_time' => $entry->entry_time->timezone('Asia/Kolkata')->format('Y-m-d H:i:s'),
-                    'notes' => $entry->notes,
-                ];
-            });
-            
-            return response()->json([
-                'entries' => $entries
-            ]);
-        }
-        
-        return view('admin.time-entries.index', compact('timeEntries', 'employees'));
-    }
+    // timeEntries and deleteTimeEntry methods moved to SuperAdminController
 
     public function deleteDepartment(Department $department)
     {
@@ -398,7 +438,16 @@ class AdminController extends Controller
 
     public function employeeHistory(Request $request)
     {
-        $query = Employee::where(['role' => 'employee', 'status' => 'active']);
+        $adminEmpId = auth()->user()->emp_id;
+        
+        $query = Employee::where('role', 'employee')
+            ->where('referrance', $adminEmpId);
+        
+        // Handle status filter
+        $status = $request->get('status', 'active');
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
         
         // Handle department filter
         if ($request->department && $request->department !== 'all') {
@@ -408,8 +457,7 @@ class AdminController extends Controller
         // Handle search filter
         if ($request->search) {
             $query->where(function($q) use ($request) {
-                $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('username', 'like', "%{$request->search}%")
+                $q->where('username', 'like', "%{$request->search}%")
                   ->orWhere('emp_id', 'like', "%{$request->search}%");
             });
         }
@@ -462,11 +510,7 @@ class AdminController extends Controller
         return view('admin.wfh.index', compact('wfhRequests'));
     }
 
-    public function deleteTimeEntry(TimeEntry $timeEntry)
-    {
-        $timeEntry->delete();
-        return response()->json(['success' => true]);
-    }
+    // deleteTimeEntry method moved to SuperAdminController
 
     public function exportAttendance(Request $request)
     {
@@ -513,67 +557,76 @@ class AdminController extends Controller
         exit;
     }
 
-    public function schedule(Request $request)
+    public function schedule()
     {
-        $currentMonth = $request->get('month', now()->month);
-        $currentYear = $request->get('year', now()->year);
+        $currentMonth = request('month', Carbon::now()->month);
+        $currentYear = request('year', Carbon::now()->year);
         
-        // Handle holiday submission
-        if ($request->isMethod('post') && $request->has('add_holiday')) {
-            return $this->addHoliday($request, $currentMonth, $currentYear);
-        }
-        
-        // Handle holiday deletion
-        if ($request->isMethod('post') && $request->has('delete_holiday')) {
-            return $this->deleteHoliday($request, $currentMonth, $currentYear);
-        }
-        
-        // Handle holiday update
-        if ($request->isMethod('post') && $request->has('update_holiday')) {
-            return $this->updateHoliday($request, $currentMonth, $currentYear);
-        }
-        
-        $firstDayOfMonth = Carbon::create($currentYear, $currentMonth, 1)->startOfDay();
-        $lastDayOfMonth = Carbon::create($currentYear, $currentMonth, 1)->endOfMonth();
-        
-        // Get time entries for the month
-        $timeEntries = TimeEntry::with('employee')
-            ->whereBetween('entry_time', [$firstDayOfMonth, $lastDayOfMonth])
-            ->whereHas('employee', function($q) {
-                $q->where('role', '!=', 'admin');
-            })
-            ->orderBy('entry_time')
-            ->get();
-            
-        // Get holidays for listing
-        $holidays = TimeEntry::with('employee')
-            ->where('entry_type', 'holiday')
-            ->whereMonth('entry_time', $currentMonth)
-            ->whereYear('entry_time', $currentYear)
-            ->whereHas('employee', function($q) {
-                $q->whereNull('end_date');
-            })
+        $scheduleExceptions = \App\Models\ScheduleException::whereMonth('exception_date', $currentMonth)
+            ->whereYear('exception_date', $currentYear)
             ->get()
-            ->groupBy(function($item) {
-                return $item->entry_time->format('Y-m-d') . '|' . $item->notes;
-            })
-            ->map(function($group) {
-                $first = $group->first();
-                return [
-                    'id' => $first->id,
-                    'entry_time' => $first->entry_time,
-                    'notes' => $first->notes,
-                    'employee_count' => $group->count(),
-                    'affected_employees' => $group->pluck('employee.name')->join(', ')
-                ];
-            })
-            ->values();
-            
-        $settings = SystemSetting::pluck('setting_value', 'setting_key');
+            ->keyBy('exception_date');
         
-        return view('admin.schedule.index', compact(
-            'timeEntries', 'holidays', 'settings', 'currentMonth', 'currentYear'
-        ));
+        $calendar = $this->generateCalendar($currentYear, $currentMonth, $scheduleExceptions);
+        
+        return view('admin.schedule.index', compact('calendar', 'currentMonth', 'currentYear', 'scheduleExceptions'));
+    }
+    
+    public function storeScheduleException(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'type' => 'required|in:holiday,working_day,weekend',
+            'description' => 'nullable|string|max:255'
+        ]);
+        
+        try {
+            \App\Models\ScheduleException::updateOrCreate(
+                ['exception_date' => $request->date],
+                [
+                    'type' => $request->type,
+                    'description' => $request->description,
+                    'admin_id' => auth()->user()->emp_id
+                ]
+            );
+            
+            return response()->json(['success' => true, 'message' => 'Schedule exception saved successfully']);
+        } catch (\Exception $e) {
+            \Log::error('Schedule Exception Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+    
+    public function deleteScheduleException(Request $request)
+    {
+        \App\Models\ScheduleException::where('exception_date', $request->date)->delete();
+        return response()->json(['success' => true]);
+    }
+    
+    private function generateCalendar($year, $month, $scheduleExceptions)
+    {
+        $firstDay = Carbon::create($year, $month, 1);
+        $lastDay = $firstDay->copy()->endOfMonth();
+        $startOfWeek = $firstDay->copy()->startOfWeek();
+        $endOfWeek = $lastDay->copy()->endOfWeek();
+        
+        $calendar = [];
+        $current = $startOfWeek->copy();
+        
+        while ($current <= $endOfWeek) {
+            $dateStr = $current->format('Y-m-d');
+            $exception = $scheduleExceptions->get($dateStr);
+            
+            $calendar[] = [
+                'date' => $current->copy(),
+                'is_current_month' => $current->month == $month,
+                'exception' => $exception
+            ];
+            
+            $current->addDay();
+        }
+        
+        return array_chunk($calendar, 7);
     }
     
     private function addHoliday(Request $request, $currentMonth, $currentYear)

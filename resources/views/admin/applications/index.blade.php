@@ -8,10 +8,12 @@
     <p class="page-subtitle">Manage employee leave and other requests</p>
 </div>
 
+
+
 <!-- Filters -->
 <div class="card">
-    <div class="card-body">
-        <form method="GET" action="{{ route('admin.applications') }}" style="display: grid; grid-template-columns: 200px 200px 120px; gap: 15px; align-items: end;">
+    <div class="card-body" >
+        <form method="GET" action="{{ route('admin.applications') }}" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(155 px, 5fr)); gap: 15px; align-items: end; " class="filter-form">
             <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-control">
@@ -30,6 +32,18 @@
                     <option value="half_day" {{ request('type') === 'half_day' ? 'selected' : '' }}>Half Day</option>
                     <option value="regularization" {{ request('type') === 'regularization' ? 'selected' : '' }}>Regularization</option>
                     <option value="complaint" {{ request('type') === 'complaint' ? 'selected' : '' }}>Complaint</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Search Employee</label>
+                <input type="text" name="search" class="form-control" placeholder="Name or ID" value="{{ request('search') }}">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Employee Status</label>
+                <select name="employee_status" class="form-control">
+                    <option value="all" {{ request('employee_status', 'all') === 'all' ? 'selected' : '' }}>All</option>
+                    <option value="active" {{ request('employee_status') === 'active' ? 'selected' : '' }}>Active</option>
+                    <option value="inactive" {{ request('employee_status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
                 </select>
             </div>
             <button type="submit" class="btn btn-secondary">

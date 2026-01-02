@@ -177,6 +177,13 @@
         .card-title { font-size: 17px; font-weight: 600; color: #1d1d1f; }
         .card-body { padding: 30px; }
 
+        .workhourssetting{
+            overflow: scroll;
+        }
+        .workhourssetting::-webkit-scrollbar {
+            display: none !important;
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -459,15 +466,39 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="{{ route('super-admin.salaries') }}" class="nav-link {{ request()->routeIs('super-admin.salaries*') ? 'active' : '' }}">
-                    <i class="fas fa-money-bill-wave"></i>
-                    Salary Management
+                <a href="{{ route('super-admin.admins') }}" class="nav-link {{ request()->routeIs('super-admin.admins*') ? 'active' : '' }}">
+                    <i class="fas fa-user-shield"></i>
+                    Admin Management
                 </a>
             </div>
             <div class="nav-item">
                 <a href="{{ route('super-admin.employees') }}" class="nav-link {{ request()->routeIs('super-admin.employees*') ? 'active' : '' }}">
                     <i class="fas fa-users"></i>
                     Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('super-admin.employee-history') }}" class="nav-link {{ request()->routeIs('super-admin.employee-history*') ? 'active' : '' }}">
+                    <i class="fas fa-history"></i>
+                    Employee History
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('super-admin.time-entries') }}" class="nav-link {{ request()->routeIs('super-admin.time-entries*') ? 'active' : '' }}">
+                    <i class="fas fa-clock"></i>
+                    Time Entries
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('super-admin.salaries') }}" class="nav-link {{ request()->routeIs('super-admin.salaries*') ? 'active' : '' }}">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Salary Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('super-admin.schedule') }}" class="nav-link {{ request()->routeIs('super-admin.schedule*') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-alt"></i>
+                    Schedule
                 </a>
             </div>
             <div class="nav-item">
@@ -482,6 +513,20 @@
                     Applications
                 </a>
             </div>
+
+            <div class="nav-item">
+                <a href="{{ route('super-admin.regions') }}" class="nav-link {{ request()->routeIs('super-admin.regions*') ? 'active' : '' }}">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Regions
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('super-admin.departments') }}" class="nav-link {{ request()->routeIs('super-admin.departments*') ? 'active' : '' }}">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            
             <div class="nav-item">
                 <a href="{{ route('super-admin.reports') }}" class="nav-link {{ request()->routeIs('super-admin.reports*') ? 'active' : '' }}">
                     <i class="fas fa-chart-bar"></i>
@@ -492,12 +537,6 @@
                 <a href="{{ route('super-admin.settings') }}" class="nav-link {{ request()->routeIs('super-admin.settings*') ? 'active' : '' }}">
                     <i class="fas fa-cog"></i>
                     Settings
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('super-admin.admins') }}" class="nav-link {{ request()->routeIs('super-admin.admins*') ? 'active' : '' }}">
-                    <i class="fas fa-user-shield"></i>
-                    Admin Management
                 </a>
             </div>
         </div>
@@ -522,6 +561,7 @@
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>

@@ -7,13 +7,31 @@
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
             <h1 class="page-title">Edit Administrator</h1>
-            <p class="page-subtitle">{{ $admin->name }} ({{ $admin->emp_id }})</p>
+            <p class="page-subtitle">{{ $admin->username }} ({{ $admin->emp_id }})</p>
         </div>
         <a href="{{ route('super-admin.admins') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Back to List
         </a>
     </div>
 </div>
+
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <ul class="mb-0">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 
 <form method="POST" action="{{ route('super-admin.admins.update', $admin) }}">
     @csrf
@@ -27,28 +45,60 @@
             </div>
             <div class="card-body">
                 <div class="form-group">
-                    <label class="form-label">Full Name</label>
-                    <input type="text" name="name" class="form-control" value="{{ $admin->name }}" required>
+                    <label class="form-label">Employee ID</label>
+                    <input type="text" class="form-control" value="{{ $admin->emp_id }}" readonly style="background: #f5f5f7;">
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label">Username</label>
-                    <input type="text" name="username" class="form-control" value="{{ $admin->username }}" required>
+                    <input type="text" name="username" class="form-control" value="{{ old('username', $admin->username) }}" required>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" value="{{ $admin->email }}" required>
+                    <input type="email" name="email" class="form-control" value="{{ old('email', $admin->email) }}" required>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Phone</label>
-                    <input type="text" name="phone" class="form-control" value="{{ $admin->phone }}">
+                    <label class="form-label">Department</label>
+                    <select class="form-control" name="department_id">
+                        <option value="">Select Department</option>
+                        @foreach($departments as $department)
+                            <option value="{{ $department->id }}" {{ $admin->department_id == $department->id ? 'selected' : '' }}>
+                                {{ $department->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Employee ID</label>
-                    <input type="text" class="form-control" value="{{ $admin->emp_id }}" readonly style="background: #f5f5f7;">
+                    <label class="form-label">Region</label>
+                    <select class="form-control" name="region_id">
+                        <option value="">Select Region</option>
+                        @foreach($regions as $region)
+                            <option value="{{ $region->id }}" {{ $admin->region_id == $region->id ? 'selected' : '' }}>
+                                {{ $region->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Designation</label>
+                    <input type="text" name="position" class="form-control" value="{{ old('position', $admin->position) }}">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select class="form-control" name="status" required>
+                        <option value="active" {{ $admin->status == 'active' ? 'selected' : '' }}>Active</option>
+                        <option value="inactive" {{ $admin->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Reference/Super Admin</label>
+                    <input type="text" name="referrance" class="form-control" value="{{ old('referrance', $admin->referrance) }}">
                 </div>
             </div>
         </div>
@@ -63,22 +113,20 @@
                     <label class="form-label">Select Employees to Assign</label>
                     <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 12px;">
                         @foreach($unassignedEmployees as $employee)
-                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <div class="form-check" style="margin-bottom: 8px;">
                                 <input type="checkbox" 
                                        name="assigned_employees[]" 
                                        value="{{ $employee->emp_id }}" 
-                                       id="emp_{{ $employee->emp_id }}"
-                                       {{ $employee->referrance == $admin->emp_id ? 'checked' : '' }}
-                                       style="margin-right: 8px;">
-                                <label for="emp_{{ $employee->emp_id }}" style="margin: 0; cursor: pointer; flex: 1;">
-                                    <div style="display: flex; align-items: center;">
-                                        <div style="width: 24px; height: 24px; background: #ff6b35; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 600; margin-right: 8px;">
-                                            {{ strtoupper(substr($employee->name, 0, 1)) }}
-                                        </div>
-                                        <div>
-                                            <div style="font-weight: 500; font-size: 14px;">{{ $employee->name }}</div>
-                                            <div style="font-size: 11px; color: #86868b;">{{ $employee->emp_id }} - {{ $employee->department }}</div>
-                                        </div>
+                                       id="emp_{{ $employee->emp_id }}" 
+                                       class="form-check-input"
+                                       {{ $employee->referrance == $admin->emp_id ? 'checked' : '' }}>
+                                <label class="form-check-label" for="emp_{{ $employee->emp_id }}" style="display: flex; align-items: center; cursor: pointer;">
+                                    <div style="width: 24px; height: 24px; background: #ff6b35; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 600; margin-right: 8px;">
+                                        {{ strtoupper(substr($employee->username, 0, 1)) }}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 500; font-size: 14px;">{{ $employee->username }}</div>
+                                        <div style="font-size: 11px; color: #86868b;">{{ $employee->emp_id }} - {{ $employee->department->name ?? 'No Department' }}</div>
                                     </div>
                                 </label>
                             </div>
@@ -91,7 +139,7 @@
                             </div>
                         @endif
                     </div>
-                    <small style="color: #86868b;">Select employees to assign to this administrator</small>
+                    <small style="color: #86868b;">Check the employees you want to assign to this administrator</small>
                 </div>
             </div>
         </div>
@@ -103,4 +151,5 @@
         </button>
     </div>
 </form>
+
 @endsection

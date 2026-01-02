@@ -14,7 +14,7 @@
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
         
         <!-- Work Hours Settings -->
-        <div class="card">
+        <div class="card workhourssetting" >
             <div class="card-header">
                 <h3 class="card-title">
                     <i class="fas fa-clock" style="color: #ff9900; margin-right: 10px;"></i>
@@ -44,6 +44,13 @@
                 </div>
                 
                 <div class="form-group">
+                    <label class="form-label">Lunch Duration</label>
+                    <input type="number" name="lunch_duration" class="form-control" 
+                           value="{{ $settings['lunch_duration']->setting_value ?? '60' }}" min="0" max="120">
+                    <small style="color: #565959;">Minutes for lunch break</small>
+                </div>
+
+                <div class="form-group">
                     <label class="form-label">Late Threshold (minutes)</label>
                     <input type="number" name="late_threshold" class="form-control" 
                            value="{{ $settings['late_threshold']->setting_value ?? '15' }}" min="0" max="60">
@@ -61,24 +68,19 @@
                 </h3>
             </div>
             <div class="card-body">
-                <div class="form-group">
-                    <label class="form-label">Annual Leave Days</label>
-                    <input type="number" name="annual_leave_days" class="form-control" 
-                           value="{{ $settings['annual_leave_days']->setting_value ?? '21' }}" min="0" max="365">
-                    <small style="color: #565959;">Total annual leave days per employee</small>
-                </div>
+                
                 
                 <div class="form-group">
                     <label class="form-label">Sick Leave Days</label>
                     <input type="number" name="sick_leave_days" class="form-control" 
-                           value="{{ $settings['sick_leave_days']->setting_value ?? '10' }}" min="0" max="365">
+                           value="{{ $settings['sick_leave']->setting_value ?? '10' }}" min="0" max="365">
                     <small style="color: #565959;">Total sick leave days per employee</small>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label">Casual Leave Days</label>
                     <input type="number" name="casual_leave_days" class="form-control" 
-                           value="{{ $settings['casual_leave_days']->setting_value ?? '12' }}" min="0" max="365">
+                           value="{{ $settings['casual_leave']->setting_value ?? '12' }}" min="0" max="365">
                     <small style="color: #565959;">Total casual leave days per employee</small>
                 </div>
                 
@@ -90,99 +92,26 @@
                     </select>
                     <small style="color: #565959;">Automatically approve leave applications</small>
                 </div>
-            </div>
-        </div>
-
-        <!-- Notification Settings -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-bell" style="color: #c7511f; margin-right: 10px;"></i>
-                    Notifications
-                </h3>
-            </div>
-            <div class="card-body">
+                
                 <div class="form-group">
-                    <label class="form-label">Email Notifications</label>
-                    <select name="email_notifications" class="form-control">
-                        <option value="0" {{ ($settings['email_notifications']->setting_value ?? '1') == '0' ? 'selected' : '' }}>Disabled</option>
-                        <option value="1" {{ ($settings['email_notifications']->setting_value ?? '1') == '1' ? 'selected' : '' }}>Enabled</option>
+                    <label class="form-label">Weekend Policy</label>
+                    <select name="weekend_policy" id="weekendPolicy" class="form-control" required>
+                        @php
+                            $currentPolicy = 'sunday_only';
+                            if(isset($settings['weekend_policy'])) {
+                                $policyData = json_decode($settings['weekend_policy']->setting_value, true);
+                                if($policyData['recurring_days'] == [0, 6]) $currentPolicy = 'sat_sun';
+                                elseif(isset($policyData['specific_pattern'][6]) && $policyData['specific_pattern'][6] == [2, 4]) $currentPolicy = 'sun_2_4_sat';
+                                elseif(isset($policyData['specific_pattern'][6])) $currentPolicy = 'sun_custom_sat';
+                            }
+                        @endphp
+                        <option value="sunday_only" {{ $currentPolicy == 'sunday_only' ? 'selected' : '' }}>Sunday Only</option>
+                        <option value="sat_sun" {{ $currentPolicy == 'sat_sun' ? 'selected' : '' }}>Saturday & Sunday</option>
+                        <option value="sun_2_4_sat" {{ $currentPolicy == 'sun_2_4_sat' ? 'selected' : '' }}>Sunday & 2nd/4th Saturday</option>
+                        <option value="sun_custom_sat" {{ $currentPolicy == 'sun_custom_sat' ? 'selected' : '' }}>Sunday & Custom Saturday</option>
                     </select>
-                    <small style="color: #565959;">Send email notifications for applications</small>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Late Arrival Notifications</label>
-                    <select name="late_notifications" class="form-control">
-                        <option value="0" {{ ($settings['late_notifications']->setting_value ?? '1') == '0' ? 'selected' : '' }}>Disabled</option>
-                        <option value="1" {{ ($settings['late_notifications']->setting_value ?? '1') == '1' ? 'selected' : '' }}>Enabled</option>
-                    </select>
-                    <small style="color: #565959;">Notify admins about late arrivals</small>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Absence Notifications</label>
-                    <select name="absence_notifications" class="form-control">
-                        <option value="0" {{ ($settings['absence_notifications']->setting_value ?? '1') == '0' ? 'selected' : '' }}>Disabled</option>
-                        <option value="1" {{ ($settings['absence_notifications']->setting_value ?? '1') == '1' ? 'selected' : '' }}>Enabled</option>
-                    </select>
-                    <small style="color: #565959;">Notify admins about employee absences</small>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Admin Email</label>
-                    <input type="email" name="admin_email" class="form-control" 
-                           value="{{ $settings['admin_email']->setting_value ?? 'admin@company.com' }}">
-                    <small style="color: #565959;">Email address for admin notifications</small>
-                </div>
-            </div>
-        </div>
-
-        <!-- System Settings -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-cog" style="color: #7c3aed; margin-right: 10px;"></i>
-                    System Configuration
-                </h3>
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label class="form-label">Company Name</label>
-                    <input type="text" name="company_name" class="form-control" 
-                           value="{{ $settings['company_name']->setting_value ?? 'Your Company' }}">
-                    <small style="color: #565959;">Name displayed in the system</small>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Timezone</label>
-                    <select name="timezone" class="form-control">
-                        <option value="UTC" {{ ($settings['timezone']->setting_value ?? 'UTC') == 'UTC' ? 'selected' : '' }}>UTC</option>
-                        <option value="America/New_York" {{ ($settings['timezone']->setting_value ?? 'UTC') == 'America/New_York' ? 'selected' : '' }}>Eastern Time</option>
-                        <option value="America/Chicago" {{ ($settings['timezone']->setting_value ?? 'UTC') == 'America/Chicago' ? 'selected' : '' }}>Central Time</option>
-                        <option value="America/Denver" {{ ($settings['timezone']->setting_value ?? 'UTC') == 'America/Denver' ? 'selected' : '' }}>Mountain Time</option>
-                        <option value="America/Los_Angeles" {{ ($settings['timezone']->setting_value ?? 'UTC') == 'America/Los_Angeles' ? 'selected' : '' }}>Pacific Time</option>
-                        <option value="Asia/Kolkata" {{ ($settings['timezone']->setting_value ?? 'UTC') == 'Asia/Kolkata' ? 'selected' : '' }}>India Standard Time</option>
-                    </select>
-                    <small style="color: #565959;">System timezone for all operations</small>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Date Format</label>
-                    <select name="date_format" class="form-control">
-                        <option value="Y-m-d" {{ ($settings['date_format']->setting_value ?? 'Y-m-d') == 'Y-m-d' ? 'selected' : '' }}>YYYY-MM-DD</option>
-                        <option value="m/d/Y" {{ ($settings['date_format']->setting_value ?? 'Y-m-d') == 'm/d/Y' ? 'selected' : '' }}>MM/DD/YYYY</option>
-                        <option value="d/m/Y" {{ ($settings['date_format']->setting_value ?? 'Y-m-d') == 'd/m/Y' ? 'selected' : '' }}>DD/MM/YYYY</option>
-                        <option value="M d, Y" {{ ($settings['date_format']->setting_value ?? 'Y-m-d') == 'M d, Y' ? 'selected' : '' }}>Mon DD, YYYY</option>
-                    </select>
-                    <small style="color: #565959;">Date display format throughout the system</small>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Session Timeout (minutes)</label>
-                    <input type="number" name="session_timeout" class="form-control" 
-                           value="{{ $settings['session_timeout']->setting_value ?? '120' }}" min="30" max="480">
-                    <small style="color: #565959;">Auto-logout after inactivity</small>
+                    <small style="color: #565959;">Configure which days are considered weekends</small>
+                    <input type="hidden" name="custom_saturday_weeks" id="customSaturdayWeeks">
                 </div>
             </div>
         </div>
@@ -233,8 +162,16 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 $(document).ready(function() {
+    // Handle weekend policy change
+    $('#weekendPolicy').on('change', function() {
+        if ($(this).val() === 'sun_custom_sat') {
+            showCustomSaturdayModal();
+        }
+    });
+    
     $('form').on('submit', function(e) {
         e.preventDefault();
         
@@ -255,5 +192,91 @@ $(document).ready(function() {
         }, 1000);
     });
 });
+
+function showCustomSaturdayModal() {
+    Swal.fire({
+        title: '<i class="fas fa-calendar-week"></i> Custom Saturday Configuration',
+        html: `
+            <div class="mb-3">
+                <label class="form-label"><i class="fas fa-info-circle me-2"></i>Select which Saturdays should be holidays:</label>
+                <div class="mt-3">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="1" id="week1">
+                        <label class="form-check-label" for="week1">
+                            <i class="fas fa-calendar-day me-2"></i>1st Saturday of the month
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="2" id="week2">
+                        <label class="form-check-label" for="week2">
+                            <i class="fas fa-calendar-day me-2"></i>2nd Saturday of the month
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="3" id="week3">
+                        <label class="form-check-label" for="week3">
+                            <i class="fas fa-calendar-day me-2"></i>3rd Saturday of the month
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="4" id="week4">
+                        <label class="form-check-label" for="week4">
+                            <i class="fas fa-calendar-day me-2"></i>4th Saturday of the month
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="5" id="week5">
+                        <label class="form-check-label" for="week5">
+                            <i class="fas fa-calendar-day me-2"></i>5th Saturday of the month (if exists)
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-save me-2"></i>Save Configuration',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancel',
+        buttonsStyling: false,
+        customClass: {
+            confirmButton: 'btn btn-primary me-2',
+            cancelButton: 'btn btn-secondary'
+        },
+        width: '500px',
+        preConfirm: () => {
+            const selectedWeeks = [];
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedWeeks.push(parseInt(checkbox.value));
+            });
+            
+            if (selectedWeeks.length === 0) {
+                Swal.showValidationMessage('<i class="fas fa-exclamation-triangle"></i> Please select at least one Saturday');
+                return false;
+            }
+            
+            return selectedWeeks;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('customSaturdayWeeks').value = JSON.stringify(result.value);
+            
+            Swal.fire({
+                title: 'Configuration Saved!',
+                text: `Selected Saturdays: ${result.value.map(w => w + getOrdinalSuffix(w)).join(', ')}`,
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } else {
+            // Reset to previous selection if cancelled
+            document.getElementById('weekendPolicy').value = 'sunday_only';
+        }
+    });
+}
+
+function getOrdinalSuffix(num) {
+    const suffixes = ['th', 'st', 'nd', 'rd'];
+    const v = num % 100;
+    return suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0];
+}
 </script>
 @endpush

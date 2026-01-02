@@ -14,20 +14,53 @@
 
 <!-- Filters -->
 <div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title">Search & Filter Employees</h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 12px; color: #666; margin: 0;">Per Page:</label>
+            <select id="per-page-select" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
+                <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+            </select>
+        </div>
+    </div>
     <div class="card-body">
-        <form method="GET" action="{{ route('super-admin.employees') }}" style="display: grid; grid-template-columns: 200px 120px; gap: 15px; align-items: end;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Status</label>
-                <select name="status" class="form-control">
-                    <option value="active" {{ request('status', 'active') == 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    <option value="all" {{ request('status') == 'all' ? 'selected' : '' }}>All</option>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Search Employee</label>
+                <input type="text" id="employee-search" placeholder="Employee ID or Username" 
+                       style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%;" 
+                       value="{{ request('search') }}">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Filter by Admin</label>
+                <select id="admin-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%;">
+                    <option value="">All Admins</option>
+                    @foreach($admins as $admin)
+                        <option value="{{ $admin->emp_id }}" {{ request('admin_filter') == $admin->emp_id ? 'selected' : '' }}>
+                            {{ $admin->username }} ({{ $admin->emp_id }})
+                        </option>
+                    @endforeach
                 </select>
             </div>
-            <button type="submit" class="btn btn-secondary">
-                <i class="fas fa-search"></i> Filter
-            </button>
-        </form>
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Status</label>
+                <select id="status-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%;">
+                    <option value="" {{ request('status') == '' ? 'selected' : '' }}>All Status</option>
+                    <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                    <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="applyFilters()" class="btn btn-primary" style="padding: 8px 20px; font-size: 14px;">
+                    <i class="fas fa-search"></i> Search
+                </button>
+                <button onclick="clearFilters()" class="btn btn-secondary" style="padding: 8px 15px; font-size: 14px;">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -115,7 +148,7 @@
             <!-- Pagination -->
             @if($employees->hasPages())
                 <div style="padding: 20px; border-top: 1px solid #eee;">
-                    {{ $employees->links() }}
+                    {{ $employees->appends(request()->query())->links() }}
                 </div>
             @endif
         @else
@@ -128,3 +161,42 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function applyFilters() {
+    const search = document.getElementById('employee-search').value;
+    const adminFilter = document.getElementById('admin-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    const perPage = document.getElementById('per-page-select').value;
+    
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (adminFilter) params.append('admin_filter', adminFilter);
+    if (statusFilter) params.append('status', statusFilter);
+    if (perPage) params.append('per_page', perPage);
+    
+    window.location.href = '{{ route("super-admin.employees") }}?' + params.toString();
+}
+
+function clearFilters() {
+    document.getElementById('employee-search').value = '';
+    document.getElementById('admin-filter').value = '';
+    document.getElementById('status-filter').value = '';
+    document.getElementById('per-page-select').value = '10';
+    window.location.href = '{{ route("super-admin.employees") }}';
+}
+
+// Per page change handler
+document.getElementById('per-page-select').addEventListener('change', function() {
+    applyFilters();
+});
+
+// Enter key handler for search input
+document.getElementById('employee-search').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        applyFilters();
+    }
+});
+</script>
+@endpush

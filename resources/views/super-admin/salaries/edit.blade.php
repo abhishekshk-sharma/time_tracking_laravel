@@ -127,7 +127,7 @@ $(document).ready(function() {
         const gross = basic + hra + ta + conveyance - pf - pt;
         
         if ($('#gross_display').length === 0) {
-            $('form').append('<div id="gross_display" style="background: #f0fdf4; padding: 16px; border-radius: 8px; margin-top: 20px; text-align: center;"><strong>Gross Salary: ₹<span id="gross_amount">0.00</span></strong></div>');
+            $('form').append('<div id="gross_display" style="background: #f0fdf4; padding: 16px; border-radius: 8px; margin-top: 20px; text-align: center;"><strong>Gross Salary: ₹<span id="gross_amount">'+gross+'</span></strong></div>');
         }
         
         $('#gross_amount').text(gross.toFixed(2));

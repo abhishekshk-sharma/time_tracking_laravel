@@ -1185,24 +1185,24 @@
                     Employees
                 </a>
             </div>
-            <div class="nav-item">
+            {{-- <div class="nav-item">
                 <a href="{{ route('admin.departments') }}" class="nav-link {{ request()->routeIs('admin.departments*') ? 'active' : '' }}">
                     <i class="fas fa-building"></i>
                     Departments
                 </a>
-            </div>
+            </div> --}}
             <div class="nav-item">
                 <a href="{{ route('admin.attendance') }}" class="nav-link {{ request()->routeIs('admin.attendance*') ? 'active' : '' }}">
                     <i class="fas fa-calendar-check"></i>
                     Attendance
                 </a>
             </div>
-            <div class="nav-item">
+            {{-- <div class="nav-item">
                 <a href="{{ route('admin.time-entries') }}" class="nav-link {{ request()->routeIs('admin.time-entries*') ? 'active' : '' }}">
                     <i class="fas fa-clock"></i>
                     Time Entries
                 </a>
-            </div>
+            </div> --}}
             <div class="nav-item">
                 <a href="{{ route('admin.applications') }}" class="nav-link {{ request()->routeIs('admin.applications*') ? 'active' : '' }}">
                     <i class="fas fa-file-alt"></i>

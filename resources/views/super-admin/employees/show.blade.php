@@ -64,7 +64,7 @@
             <div style="display: grid; gap: 16px;">
                 <div>
                     <label class="form-label">Department</label>
-                    <div style="font-weight: 500;">{{ $employee->department ?: 'Not Set' }}</div>
+                    <div style="font-weight: 500;">{{ $employee->department->name ?: 'Not Set' }}</div>
                 </div>
                 <div>
                     <label class="form-label">Position</label>
@@ -98,6 +98,12 @@
                     <label class="form-label">Role</label>
                     <div style="font-weight: 500;">
                         <span class="badge badge-secondary">{{ ucfirst($employee->role) }}</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Reference/Admin</label>
+                    <div style="font-weight: 500;">
+                        <span class="badge badge-secondary">{{ $employee->referrance }}</span>
                     </div>
                 </div>
             </div>

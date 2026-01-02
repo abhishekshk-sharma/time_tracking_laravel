@@ -8,31 +8,6 @@
     <p class="page-subtitle">Monitor employee attendance and working hours</p>
 </div>
 
-<!-- Filters -->
-<div class="card">
-    <div class="card-body">
-        <form method="GET" action="{{ route('admin.attendance') }}" style="display: grid; grid-template-columns: 200px 200px 120px; gap: 15px; align-items: end;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Date</label>
-                <input type="date" name="date" class="form-control" value="{{ $date }}">
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Department</label>
-                <select name="department" class="form-control">
-                    <option value="">All Departments</option>
-                    @foreach($departments as $department)
-                        <option value="{{ $department->id }}" {{ request('department') == $department->id ? 'selected' : '' }}>
-                            {{ $department->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="btn btn-secondary">
-                <i class="fas fa-search"></i> Filter
-            </button>
-        </form>
-    </div>
-</div>
 
 <!-- Attendance Summary -->
 <div class="stats-grid">
@@ -60,6 +35,46 @@
         <div class="stat-label">Attendance Rate</div>
     </div>
 </div>
+
+<!-- Filters -->
+<div class="card">
+    <div class="card-body">
+        <form method="GET" action="{{ route('admin.attendance') }}" style="display: grid; grid-template-columns: 200px 200px 200px 120px 120px; gap: 15px; align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Date</label>
+                <input type="date" name="date" class="form-control" value="{{ $date }}">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    @foreach($departments as $department)
+                        <option value="{{ $department->id }}" {{ request('department') == $department->id ? 'selected' : '' }}>
+                            {{ $department->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Search Employee</label>
+                <input type="text" name="search" class="form-control" placeholder="Name or ID" value="{{ request('search') }}">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Per Page</label>
+                <select name="per_page" class="form-control">
+                    <option value="15" {{ request('per_page', 15) == 15 ? 'selected' : '' }}>15</option>
+                    <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary">
+                <i class="fas fa-search"></i> Filter
+            </button>
+        </form>
+    </div>
+</div>
+
+
 
 <!-- Attendance Table -->
 <div class="card">
@@ -170,6 +185,11 @@
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Pagination -->
+            <div style="padding: 20px;">
+                {{ $employees->appends(request()->query())->links() }}
+            </div>
         @else
             <div style="text-align: center; padding: 40px; color: #565959;">
                 <i class="fas fa-calendar-check" style="font-size: 48px; margin-bottom: 15px; opacity: 0.3;"></i>
@@ -177,26 +197,6 @@
                 <p>Try adjusting your filter criteria</p>
             </div>
         @endif
-    </div>
-</div>
-
-<!-- Quick Actions -->
-<div class="card" style="margin-top: 30px;">
-    <div class="card-header">
-        <h3 class="card-title">Quick Actions</h3>
-    </div>
-    <div class="card-body">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-            <button class="btn btn-primary" onclick="exportAttendance('{{ $date }}')">
-                <i class="fas fa-download"></i> Export Today's Attendance
-            </button>
-                {{-- <button class="btn btn-secondary" onclick="sendReminders()">
-                    <i class="fas fa-bell"></i> Send Attendance Reminders
-                </button> --}}
-            <a href="{{ route('admin.reports') }}" class="btn btn-secondary">
-                <i class="fas fa-chart-bar"></i> Generate Reports
-            </a>
-        </div>
     </div>
 </div>
 @endsection
