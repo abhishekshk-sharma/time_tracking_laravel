@@ -44,15 +44,19 @@ class ProfileController extends Controller
         return response('success');
     }
 
-    public function updateDob(Request $request)
+    public function updateProfile(Request $request)
     {
-        $request->validate([
-            'newDob' => 'required|date|before:today',
-        ]);
-
-        $employee = Auth::user();
-        $employee->update(['dob' => $request->newDob]);
-
-        return response('success');
+        $click = $request->input('click');
+        
+        switch ($click) {
+            case 'changeemail':
+                return $this->updateEmail($request);
+            case 'changepass':
+                return $this->updatePassword($request);
+            case 'changdob':
+                return $this->updateDob($request);
+            default:
+                return response('invalid_action', 400);
+        }
     }
 }

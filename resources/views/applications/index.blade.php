@@ -658,16 +658,28 @@
                         
                         <div class="filter-group">
                             <label for="dateFilter">Date Range</label>
-                            <select id="dateFilter">
+                            <select id="dateFilter" class="form-control">
                                 <option value="all">All Time</option>
                                 <option value="month">This Month</option>
                                 <option value="quarter">This Quarter</option>
                                 <option value="year">This Year</option>
+                                <option value="custom">Custom Range</option>
                             </select>
                         </div>
+                        
+                        <div class="filter-group" id="customDateGroup" style="display: none;">
+                            <label for="startDateFilter">From Date</label>
+                            <input type="date" id="startDateFilter" class="form-input">
+                        </div>
+                        
+                        <div class="filter-group" id="customEndDateGroup" style="display: none;">
+                            <label for="endDateFilter">To Date</label>
+                            <input type="date" id="endDateFilter" class="form-input">
+                        </div>
+                        
                         <div class="filter-group">
                             <button type="button" class="btn btn-primary" id="checkfilter">
-                                <i class="fas fa-paper-plane"></i> check
+                                <i class="fas fa-search"></i> Filter
                             </button>
                         </div>
                         
@@ -1196,17 +1208,60 @@
                 let status = $("#statusFilter").val();
                 let type = $("#typeFilter").val();
                 let limit = $("#dateFilter").val();
+                let startDate = $("#startDateFilter").val();
+                let endDate = $("#endDateFilter").val();
+
+                // Validate custom date range
+                if (limit === 'custom') {
+                    if (!startDate || !endDate) {
+                        Swal.fire({
+                            text: "Please select both start and end dates for custom range!",
+                            icon: "error"
+                        });
+                        return;
+                    }
+                    
+                    if (new Date(startDate) > new Date(endDate)) {
+                        Swal.fire({
+                            text: "Start date cannot be later than end date!",
+                            icon: "error"
+                        });
+                        return;
+                    }
+                }
 
                 $.ajax({
                     url: "{{ route('api.filter.requests') }}",
                     method: "POST",
-                    data: {click:click, status:status, type:type, limit:limit, _token: '{{ csrf_token() }}'},
+                    data: {
+                        click: click, 
+                        status: status, 
+                        type: type, 
+                        limit: limit,
+                        start_date: startDate,
+                        end_date: endDate,
+                        _token: '{{ csrf_token() }}'
+                    },
                     success: function(e){
                         if(e){
                             $("#Tbody").html(e);
                         }
                     }
                 });
+            });
+            
+            // Handle date filter change to show/hide custom date inputs
+            $(document).on("change", "#dateFilter", function(){
+                let filterValue = $(this).val();
+                if (filterValue === 'custom') {
+                    $("#customDateGroup").show();
+                    $("#customEndDateGroup").show();
+                } else {
+                    $("#customDateGroup").hide();
+                    $("#customEndDateGroup").hide();
+                    $("#startDateFilter").val('');
+                    $("#endDateFilter").val('');
+                }
             });
 
         });

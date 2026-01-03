@@ -1,56 +1,16 @@
-@extends('super-admin.layouts.app')
+@extends('admin.layouts.app')
 
 @section('title', 'Reports')
 
 @section('content')
 <div class="page-header">
-    <h1 class="page-title">Reports & Analytics</h1>
-    <p class="page-subtitle">Generate comprehensive reports and insights with salary data</p>
+    <h1 class="page-title">Attendance Reports</h1>
+    <p class="page-subtitle">Generate attendance reports for your assigned employees</p>
 </div>
 
 <!-- Report Categories -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px;">
     
-    <!-- Salary Reports -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-money-bill-wave" style="color: #ff6b35; margin-right: 10px;"></i>
-                Salary Reports
-            </h3>
-        </div>
-        <div class="card-body">
-            <p style="color: #565959; margin-bottom: 20px;">Generate detailed salary reports for all employees.</p>
-            
-            <form action="{{ route('super-admin.salary-reports.generate') }}" method="POST">
-                @csrf
-                <div class="form-group">
-                    <label class="form-label">Month</label>
-                    <select name="month" class="form-control" required>
-                        @for($m = 1; $m <= 12; $m++)
-                            <option value="{{ $m }}" {{ $m == date('n') ? 'selected' : '' }}>
-                                {{ date('F', mktime(0, 0, 0, $m, 1)) }}
-                            </option>
-                        @endfor
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Year</label>
-                    <select name="year" class="form-control" required>
-                        @for($y = date('Y') - 1; $y <= date('Y') + 1; $y++)
-                            <option value="{{ $y }}" {{ $y == date('Y') ? 'selected' : '' }}>{{ $y }}</option>
-                        @endfor
-                    </select>
-                </div>
-                
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-cogs"></i> Generate All Salary Reports
-                </button>
-            </form>
-        </div>
-    </div>
-
     <!-- Attendance Reports -->
     <div class="card">
         <div class="card-header">
@@ -60,9 +20,9 @@
             </h3>
         </div>
         <div class="card-body">
-            <p style="color: #565959; margin-bottom: 20px;">Generate detailed attendance reports for all employees.</p>
+            <p style="color: #565959; margin-bottom: 20px;">Generate detailed attendance reports for your assigned employees.</p>
             
-            <form action="{{ route('super-admin.attendance-reports.generate') }}" method="POST">
+            <form action="{{ route('admin.reports.generate') }}" method="POST">
                 @csrf
                 <div class="form-group">
                     <label class="form-label">Month</label>
@@ -85,20 +45,20 @@
                 </div>
                 
                 <button type="submit" class="btn btn-success">
-                    <i class="fas fa-file-excel"></i> Generate Excel Report
+                    <i class="fas fa-file-excel"></i> Generate Attendance Report
                 </button>
             </form>
         </div>
     </div>
 
-    @if($salaryReports->count() > 0)
+    @if(isset($salaryReports) && $salaryReports->count() > 0)
     <!-- Generated Salary Reports -->
     <div class="card mt-4" style="grid-column: 1 / -1;">
         <div class="card-header">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <h3 class="card-title">
                     <i class="fas fa-table" style="color: #10b981; margin-right: 10px;"></i>
-                    Generated Salary Reports
+                    Generated Salary Reports (Allotted Employees)
                 </h3>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <label style="font-size: 12px; color: #666; margin: 0;">Per Page:</label>
@@ -113,7 +73,7 @@
         
         <!-- Search Filters -->
         <div class="card-body" style="border-bottom: 1px solid #e9ecef; padding-bottom: 15px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
                 <div class="form-group" style="margin: 0;">
                     <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Search Employee</label>
                     <input type="text" id="employee-search" placeholder="Employee ID or Name" 
@@ -161,7 +121,6 @@
                             <th>Month/Year</th>
                             <th>Net Salary</th>
                             <th>Status</th>
-                            <th>Report Quality</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -185,25 +144,7 @@
                                     </span>
                                 </td>
                                 <td>
-                                    @if($report->has_negative_salary)
-                                        <span class="badge bg-danger me-1">Negative Salary</span>
-                                    @endif
-                                    @if($report->has_missing_data)
-                                        <span class="badge bg-warning me-1">Missing Data</span>
-                                    @endif
-                                    @if($report->needs_review)
-                                        <span class="badge bg-info me-1">Needs Review</span>
-                                    @endif
-                                    @if(!$report->has_negative_salary && !$report->has_missing_data && !$report->needs_review)
-                                        <span class="badge bg-success">Good</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <a href="{{ route('super-admin.salary-reports.edit', $report->id) }}" 
-                                       class="btn btn-sm btn-warning me-1">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    <a href="{{ route('super-admin.salary-reports.download', $report->id) }}" 
+                                    <a href="{{ route('admin.salary-reports.download', $report->id) }}" 
                                        class="btn btn-sm btn-primary">
                                         <i class="fas fa-download"></i> Download PDF
                                     </a>
@@ -219,27 +160,12 @@
     </div>
     @endif
 
-    
 
-    
 </div>
 @endsection
 
 @push('scripts')
 <script>
-function toggleEmployeeSearch() {
-    const type = $('#salaryEmployeeType').val();
-    const searchGroup = $('#employeeSearchGroup');
-    
-    if (type === 'search') {
-        searchGroup.show();
-    } else {
-        searchGroup.hide();
-        $('#selectedEmployeeId').val('');
-        $('#salaryEmployeeSearch').val('');
-    }
-}
-
 // Salary Reports Search Functions
 function applyFilters() {
     const search = document.getElementById('employee-search').value;
@@ -253,7 +179,7 @@ function applyFilters() {
     if (year) params.append('year', year);
     if (perPage) params.append('per_page', perPage);
     
-    window.location.href = '{{ route("super-admin.reports") }}?' + params.toString();
+    window.location.href = '{{ route("admin.reports") }}?' + params.toString();
 }
 
 function clearFilters() {
@@ -261,19 +187,20 @@ function clearFilters() {
     document.getElementById('month-filter').value = '';
     document.getElementById('year-filter').value = '';
     document.getElementById('per-page-select').value = '10';
-    window.location.href = '{{ route("super-admin.reports") }}';
+    window.location.href = '{{ route("admin.reports") }}';
 }
 
 // Per page change handler
-document.getElementById('per-page-select').addEventListener('change', function() {
+document.getElementById('per-page-select')?.addEventListener('change', function() {
     applyFilters();
 });
 
 // Enter key handler for search input
-document.getElementById('employee-search').addEventListener('keypress', function(e) {
+document.getElementById('employee-search')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         applyFilters();
     }
 });
 </script>
 @endpush
+

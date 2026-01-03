@@ -15,84 +15,84 @@ class TimeController extends Controller
 {
     public function handleTimeAction(Request $request)
     {
-        $userid = Auth::user()->emp_id;
-        $click = $request->input('click');
-
-        if (!in_array($click, ['punch_in', 'lunch_start', 'lunch_end', 'punch_out'])) {
-            return response('error');
-        }
-
-        // Use database transaction to prevent race conditions
-        return \DB::transaction(function () use ($userid, $click) {
-            $time = Carbon::now('Asia/Kolkata')->format('Y-m-d H:i:s');
+        try {
+            $userid = Auth::user()->emp_id;
+            $click = $request->input('click');
             $today = Carbon::today()->format('Y-m-d');
 
-            // Lock the table to prevent concurrent access
-            $lastentry = TimeEntry::where('employee_id', $userid)
-                ->whereDate('entry_time', $today)
-                ->orderBy('entry_time', 'desc')
-                ->lockForUpdate() // This prevents race conditions
-                ->first();
-
-            // Check for duplicate within last 30 seconds (network delay protection)
-            $recentDuplicate = TimeEntry::where('employee_id', $userid)
-                ->where('entry_type', $click)
-                ->where('entry_time', '>=', Carbon::now('Asia/Kolkata')->subSeconds(30))
-                ->exists();
-                
-            if ($recentDuplicate) {
-                return response('error'); // Duplicate within 30 seconds
-            }
-
-            // Robust validation to prevent duplicate entries
-            if ($lastentry) {
-                // Prevent same action twice
-                if ($lastentry->entry_type === $click) {
-                    return response('error');
-                }
-                
-                // Validate proper sequence
-                if ($click === 'punch_out' && !in_array($lastentry->entry_type, ['punch_in', 'lunch_end'])) {
-                    return response('error');
-                }
-                
-                if ($click === 'lunch_start' && $lastentry->entry_type !== 'punch_in') {
-                    return response('error');
-                }
-                
-                if ($click === 'lunch_end' && $lastentry->entry_type !== 'lunch_start') {
-                    return response('error');
-                }
-                
-                if ($click === 'punch_in' && in_array($lastentry->entry_type, ['punch_in', 'lunch_start'])) {
-                    return response('error');
-                }
-            } else {
-                // First entry of the day must be punch_in
-                if ($click !== 'punch_in') {
-                    return response('error');
-                }
-            }
-
-            try {
-                $timeEntry = TimeEntry::create([
-                    'employee_id' => $userid,
-                    'entry_type' => $click,
-                    'entry_time' => $time,
-                    'notes' => $click
-                ]);
-
-                if ($timeEntry) {
-                    return response('nothing');
-                }
-            } catch (\Exception $e) {
-                \Log::error('Time entry creation failed: ' . $e->getMessage());
+            if (!in_array($click, ['punch_in', 'lunch_start', 'lunch_end', 'punch_out'])) {
                 return response('error');
             }
 
-            return response('error');
-        });
+            return \DB::transaction(function () use ($userid, $click, $today) {
+                $time = Carbon::now('Asia/Kolkata')->format('Y-m-d H:i:s');
+
+                // Get the last entry for today to check sequence
+                $lastEntry = TimeEntry::where('employee_id', $userid)
+                    ->whereDate('entry_time', $today)
+                    ->orderBy('entry_time', 'desc')
+                    ->first();
+
+                // 1. Check for back-to-back duplicate (same action as last entry)
+                if ($lastEntry && $lastEntry->entry_type === $click) {
+                    return response('duplicate_action');
+                }
+
+                // 2. Validate proper sequence
+                if ($lastEntry) {
+                    if ($click === 'punch_out' && !in_array($lastEntry->entry_type, ['punch_in', 'lunch_end'])) {
+                        return response('invalid_sequence');
+                    }
+                    if ($click === 'lunch_start' && !in_array($lastEntry->entry_type, ['punch_in', 'lunch_end'])) {
+                        return response('invalid_sequence');
+                    }
+                    if ($click === 'lunch_end' && $lastEntry->entry_type !== 'lunch_start') {
+                        return response('invalid_sequence');
+                    }
+                    if ($click === 'punch_in' && in_array($lastEntry->entry_type, ['punch_in', 'lunch_start'])) {
+                        return response('invalid_sequence');
+                    }
+                } else if ($click !== 'punch_in') {
+                    return response('must_punch_in_first');
+                }
+
+                // Simple punch-out validation - just check sequence
+                // No complex work hour validation needed
+
+                try {
+                    TimeEntry::create([
+                        'employee_id' => $userid,
+                        'entry_type' => $click,
+                        'entry_time' => $time,
+                        'notes' => $click
+                    ]);
+
+                    // Check work completion after punch_out
+                    if ($click === 'punch_out') {
+                        $allTodayEntries = TimeEntry::where('employee_id', $userid)
+                            ->whereDate('entry_time', $today)
+                            ->orderBy('entry_time', 'asc')
+                            ->get();
+                        
+                        if ($this->checkWorkCompletion($userid, $today, $allTodayEntries)) {
+                            return response('work_complete');
+                        }
+                    }
+
+                    return response('nothing');
+                } catch (\Exception $e) {
+                    \Log::error('Time entry creation failed: ' . $e->getMessage());
+                    return response('error');
+                }
+            });
+        } catch (\Exception $e) {
+            \Log::error('HandleTimeAction Error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json(['error' => 'Internal server error: ' . $e->getMessage()], 500);
+        }
     }
+
+
 
     public function getDetails(Request $request)
     {
@@ -144,531 +144,339 @@ class TimeController extends Controller
     {
         try {
             $userid = Auth::user()->emp_id;
-            $timezone = new \DateTimeZone("Asia/Kolkata");
-            $currentDate = Carbon::now($timezone)->format('Y-m-d');
+            $currentDate = Carbon::now('Asia/Kolkata')->format('Y-m-d');
 
-            // Get system settings with defaults - handle missing settings gracefully
-            $defaultSettings = [
-                'work_start_time' => '09:00:00',
-                'work_end_time' => '18:00:00', 
-                'lunch_duration' => '60',
-                'late_threshold' => '15'
-            ];
-            
-            $systemSettings = [];
-            try {
-                $settings = SystemSetting::all();
-                foreach ($settings as $row) {
-                    $systemSettings[$row->setting_key] = $row->setting_value;
-                }
-            } catch (\Exception $e) {
-                \Log::warning('System settings table not accessible, using defaults: ' . $e->getMessage());
-            }
-            
-            // Merge with defaults
-            $systemSettings = array_merge($defaultSettings, $systemSettings);
-            
-            $checkstart = $systemSettings['work_start_time'];
-            $checkend = $systemSettings['work_end_time'];
-            $lunchduration = intval($systemSettings['lunch_duration']);
-            $late = intval($systemSettings['late_threshold']);
-            
-            // Handle different time formats safely
-            try {
-                if (strlen($checkstart) == 5) {
-                    $checkstart .= ':00'; // Add seconds if missing
-                }
-                if (strlen($checkend) == 5) {
-                    $checkend .= ':00'; // Add seconds if missing
-                }
-                
-                $startTime = Carbon::createFromFormat('H:i:s', $checkstart, $timezone);
-                $endTime = Carbon::createFromFormat('H:i:s', $checkend, $timezone);
-            } catch (\Exception $e) {
-                // Fallback to default times if parsing fails
-                $startTime = Carbon::createFromFormat('H:i:s', '09:00:00', $timezone);
-                $endTime = Carbon::createFromFormat('H:i:s', '18:00:00', $timezone);
-                $checkstart = '09:00:00';
-                $checkend = '18:00:00';
-            }
-            
-            $combinedDateTime = $currentDate . ' ' . $checkstart;
-            $checkstart11 = Carbon::parse($combinedDateTime, $timezone);
-            $checkstartTimestamp = $checkstart11->timestamp;
+            // Get system settings
+            $workStartTime = SystemSetting::where('setting_key', 'work_start_time')->value('setting_value') ?? '09:00:00';
+            $workEndTime = SystemSetting::where('setting_key', 'work_end_time')->value('setting_value') ?? '18:00:00';
+            $lunchDuration = SystemSetting::where('setting_key', 'lunch_duration')->value('setting_value') ?? '60';
+            $lateThreshold = SystemSetting::where('setting_key', 'late_threshold')->value('setting_value') ?? '15';
 
-            $workTime = $startTime->format('H:i:s A') . "-" . $endTime->format('H:i:s A');
+            // Format times
+            if (strlen($workStartTime) == 5) $workStartTime .= ':00';
+            if (strlen($workEndTime) == 5) $workEndTime .= ':00';
 
-            // Get all time entries for the employee on current date
+            $startTime = Carbon::createFromFormat('H:i:s', $workStartTime);
+            $endTime = Carbon::createFromFormat('H:i:s', $workEndTime);
+            $workTime = $startTime->format('H:i:s A') . '-' . $endTime->format('H:i:s A');
+
+            // Get today's entries
             $entries = TimeEntry::where('employee_id', $userid)
                 ->whereDate('entry_time', $currentDate)
                 ->orderBy('entry_time', 'asc')
                 ->get();
 
-            // Calculate lunch time - handle multiple lunch sessions
-            $totalLunchSeconds = 0;
-            $lunchStartTime = null;
-            
+            // Initialize variables
+            $totalTimeMinutes = 0;
+            $totalLunchMinutes = 0;
+            $firstPunchIn = null;
+            $lastPunchOut = null;
+
+            // Find first punch-in and last punch-out
+            foreach ($entries as $entry) {
+                if ($entry->entry_type == 'punch_in' && !$firstPunchIn) {
+                    $firstPunchIn = Carbon::parse($entry->entry_time);
+                }
+                if ($entry->entry_type == 'punch_out') {
+                    $lastPunchOut = Carbon::parse($entry->entry_time);
+                }
+            }
+
+            // Calculate total time including lunch
+            if ($firstPunchIn && $lastPunchOut) {
+                $totalTimeMinutes = $firstPunchIn->diffInMinutes($lastPunchOut);
+            } elseif ($firstPunchIn) {
+                $totalTimeMinutes = $firstPunchIn->diffInMinutes(Carbon::now('Asia/Kolkata'));
+            }
+
+            // Calculate lunch time separately
+            $lunchStart = null;
             foreach ($entries as $entry) {
                 if ($entry->entry_type == 'lunch_start') {
-                    $lunchStartTime = Carbon::parse($entry->entry_time, $timezone);
-                } elseif ($entry->entry_type == 'lunch_end' && $lunchStartTime !== null) {
-                    $lunchEndTime = Carbon::parse($entry->entry_time, $timezone);
-                    if ($lunchEndTime > $lunchStartTime) {
-                        $totalLunchSeconds += $lunchEndTime->diffInSeconds($lunchStartTime);
-                    }
-                    $lunchStartTime = null;
+                    $lunchStart = Carbon::parse($entry->entry_time);
+                } elseif ($entry->entry_type == 'lunch_end' && $lunchStart) {
+                    $lunchEnd = Carbon::parse($entry->entry_time);
+                    $totalLunchMinutes += $lunchStart->diffInMinutes($lunchEnd);
+                    $lunchStart = null;
                 }
             }
-            
-            // Handle ongoing lunch (lunch_start without lunch_end)
-            if ($lunchStartTime !== null) {
-                $currentTime = Carbon::now($timezone);
-                if ($currentTime > $lunchStartTime) {
-                    $totalLunchSeconds += $currentTime->diffInSeconds($lunchStartTime);
-                }
-            }
-            
-            $lunchHours = floor($totalLunchSeconds / 3600);
-            $lunchMinutes = floor(($totalLunchSeconds % 3600) / 60);
-            $totallunchByemp = sprintf('%dH %dM', $lunchHours, $lunchMinutes);
 
-            // Calculate total work time - handle multiple work sessions
-            $totalWorkSeconds = 0;
-            $workStartTime = null;
-            $isCurrentlyWorking = false;
-            
-            foreach ($entries as $entry) {
-                if ($entry->entry_type == 'punch_in') {
-                    $workStartTime = Carbon::parse($entry->entry_time, $timezone);
-                    $isCurrentlyWorking = true;
-                } elseif ($entry->entry_type == 'punch_out' && $workStartTime !== null) {
-                    $workEndTime = Carbon::parse($entry->entry_time, $timezone);
-                    if ($workEndTime > $workStartTime) {
-                        $totalWorkSeconds += $workEndTime->diffInSeconds($workStartTime);
-                    }
-                    $workStartTime = null;
-                    $isCurrentlyWorking = false;
-                }
+            // Handle ongoing lunch
+            if ($lunchStart) {
+                $totalLunchMinutes += $lunchStart->diffInMinutes(Carbon::now('Asia/Kolkata'));
             }
-            
-            // Handle ongoing work session (punch_in without punch_out)
-            if ($workStartTime !== null && $isCurrentlyWorking) {
-                $currentTime = Carbon::now($timezone);
-                if ($currentTime > $workStartTime) {
-                    $totalWorkSeconds += $currentTime->diffInSeconds($workStartTime);
-                }
-            }
-            
-            $workHours = floor($totalWorkSeconds / 3600);
-            $workMinutes = floor(($totalWorkSeconds % 3600) / 60);
-            $totalWorkedTime = sprintf('%dH %dM', $workHours, $workMinutes);
-            
-            // Calculate net work time (work time - lunch time)
-            $netWorkSeconds = $totalWorkSeconds - $totalLunchSeconds;
-            $netWorkSeconds = max(0, $netWorkSeconds); // Ensure non-negative
-            $netHours = floor($netWorkSeconds / 3600);
-            $netMinutes = floor(($netWorkSeconds % 3600) / 60);
-            $netWorkTime = sprintf('%dH %dM', $netHours, $netMinutes);
 
-            // Check for leave/holiday/regularization
-            $leaveRecord = Application::where('employee_id', $userid)
-                ->whereDate('created_at', $currentDate)
-                ->where('status', 'approved')
-                ->orderBy('created_at', 'asc')
-                ->first();
+            // Format total time (including lunch)
+            $totalHours = floor($totalTimeMinutes / 60);
+            $totalMins = $totalTimeMinutes % 60;
+            $totalWorkedTime = sprintf('%dH %dM', $totalHours, $totalMins);
 
-            // Determine attendance state
-            $state = "Absent";
+            // Format lunch time
+            $lunchHours = floor($totalLunchMinutes / 60);
+            $lunchMins = $totalLunchMinutes % 60;
+            $totalLunchTime = $lunchHours > 0 ? sprintf('%dH %dM', $lunchHours, $lunchMins) : sprintf('%dM', $lunchMins);
+
+            // Use total time for network display
+            $netWorkTime = $totalWorkedTime;
+
+            // Check attendance status
             $firstEntry = $entries->first();
-            $lastEntry = $entries->last();
+            $status = 'Absent';
 
-            if ($entries->count() > 0) {
-                // Check if employee is on leave/holiday
-                if ($firstEntry && in_array($firstEntry->entry_type, ["regularization", "casual_leave", "sick_leave", "holiday"])) {
-                    $state = $firstEntry->entry_type;
-                }
-                // Check if there's an approved leave record
-                elseif ($leaveRecord && in_array($leaveRecord->req_type, ["regularization", "casual_leave", "sick_leave", "holiday", "half_day"])) {
-                    $state = $leaveRecord->req_type;
-                }
-                // Check if employee punched in
-                elseif ($firstEntry && $firstEntry->entry_type == "punch_in") {
-                    $firstPunchTime = Carbon::parse($firstEntry->entry_time, $timezone);
-                    $firstPunchTimestamp = $firstPunchTime->timestamp;
-
-                    $minutesLate = ($firstPunchTimestamp - $checkstartTimestamp) / 60;
-
-                    if ($minutesLate <= $late) {
-                        $state = "Present";
-                    } else {
-                        $state = "Late";
-                    }
-                }
-                elseif ($leaveRecord && $leaveRecord->req_type == "half_day") {
-                    $state = "half_day";
-                }
-            }
-
-            // Format state display
-            switch ($state) {
-                case "Present":
-                    $lateresult = "<label style='color:green;'>$state</label>";
-                    break;
-                case "Late":
-                    $lateresult = "<label style='color:orange;'>$state</label>";
-                    break;
-                case "Absent":
-                    $lateresult = "<label style='color:red;'>$state</label>";
-                    break;
-                case "half_day":
-                    $lateresult = "<label style='color:blue;'>Half Day</label>";
-                    break;
-                case "casual_leave":
-                    $lateresult = "<label style='color:purple;'>Casual Leave</label>";
-                    break;
-                case "sick_leave":
-                    $lateresult = "<label style='color:purple;'>Sick Leave</label>";
-                    break;
-                case "regularization":
-                    $lateresult = "<label style='color:orange;'>Regularization</label>";
-                    break;
-                case "holiday":
-                    $lateresult = "<label style='color:gray;'>Holiday</label>";
-                    break;
-                default:
-                    $lateresult = "<label style='color:orange;'>$state</label>";
-            }
-
-
-
-            // Calculate total defined hours
-            $starttime1 = Carbon::createFromFormat('H:i', substr($checkstart, 0, 5));
-            $endtime1 = Carbon::createFromFormat('H:i', substr($checkend, 0, 5));
-            $interval1 = $starttime1->diff($endtime1);
-            $totaldefinedhours = $interval1->h + ($interval1->i / 60);
-
-            // Check for half-day
-            $is_half = false;
-            $com_half = false;
-
-            if ($leaveRecord && $leaveRecord->req_type == "half_day" && $leaveRecord->status == "approved") {
-                $is_half = true;
-
-                $getHalftime = SystemSetting::where('setting_key', 'half_day_time')->first();
-                if ($getHalftime) {
-                    list($halfHours, $halfMinutes) = explode(':', $getHalftime->setting_value);
-                    $halfDayMinutes = ((int)$halfHours * 60) + (int)$halfMinutes;
-                    $workedMinutesTotal = ($netHours * 60) + $netMinutes;
-
-                    if ($workedMinutesTotal >= $halfDayMinutes) {
-                        $com_half = true;
-                    }
-                }
-            }
-
-            $action = "run";
-            if ($lastEntry && $lastEntry->entry_type === 'punch_out') {
-                if ($netHours >= $totaldefinedhours) {
-                    $action = "block";
+            if ($firstEntry && $firstEntry->entry_type == 'punch_in') {
+                $punchTime = Carbon::parse($firstEntry->entry_time);
+                $expectedStart = Carbon::parse($currentDate . ' ' . $workStartTime);
+                $minutesLate = $expectedStart->diffInMinutes($punchTime, false);
+                
+                if ($minutesLate <= intval($lateThreshold)) {
+                    $status = 'Present';
                 } else {
-                    $action = "run";
+                    $status = 'Late';
                 }
             }
 
-            // Determine which time to show as "network" (net work time)
-            $displayTime = $netWorkTime;
-            if ($isCurrentlyWorking && $workStartTime !== null) {
-                // Still working, show current net work time
-                $displayTime = $netWorkTime;
-            } elseif ($lastEntry && $lastEntry->entry_type === 'punch_out') {
-                // Finished work, show final net time
-                $displayTime = $netWorkTime;
-            } else {
-                // No work recorded yet or other states
-                $displayTime = '0H 0M';
+            // Check for half day
+            $isHalfDay = Application::where('employee_id', $userid)
+                ->where('req_type', 'half_day')
+                ->where('status', 'approved')
+                ->whereDate('start_date', '<=', $currentDate)
+                ->whereDate('end_date', '>=', $currentDate)
+                ->exists();
+
+            $comHalf = false;
+            if ($isHalfDay) {
+                $halfDayTime = SystemSetting::where('setting_key', 'half_day_time')->value('setting_value') ?? '4:30';
+                $halfParts = explode(':', $halfDayTime);
+                $requiredHalfMinutes = ((int)$halfParts[0] * 60) + (int)$halfParts[1];
+                $comHalf = $totalTimeMinutes >= $requiredHalfMinutes;
             }
 
-            $firstPunchFormatted = $firstEntry ? Carbon::parse($firstEntry->entry_time, $timezone)->format('H:i A') : 'N/A';
+            // Format status
+            $statusColors = [
+                'Present' => 'green',
+                'Late' => 'orange', 
+                'Absent' => 'red'
+            ];
+            $statusLabel = "<label style='color:{$statusColors[$status]};'>{$status}</label>";
+
+            $firstPunchFormatted = $firstEntry ? Carbon::parse($firstEntry->entry_time)->format('H:i A') : 'N/A';
 
             return response()->json([
                 'worktime' => $workTime,
                 'punchTime' => $startTime->format('H:i:s A'),
-                'action' => $action,
-                'lunchDuation' => $lunchduration . "M",
+                'action' => 'run',
+                'lunchDuation' => $lunchDuration . 'M',
                 'punch_in' => $firstPunchFormatted,
                 'total_hours' => $totalWorkedTime,
-                'network' => $displayTime,
-                'totalLunchByemp' => $totallunchByemp,
-                'late' => $lateresult,
-                'isHalf' => $is_half,
-                'com_half' => $com_half
+                'network' => $netWorkTime,
+                'totalLunchByemp' => $totalLunchTime ?: '0M',
+                'late' => $statusLabel,
+                'isHalf' => $isHalfDay,
+                'com_half' => $comHalf
             ]);
         } catch (\Exception $e) {
-            \Log::error('TimeWorked API Error: ' . $e->getMessage());
+            \Log::error('TimeWorked Error: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
-                'worktime' => '09:00:00 AM - 06:00:00 PM',
+                'worktime' => '09:00:00 AM-06:00:00 PM',
                 'punchTime' => '09:00:00 AM',
                 'action' => 'run',
                 'lunchDuation' => '60M',
                 'punch_in' => 'N/A',
                 'total_hours' => '0H 0M',
                 'network' => '0H 0M',
-                'totalLunchByemp' => '0H 0M',
-                'late' => '<label style="color:red;">Not Available</label>',
+                'totalLunchByemp' => '0M',
+                'late' => '<label style="color:red;">Error</label>',
                 'isHalf' => false,
-                'com_half' => false,
-                'debug_error' => $e->getMessage()
-            ], 200);
+                'com_half' => false
+            ]);
         }
     }
 
     public function checkFirstPunchIn(Request $request)
     {
         $userid = Auth::user()->emp_id;
-        $time = Carbon::now('Asia/Kolkata')->format('Y-m-d');
+        $today = Carbon::today()->format('Y-m-d');
 
-        $firstEntry = TimeEntry::where('employee_id', $userid)
-            ->where('entry_time', 'like', $time . '%')
-            ->orderBy('entry_time', 'asc')
-            ->first();
-
-        if ($firstEntry && in_array($firstEntry->entry_type, ["regularization", "casual_leave", "sick_leave", "holiday"])) {
-            return response($firstEntry->entry_type);
-        } else if ($firstEntry && $firstEntry->entry_type === 'punch_in') {
-            $lastEntry = TimeEntry::where('employee_id', $userid)
-                ->where('entry_time', 'like', $time . '%')
-                ->orderBy('entry_time', 'desc')
-                ->first();
-
-            if ($lastEntry->entry_type == "punch_out") {
-                return response('4');
-            } else if ($lastEntry->entry_type == "lunch_start") {
-                return response('2');
-            } else if ($lastEntry->entry_type == "lunch_end") {
-                return response('3');
-            } else if (in_array($lastEntry->entry_type, ["regularization", "casual_leave", "sick_leave", "holiday"])) {
-                return response($lastEntry->entry_type);
-            } else {
-                return response('1');
-            }
-        } else {
-            if ($firstEntry && $firstEntry->entry_type == "half_day") {
-                $lastEntry = TimeEntry::where('employee_id', $userid)
-                    ->where('entry_time', 'like', $time . '%')
-                    ->orderBy('entry_time', 'desc')
-                    ->first();
-
-                if ($lastEntry->entry_type == "punch_in") {
-                    return response('1');
-                } else if ($lastEntry->entry_type == "punch_out") {
-                    return response('4');
-                } else if ($lastEntry->entry_type == "lunch_start") {
-                    return response('2');
-                } else if ($lastEntry->entry_type == "lunch_end") {
-                    return response('3');
-                } else if (in_array($lastEntry->entry_type, ["regularization", "casual_leave", "sick_leave", "holiday"])) {
-                    return response($lastEntry->entry_type);
-                } else {
-                    return response('1');
-                }
-            } else {
-                return response('5');
-            }
-        }
-    }
-    
-    public function detailsById(Request $request)
-    {
-        $userid = $request->input('id');
-        
-        // Get all entries for current month
-        $entries = TimeEntry::where('employee_id', $userid)
-            ->whereMonth('entry_time', now()->month)
-            ->whereYear('entry_time', now()->year)
+        // Get all entries for today
+        $todayEntries = TimeEntry::where('employee_id', $userid)
+            ->whereDate('entry_time', $today)
             ->orderBy('entry_time', 'asc')
             ->get();
-            
-        if ($entries->isEmpty()) {
-            return response('<tr><td colspan="7" style="color:#666; text-align:center; padding: 20px;">No Data Found for Current Month!</td></tr>');
+
+        if ($todayEntries->isEmpty()) {
+            return response('5'); // No entries, can punch in
         }
-        
-        // Group entries by date
-        $groupedEntries = $entries->groupBy(function($entry) {
-            return Carbon::parse($entry->entry_time)->format('Y-m-d');
-        });
-        
-        $output = '';
-        foreach ($groupedEntries as $date => $dayEntries) {
-            $punchin = $lunchstart = $lunchend = $punchout = null;
-            $state = "Absent";
-            
-            foreach ($dayEntries as $entry) {
-                switch ($entry->entry_type) {
-                    case 'punch_in':
-                        $punchin = $entry->entry_time;
-                        $state = "Present";
-                        break;
-                    case 'punch_out':
-                        $punchout = $entry->entry_time;
-                        break;
-                    case 'lunch_start':
-                        $lunchstart = $entry->entry_time;
-                        break;
-                    case 'lunch_end':
-                        $lunchend = $entry->entry_time;
-                        break;
-                    case 'half_day':
-                    case 'casual_leave':
-                    case 'sick_leave':
-                    case 'holiday':
-                        $state = ucfirst(str_replace('_', ' ', $entry->entry_type));
-                        break;
-                }
+
+        $lastEntry = $todayEntries->last();
+        $firstEntry = $todayEntries->first();
+
+        // Simple punch-out handling - temporarily disable work completion check
+        if ($lastEntry->entry_type === 'punch_out') {
+            if ($this->checkWorkCompletion($userid, $today, $todayEntries)) {
+                return response('work_complete');
             }
-            
-            // Calculate total hours worked
-            $totalHours = '00:00:00';
-            if ($punchin && $punchout) {
-                // Simple calculation without timezone conversion
-                $punchInTime = new \DateTime($punchin);
-                $punchOutTime = new \DateTime($punchout);
-                
-                // Calculate total time in minutes
-                $interval = $punchInTime->diff($punchOutTime);
-                $totalMinutes = ($interval->h * 60) + $interval->i;
-                
-                // Subtract lunch time if both lunch start and end exist
-                if ($lunchstart && $lunchend) {
-                    $lunchStartTime = new \DateTime($lunchstart);
-                    $lunchEndTime = new \DateTime($lunchend);
-                    $lunchInterval = $lunchStartTime->diff($lunchEndTime);
-                    $lunchMinutes = ($lunchInterval->h * 60) + $lunchInterval->i;
-                    $totalMinutes -= $lunchMinutes;
-                }
-                
-                // Ensure non-negative result
-                $totalMinutes = max(0, $totalMinutes);
-                $hours = floor($totalMinutes / 60);
-                $minutes = $totalMinutes % 60;
-                $totalHours = sprintf('%02d:%02d:00', $hours, $minutes);
-            }
-            
-            // Format the row
-            $output .= '<tr style="border-bottom: 1px solid #eee;">';
-            $output .= '<td style="padding: 12px;">'.Carbon::parse($date)->format('M d, Y').'</td>';
-            $output .= '<td style="padding: 12px;">'.($punchin ? Carbon::parse($punchin)->format('H:i:s') : '-').'</td>';
-            $output .= '<td style="padding: 12px;">'.($lunchstart ? Carbon::parse($lunchstart)->format('H:i:s') : '-').'</td>';
-            $output .= '<td style="padding: 12px;">'.($lunchend ? Carbon::parse($lunchend)->format('H:i:s') : '-').'</td>';
-            $output .= '<td style="padding: 12px;">'.($punchout ? Carbon::parse($punchout)->format('H:i:s') : '-').'</td>';
-            $output .= '<td style="padding: 12px; font-weight: 600;">'.$totalHours.'</td>';
-            $output .= '<td style="padding: 12px;"><span class="status-badge status-'.$state.'">'.$state.'</span></td>';
-            $output .= '</tr>';
+            return response('4'); // Punched out but can continue
         }
-        
-        return response($output);
+
+        // Check current state based on last entry
+        switch ($lastEntry->entry_type) {
+            case 'punch_in':
+                return response('1'); // Punched in
+            case 'lunch_start':
+                return response('2'); // On lunch
+            case 'lunch_end':
+                return response('3'); // Lunch ended
+            case 'casual_leave':
+            case 'sick_leave':
+            case 'holiday':
+            case 'regularization':
+                return response($lastEntry->entry_type);
+            default:
+                return response('5');
+        }
     }
-    
-    public function filterTime(Request $request)
-    {
-        $click = $request->input('click');
-        $userid = $request->input('id');
-        
-        if ($click == "filterLastMonth") {
-            $entries = TimeEntry::where('employee_id', $userid)
-                ->whereMonth('entry_time', now()->subMonth()->month)
-                ->whereYear('entry_time', now()->subMonth()->year)
-                ->orderBy('entry_time', 'asc')
-                ->get();
-        } elseif ($click == "filterCustom") {
-            $from = $request->input('from');
-            $to = $request->input('to');
+
+    private function checkWorkCompletion($userid, $today, $todayEntries)
+{
+    try {
+        // 1. Robust Settings Retrieval (Using Carbon::parse handles '9:00', '09:00:00' etc automatically)
+        $settingStart = SystemSetting::where('setting_key', 'work_start_time')->value('setting_value') ?? '09:00:00';
+        $settingEnd   = SystemSetting::where('setting_key', 'work_end_time')->value('setting_value') ?? '18:00:00';
+        $settingHalf  = SystemSetting::where('setting_key', 'half_day_time')->value('setting_value') ?? '04:30'; // Changed default to padded
+
+        \Log::info('checkWorkCompletion', [['settingStart' => $settingStart, 'settingEnd' => $settingEnd, 'settingHalf' => $settingHalf]]);
+
+
+        // Calculate Target Minutes for Full Day
+        // We create a base date (today) to ensure diff works correctly across midnight if needed
+        $reqStartTime = Carbon::parse($today . ' ' . $settingStart);
+        $reqEndTime   = Carbon::parse($today . ' ' . $settingEnd);
+        $requiredMinutes = $reqEndTime->diffInMinutes($reqStartTime);
+
+        \Log::info('Targets', ['Required Full Day Mins' => $requiredMinutes]);
+
+        // 2. Calculate Actual Worked Span (Gross Hours: First In to Last Out)
+        // Filter collection to find explicit First IN and Last OUT
+        $firstEntry = $todayEntries->where('entry_type', 'punch_in')->sortBy('entry_time')->first();
+        $lastEntry  = $todayEntries->where('entry_type', 'punch_out')->sortByDesc('entry_time')->first();
+
+        $firstPunchIn = $firstEntry ? Carbon::parse($firstEntry->entry_time) : null;
+        $lastPunchOut = $lastEntry ? Carbon::parse($lastEntry->entry_time) : null;
+
+        $totalTimeMinutes = 0;
+
+        if ($firstPunchIn) {
+            if ($lastPunchOut && $lastPunchOut->gt($firstPunchIn)) {
+                // Case A: User has punched out. Calculate span.
+                $totalTimeMinutes = $firstPunchIn->diffInMinutes($lastPunchOut);
+            } else {
+                // Case B: User is currently active (or last punch out is missing/invalid)
+                // Fallback to "Time until Now"
+                $totalTimeMinutes = $firstPunchIn->diffInMinutes(Carbon::now());
+            }
+        }
+
+        \Log::info('Actuals', [
+            'First In' => $firstPunchIn ? $firstPunchIn->format('H:i') : 'N/A',
+            'Last Out' => $lastPunchOut ? $lastPunchOut->format('H:i') : 'N/A',
+            'Total Minutes' => $totalTimeMinutes
+        ]);
+
+        if ($totalTimeMinutes <= 0) {
+            return false;
+        }
+
+        // 3. Check Half Day Status
+        $isHalfDay = Application::where('employee_id', $userid)
+            ->where('req_type', 'half_day')
+            ->where('status', 'approved')
+            ->whereDate('start_date', $today)
+            ->exists();
+
+        if ($isHalfDay) {
+            // Robust Half Day Calculation
+            // Parse "4:30" or "04:30:00" safely
+            $halfDayParts = explode(':', $settingHalf);
+            $halfHours = (int)($halfDayParts[0] ?? 4);
+            $halfMinutes = (int)($halfDayParts[1] ?? 30);
+            $requiredHalfDayMinutes = ($halfHours * 60) + $halfMinutes;
+
+            $result = $totalTimeMinutes >= $requiredHalfDayMinutes;
             
-            $entries = TimeEntry::where('employee_id', $userid)
-                ->whereBetween('entry_time', [$from, Carbon::parse($to)->addDay()])
-                ->orderBy('entry_time', 'asc')
-                ->get();
+            \Log::info("Half Day Result: " . ($result ? 'Pass' : 'Fail'));
+            return $result;
         } else {
-            return response('Invalid filter', 400);
-        }
-        
-        if ($entries->isEmpty()) {
-            return response('<tr><td colspan="7" style="color:#666; text-align:center; padding: 20px;">No Data Found!</td></tr>');
-        }
-        
-        // Group entries by date
-        $groupedEntries = $entries->groupBy(function($entry) {
-            return Carbon::parse($entry->entry_time)->format('Y-m-d');
-        });
-        
-        $output = '';
-        foreach ($groupedEntries as $date => $dayEntries) {
-            $punchin = $lunchstart = $lunchend = $punchout = null;
-            $state = "Absent";
+            // Full Day Check
+            $result = $totalTimeMinutes >= $requiredMinutes;
             
-            foreach ($dayEntries as $entry) {
-                switch ($entry->entry_type) {
-                    case 'punch_in':
-                        $punchin = $entry->entry_time;
-                        $state = "Present";
-                        break;
-                    case 'punch_out':
-                        $punchout = $entry->entry_time;
-                        break;
-                    case 'lunch_start':
-                        $lunchstart = $entry->entry_time;
-                        break;
-                    case 'lunch_end':
-                        $lunchend = $entry->entry_time;
-                        break;
-                    case 'half_day':
-                    case 'casual_leave':
-                    case 'sick_leave':
-                    case 'holiday':
-                        $state = ucfirst(str_replace('_', ' ', $entry->entry_type));
-                        break;
-                }
+            // Allow a small buffer (e.g., 1 minute) if needed, otherwise strict check
+            \Log::info("Full Day Result: " . ($result ? 'Pass' : 'Fail'));
+            return $result;
+        }
+
+    } catch (\Exception $e) {
+        \Log::error('CheckWorkCompletion Critical Error: ' . $e->getMessage() . ' on line ' . $e->getLine());
+        return false;
+    }
+}
+
+    public function detailsById(Request $request)
+    {
+        \Log::info('detailsById called with data:', [$request->all()]);
+        
+        $id = $request->input('id');
+        if (!$id) {
+            return response('error');
+        }
+        
+        \Log::info('Looking for employee with ID: ' . $id);
+        
+        $employee = \App\Models\Employee::where('emp_id', $id)->first();
+        if (!$employee) {
+            return response('Employee not found');
+        }
+        
+        $today = Carbon::today()->format('Y-m-d');
+        
+        $entries = TimeEntry::where('employee_id', $id)
+            ->whereDate('entry_time', $today)
+            ->orderBy('entry_time')
+            ->get();
+            
+        $output = '<h3 class="section-title">
+                    <i class="fas fa-history"></i>
+                    Today\'s Activity for ' . $employee->name . '
+                </h3>';
+
+        foreach ($entries as $row) {
+            $icon = "bullseye";
+            switch ($row->entry_type) {
+                case 'punch_in':
+                    $icon = "fingerprint";
+                    break;
+                case 'lunch_start':
+                case 'lunch_end':
+                    $icon = "utensils";
+                    break;
+                case 'punch_out':
+                    $icon = "door-open";
+                    break;
             }
-            
-            // Calculate total hours worked
-            $totalHours = '00:00:00';
-            if ($punchin && $punchout) {
-                // Simple calculation without timezone conversion
-                $punchInTime = new \DateTime($punchin);
-                $punchOutTime = new \DateTime($punchout);
-                
-                // Calculate total time in minutes
-                $interval = $punchInTime->diff($punchOutTime);
-                $totalMinutes = ($interval->h * 60) + $interval->i;
-                
-                // Subtract lunch time if both lunch start and end exist
-                if ($lunchstart && $lunchend) {
-                    $lunchStartTime = new \DateTime($lunchstart);
-                    $lunchEndTime = new \DateTime($lunchend);
-                    $lunchInterval = $lunchStartTime->diff($lunchEndTime);
-                    $lunchMinutes = ($lunchInterval->h * 60) + $lunchInterval->i;
-                    $totalMinutes -= $lunchMinutes;
-                }
-                
-                // Ensure non-negative result
-                $totalMinutes = max(0, $totalMinutes);
-                $hours = floor($totalMinutes / 60);
-                $minutes = $totalMinutes % 60;
-                $totalHours = sprintf('%02d:%02d:00', $hours, $minutes);
-            }
-            
-            // Format the row
-            $output .= '<tr style="border-bottom: 1px solid #eee;">';
-            $output .= '<td style="padding: 12px;">'.Carbon::parse($date)->format('M d, Y').'</td>';
-            $output .= '<td style="padding: 12px;">'.($punchin ? Carbon::parse($punchin)->format('H:i:s') : '-').'</td>';
-            $output .= '<td style="padding: 12px;">'.($lunchstart ? Carbon::parse($lunchstart)->format('H:i:s') : '-').'</td>';
-            $output .= '<td style="padding: 12px;">'.($lunchend ? Carbon::parse($lunchend)->format('H:i:s') : '-').'</td>';
-            $output .= '<td style="padding: 12px;">'.($punchout ? Carbon::parse($punchout)->format('H:i:s') : '-').'</td>';
-            $output .= '<td style="padding: 12px; font-weight: 600;">'.$totalHours.'</td>';
-            $output .= '<td style="padding: 12px;"><span class="status-badge status-'.$state.'">'.$state.'</span></td>';
-            $output .= '</tr>';
+
+            $output .= '<ul class="activity-list">
+                        <li class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-' . $icon . '"></i>
+                            </div>
+                            <div class="activity-details">
+                                <div class="activity-name">' . $row->entry_type . '</div>
+                                <div class="activity-time">' . $row->entry_time . '</div>
+                            </div>
+                        </li>
+                        </ul>';
         }
-        
+
         return response($output);
     }
 }

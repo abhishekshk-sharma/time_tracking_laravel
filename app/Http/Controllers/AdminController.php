@@ -10,6 +10,7 @@ use App\Models\SystemSetting;
 use App\Models\Wfh;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -276,8 +277,44 @@ class AdminController extends Controller
             'action_by' => auth()->user()->emp_id,
             'action_date' => now(),
         ]);
+        
+        // Create time entries for approved applications
+        if ($request->status === 'approved') {
+            $this->createTimeEntryForApplication($application);
+        }
 
         return response()->json(['success' => true, 'message' => 'Application ' . $request->status . ' successfully']);
+    }
+    
+    private function createTimeEntryForApplication(Application $application)
+    {
+        $entryType = null;
+        $entryTime = null;
+        
+        // Handle different request types
+        switch ($application->req_type) {
+            case 'casual_leave':
+            case 'sick_leave':
+            case 'regularization':
+                $entryType = $application->req_type;
+                $entryTime = $application->start_date ?? now();
+                break;
+                
+            case 'punch_Out_regularization':
+                $entryType = 'punch_out';
+                // Use custom_time if provided, otherwise use end_date
+                $entryTime = request('custom_time') ?? $application->end_date;
+                break;
+        }
+        
+        if ($entryType && $entryTime) {
+            TimeEntry::create([
+                'employee_id' => $application->employee_id,
+                'entry_type' => $entryType,
+                'entry_time' => $entryTime,
+                'notes' => 'Auto-created from approved application #' . $application->id
+            ]);
+        }
     }
 
     public function showApplication(Application $application)
@@ -336,46 +373,179 @@ class AdminController extends Controller
 
     public function reports(Request $request)
     {
+        $adminEmpId = auth()->user()->emp_id;
         $departments = Department::all();
-        $employees = Employee::where('role', 'employee')->get();
+        $employees = Employee::where('role', 'employee')->where('referrance', $adminEmpId)->get();
         
-        // Get recent reports (you can store these in a reports table later)
-        $recentReports = collect([
-            [
-                'name' => 'Monthly Attendance Report - ' . now()->format('F Y'),
-                'type' => 'Attendance',
-                'generated_by' => auth()->user()->name,
-                'date' => now()->subDays(5)->format('M d, Y'),
-                'status' => 'Completed'
-            ],
-            [
-                'name' => 'Leave Analysis Q4 2024',
-                'type' => 'Leave',
-                'generated_by' => auth()->user()->name,
-                'date' => now()->subDays(10)->format('M d, Y'),
-                'status' => 'Completed'
-            ]
-        ]);
+        // Get salary reports for admin's allotted employees with filters
+        $salaryQuery = \App\Models\SalaryReport::whereExists(function($query) use ($adminEmpId) {
+            $query->select(\DB::raw(1))
+                  ->from('employees')
+                  ->whereRaw('BINARY salary_reports.emp_id = BINARY employees.emp_id')
+                  ->where('employees.referrance', $adminEmpId)
+                  ->where(function($q) {
+                      $q->whereRaw('(
+                          (employees.hire_date IS NULL OR DATE(employees.hire_date) <= LAST_DAY(CONCAT(salary_reports.year, "-", LPAD(salary_reports.month, 2, "0"), "-01")))
+                          AND
+                          (employees.end_date IS NULL OR DATE(employees.end_date) >= CONCAT(salary_reports.year, "-", LPAD(salary_reports.month, 2, "0"), "-01"))
+                      )');
+                  });
+        });
         
-        // Handle AJAX requests for report generation
-        if ($request->ajax()) {
-            $reportType = $request->get('report_type');
-            
-            switch ($reportType) {
-                case 'attendance':
-                    return $this->generateAttendanceReport($request);
-                case 'leave':
-                    return $this->generateLeaveReport($request);
-                case 'performance':
-                    return $this->generatePerformanceReport($request);
-                case 'analytics':
-                    return $this->generateAnalyticsReport($request);
-                default:
-                    return response()->json(['error' => 'Invalid report type'], 400);
-            }
+        // Apply filters
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $salaryQuery->where(function($q) use ($search) {
+                $q->where('emp_name', 'like', "%{$search}%")
+                  ->orWhere('emp_id', 'like', "%{$search}%");
+            });
         }
         
-        return view('admin.reports.index', compact('departments', 'employees', 'recentReports'));
+        if ($request->has('month') && $request->month) {
+            $salaryQuery->where('month', $request->month);
+        }
+        
+        if ($request->has('year') && $request->year) {
+            $salaryQuery->where('year', $request->year);
+        }
+        
+        $perPage = $request->get('per_page', 10);
+        $salaryReports = $salaryQuery->orderBy('created_at', 'desc')->paginate($perPage);
+        
+        // Handle POST request for attendance report generation
+        if ($request->isMethod('post')) {
+            return $this->generateAttendanceExcel($request);
+        }
+        
+        return view('admin.reports.index', compact('departments', 'employees', 'salaryReports'));
+    }
+
+
+    
+    private function generateAttendanceExcel(Request $request)
+    {
+        $request->validate([
+            'month' => 'required|integer|min:1|max:12',
+            'year' => 'required|integer|min:2020|max:2030'
+        ]);
+        
+        $adminEmpId = auth()->user()->emp_id;
+        $month = $request->month;
+        $year = $request->year;
+        
+        // Get admin's allotted employees active during the requested month
+        $requestedMonthStart = \Carbon\Carbon::create($year, $month, 1);
+        $requestedMonthEnd = $requestedMonthStart->copy()->endOfMonth();
+        
+        $employees = Employee::where('role', 'employee')
+            ->where('referrance', $adminEmpId)
+            ->where(function($q) use ($requestedMonthStart, $requestedMonthEnd) {
+                $q->where(function($subQ) use ($requestedMonthStart, $requestedMonthEnd) {
+                    // Employee was hired before or during the month
+                    $subQ->where(function($hireQ) use ($requestedMonthEnd) {
+                        $hireQ->whereNull('hire_date')
+                              ->orWhere('hire_date', '<=', $requestedMonthEnd->format('Y-m-d'));
+                    })
+                    // Employee end date is after or during the month (or null)
+                    ->where(function($endQ) use ($requestedMonthStart) {
+                        $endQ->whereNull('end_date')
+                             ->orWhere('end_date', '>=', $requestedMonthStart->format('Y-m-d'));
+                    });
+                });
+            })
+            ->with(['department', 'region'])
+            ->get();
+        
+        $salaryService = new \App\Services\SalaryCalculationService();
+        $attendanceData = [];
+
+        foreach ($employees as $employee) {
+            // Double-check employee eligibility using service method
+            if (!$salaryService->shouldIncludeEmployeeInReport($employee->emp_id, $month, $year)) {
+                continue;
+            }
+            
+            $attendance = $salaryService->calculatePayableDays($employee->emp_id, $month, $year, $adminEmpId);
+            
+            $attendanceData[] = [
+                'Employee ID' => $employee->emp_id,
+                'Employee Name' => $employee->username ?? $employee->name,
+                'Department' => $employee->department->name ?? 'N/A',
+                'Position' => $employee->position ?? 'N/A',
+                'Total Working Days' => date('t', mktime(0, 0, 0, $month, 1, $year)),
+                'Present Days' => $attendance['present_days'],
+                'Absent Days' => $attendance['absent_days'],
+                'Sick Leave' => $attendance['sick_leave'],
+                'Casual Leave' => $attendance['casual_leave'],
+                'Half Days' => $attendance['half_days'],
+                'Holidays' => $attendance['holidays'],
+                'Regularization' => $attendance['regularization'],
+                'Short Attendance' => $attendance['short_attendance'],
+                'Total Payable Days' => $attendance['present_days'] + $attendance['holidays'] + 
+                                       $attendance['sick_leave'] + $attendance['casual_leave'] + 
+                                       ($attendance['half_days'] * 0.5) + ($attendance['short_attendance'] * 0.5) + 
+                                       $attendance['regularization']
+            ];
+        }
+        
+        $filename = 'attendance_report_' . date('F_Y', mktime(0, 0, 0, $month, 1, $year)) . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+        
+        $callback = function() use ($attendanceData, $month, $year) {
+            $file = fopen('php://output', 'w');
+            
+            // Add header with generation date and requested month/year
+            $monthName = date('F', mktime(0, 0, 0, $month, 1));
+            $generatedDate = now()->format('j M, Y');
+            fputcsv($file, ['Attendance Report for ' . $monthName . ' ' . $year]);
+            fputcsv($file, ['Generated On: ' . $generatedDate]);
+            fputcsv($file, []); // Empty row
+            
+            // CSV Headers
+            if (!empty($attendanceData)) {
+                fputcsv($file, array_keys($attendanceData[0]));
+                
+                // Data rows
+                foreach ($attendanceData as $row) {
+                    fputcsv($file, array_values($row));
+                }
+            }
+            
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function downloadSalaryReport($id)
+    {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        // Find salary report for admin's allotted employee using admin_id
+        $salaryReport = \App\Models\SalaryReport::where('id', $id)
+            ->where('admin_id', $adminEmpId)
+            ->first();
+            
+        if (!$salaryReport) {
+            return redirect()->route('admin.reports')->with('error', 'Salary report not found or access denied.');
+        }
+        
+        // Use the same approach as super-admin with Browsershot and original template
+        $html = view('super-admin.reports.salary-report-pdf', compact('salaryReport'))->render();
+        
+        $pdf = \Spatie\Browsershot\Browsershot::html($html)
+            ->format('A4')
+            ->margins(10, 10, 10, 10)
+            ->showBackground()
+            ->pdf();
+
+        return response($pdf)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="salary_slip_' . $salaryReport->emp_id . '_' . $salaryReport->month . '_' . $salaryReport->year . '.pdf"');
     }
 
     private function getPresentToday()

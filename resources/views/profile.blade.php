@@ -251,6 +251,7 @@
         z-index: 1000;
         align-items: center;
         justify-content: center;
+        overflow-y: auto;
     }
     
     .modal-content {
@@ -260,9 +261,12 @@
         border-radius: var(--radius-xl);
         width: 90%;
         max-width: 500px;
+        max-height: 90vh;
         padding: 2rem;
         box-shadow: var(--shadow-xl);
         animation: modalSlideIn 0.3s ease-out;
+        margin: auto;
+        overflow-y: auto;
     }
     
     @keyframes modalSlideIn {
@@ -419,7 +423,7 @@
                 </div>
                 <div class="detail-card">
                     <h3><i class="fas fa-building"></i> Department</h3>
-                    <p>{{ Auth::user()->department }}</p>
+                    <p>{{ Auth::user()->department?->name }}</p>
                 </div>
                 <div class="detail-card">
                     <h3><i class="fas fa-calendar-alt"></i> Join Date</h3>
@@ -530,15 +534,35 @@
 @push('page-scripts')
 <script>
 function openEmailModal() {
-    document.getElementById('emailModal').style.display = 'flex';
+    const modal = document.getElementById('emailModal');
+    modal.style.display = 'flex';
+    positionModal(modal);
 }
 
 function openPasswordModal() {
-    document.getElementById('passwordModal').style.display = 'flex';
+    const modal = document.getElementById('passwordModal');
+    modal.style.display = 'flex';
+    positionModal(modal);
 }
 
 function openDobModal() {
-    document.getElementById('dobModal').style.display = 'flex';
+    const modal = document.getElementById('dobModal');
+    modal.style.display = 'flex';
+    positionModal(modal);
+}
+
+function positionModal(modal) {
+    const modalContent = modal.querySelector('.modal-content');
+    const viewportHeight = window.innerHeight;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Calculate center position relative to viewport
+    const centerY = scrollTop + (viewportHeight / 2);
+    
+    // Set modal positioning
+    modal.style.paddingTop = scrollTop + 'px';
+    modal.style.paddingBottom = '0px';
+    modal.style.alignItems = 'center';
 }
 
 function closeModal(modalId) {

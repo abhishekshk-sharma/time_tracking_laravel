@@ -19,6 +19,8 @@ class FilterController extends Controller
             $status = $request->input('status');
             $type = $request->input('type');
             $limit = $request->input('limit');
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
             
             $query = Application::where('employee_id', $userid);
             
@@ -48,6 +50,12 @@ class FilterController extends Controller
                     break;
                 case 'year':
                     $query->whereYear('created_at', now()->year);
+                    break;
+                case 'custom':
+                    if ($startDate && $endDate) {
+                        $query->whereDate('created_at', '>=', $startDate)
+                              ->whereDate('created_at', '<=', $endDate);
+                    }
                     break;
                 // 'all' - no date filter
             }

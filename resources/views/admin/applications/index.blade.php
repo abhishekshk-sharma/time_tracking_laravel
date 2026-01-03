@@ -125,9 +125,15 @@
                                         <i class="fas fa-eye"></i>
                                     </button>
                                     @if($application->status === 'pending')
-                                        <button class="btn btn-sm btn-success" onclick="updateStatus({{ $application->id }}, 'approved')" title="Approve">
-                                            <i class="fas fa-check"></i>
-                                        </button>
+                                        @if($application->req_type === 'punch_Out_regularization')
+                                            <button class="btn btn-sm btn-success" onclick="showPunchOutModal({{ $application->id }}, '{{ $application->end_date }}')" title="Approve">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        @else
+                                            <button class="btn btn-sm btn-success" onclick="updateStatus({{ $application->id }}, 'approved')" title="Approve">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        @endif
                                         <button class="btn btn-sm btn-danger" onclick="updateStatus({{ $application->id }}, 'rejected')" title="Reject">
                                             <i class="fas fa-times"></i>
                                         </button>
@@ -241,6 +247,88 @@ function updateStatus(applicationId, status) {
                     Swal.fire({
                         title: 'Success!',
                         text: response.message,
+                        icon: 'success',
+                        confirmButtonColor: '#ff9900'
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Something went wrong. Please try again.',
+                        icon: 'error',
+                        confirmButtonColor: '#d13212'
+                    });
+                }
+            });
+        }
+    });
+}
+
+function showPunchOutModal(applicationId, requestedTime) {
+    const date = new Date(requestedTime);
+    const dateStr = date.toISOString().split('T')[0];
+    const timeStr = date.toTimeString().split(' ')[0].substring(0, 5);
+    
+    Swal.fire({
+        title: 'Approve Punch Out Regularization',
+        html: `
+            <div style="text-align: left; margin: 20px 0;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Requested Date & Time:</label>
+                    <div style="background: #f3f4f6; padding: 10px; border-radius: 4px; font-family: monospace;">
+                        ${date.toLocaleString()}
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="punch-date" style="display: block; margin-bottom: 5px; font-weight: 600;">Date:</label>
+                    <input type="date" id="punch-date" value="${dateStr}" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="punch-time" style="display: block; margin-bottom: 5px; font-weight: 600;">Time:</label>
+                    <input type="time" id="punch-time" value="${timeStr}" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                </div>
+                <div>
+                    <label for="admin-remarks" style="display: block; margin-bottom: 5px; font-weight: 600;">Admin Remarks (optional):</label>
+                    <textarea id="admin-remarks" placeholder="Add remarks..." style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; min-height: 60px;"></textarea>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Approve',
+        confirmButtonColor: '#067d62',
+        cancelButtonColor: '#6c757d',
+        width: 500,
+        preConfirm: () => {
+            const date = document.getElementById('punch-date').value;
+            const time = document.getElementById('punch-time').value;
+            const remarks = document.getElementById('admin-remarks').value;
+            
+            if (!date || !time) {
+                Swal.showValidationMessage('Please select both date and time');
+                return false;
+            }
+            
+            return { date, time, remarks };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const customTime = `${result.value.date} ${result.value.time}:00`;
+            
+            $.ajax({
+                url: `/admin/applications/${applicationId}/status`,
+                method: 'POST',
+                data: {
+                    status: 'approved',
+                    admin_remarks: result.value.remarks || '',
+                    custom_time: customTime,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Punch out regularization approved successfully!',
                         icon: 'success',
                         confirmButtonColor: '#ff9900'
                     }).then(() => {

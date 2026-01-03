@@ -40,7 +40,17 @@ class AuthController extends Controller
             ])->withInput();
         }
 
-        Auth::login($employee);
+        // Auth::login($employee);
+
+        if (!Auth::attempt([
+            "username" => $request->input('username'),
+            "password" => $request->input('password')
+        ])) {
+            throw ValidationException::withMessages([
+                'username' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
         session(['last_activity' => now()]);
         session(['at_office' => true]);
 

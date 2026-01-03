@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\FilterController;
 use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
 use App\Http\Controllers\SalarySlipController;
+use App\Http\Controllers\PayslipController;
 
 Route::get('/', [AuthController::class, 'showLogin'])->name('home');
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -49,7 +50,7 @@ Route::middleware(['auth'])->prefix('api')->name('api.')->group(function () {
     Route::post('/notifications/handle', [ApiNotificationController::class, 'handle'])->name('notifications.handle');
     
     // Profile API routes
-    // Route::post('/profile/update', [ApiProfileController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.update');
     
     // Schedule API routes
     Route::post('/schedule/data', [DashboardController::class, 'getScheduleData'])->name('schedule.data');
@@ -88,6 +89,10 @@ Route::middleware(['auth', 'employee'])->group(function () {
     // Profile Routes
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+    
+    // Payslip Routes
+    Route::get('/payslips', [PayslipController::class, 'index'])->name('payslips.index');
+    Route::get('/payslips/{id}/download', [PayslipController::class, 'download'])->name('payslips.download');
 });
 
 // Super Admin Routes (Protected)
@@ -216,6 +221,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
     Route::post('/reports/generate', [AdminController::class, 'reports'])->name('reports.generate');
     Route::get('/reports/export/{type}', [AdminController::class, 'exportReport'])->name('reports.export');
+    
+    // Salary Reports Download
+    Route::get('/salary-reports/{id}/download', [AdminController::class, 'downloadSalaryReport'])->name('salary-reports.download');
     
     // Schedule Management
     Route::get('/schedule', [AdminController::class, 'schedule'])->name('schedule');

@@ -27,12 +27,20 @@ class SalaryCalculationService
         ];
     }
 
-    private function loadScheduleExceptions($month, $year)
+    private function loadScheduleExceptions($month, $year, $adminId = null)
     {
-        $this->scheduleExceptions = ScheduleException::whereMonth('exception_date', $month)
-            ->whereYear('exception_date', $year)
-            ->get()
-            ->keyBy('exception_date');
+        $query = ScheduleException::whereMonth('exception_date', $month)
+            ->whereYear('exception_date', $year);
+            
+        // If adminId is provided, get only admin's exceptions + super admin exceptions (null admin_id)
+        if ($adminId) {
+            $query->where(function($q) use ($adminId) {
+                $q->where('admin_id', $adminId)
+                  ->orWhereNull('admin_id');
+            });
+        }
+        
+        $this->scheduleExceptions = $query->get()->keyBy('exception_date');
     }
 
     private function isWeekendDay($date)
@@ -98,9 +106,32 @@ class SalaryCalculationService
         ];
     }
 
-    public function calculatePayableDays($empId, $month, $year)
+    public function shouldIncludeEmployeeInReport($empId, $month, $year)
     {
-        $this->loadScheduleExceptions($month, $year);
+        $employee = Employee::where('emp_id', $empId)->first();
+        if (!$employee) {
+            return false;
+        }
+        
+        $requestedMonthStart = Carbon::create($year, $month, 1);
+        $requestedMonthEnd = $requestedMonthStart->copy()->endOfMonth();
+        
+        // Check if employee was hired after the requested month
+        if ($employee->hire_date && Carbon::parse($employee->hire_date)->greaterThan($requestedMonthEnd)) {
+            return false;
+        }
+        
+        // Check if employee ended before the requested month
+        if ($employee->end_date && Carbon::parse($employee->end_date)->lessThan($requestedMonthStart)) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    public function calculatePayableDays($empId, $month, $year, $adminId = null)
+    {
+        $this->loadScheduleExceptions($month, $year, $adminId);
         
         $startDate = Carbon::create($year, $month, 1);
         $endDate = $startDate->copy()->endOfMonth();
@@ -122,13 +153,34 @@ class SalaryCalculationService
 
     private function calculateFilteredTotalDays($empId, $month, $year)
     {
+        $employee = Employee::where('emp_id', $empId)->first();
+        if (!$employee) {
+            return 0;
+        }
+        
         $startDate = Carbon::create($year, $month, 1);
         $endDate = $startDate->copy()->endOfMonth();
-        $totalDays = $endDate->day;
+        
+        // Adjust dates based on employee hire_date and end_date
+        if ($employee->hire_date && Carbon::parse($employee->hire_date)->greaterThan($startDate)) {
+            $startDate = Carbon::parse($employee->hire_date);
+        }
+        
+        if ($employee->end_date && Carbon::parse($employee->end_date)->lessThan($endDate)) {
+            $endDate = Carbon::parse($employee->end_date);
+        }
+        
+        // If employee wasn't active during this month
+        if ($startDate->greaterThan($endDate)) {
+            return 0;
+        }
+        
+        $totalDays = $endDate->diffInDays($startDate) + 1;
         $excludedDays = 0;
         
-        for ($day = 1; $day <= $totalDays; $day++) {
-            $date = Carbon::create($year, $month, $day)->format('Y-m-d');
+        $currentDate = $startDate->copy();
+        while ($currentDate->lessThanOrEqualTo($endDate)) {
+            $date = $currentDate->format('Y-m-d');
             $isWeekend = $this->isWeekendDay($date);
             $scheduleException = $this->getScheduleException($date);
             
@@ -144,6 +196,8 @@ class SalaryCalculationService
                     $excludedDays++;
                 }
             }
+            
+            $currentDate->addDay();
         }
         
         return $totalDays - $excludedDays;
@@ -234,20 +288,48 @@ class SalaryCalculationService
     
     private function calculateAttendanceBreakdown($empId, $month, $year)
     {
+        $employee = Employee::where('emp_id', $empId)->first();
+        if (!$employee) {
+            return [
+                'present_days' => 0, 'absent_days' => 0, 'half_days' => 0,
+                'sick_leave' => 0, 'casual_leave' => 0, 'regularization' => 0,
+                'holidays' => 0, 'short_attendance' => 0
+            ];
+        }
+        
         $startDate = Carbon::create($year, $month, 1);
         $endDate = $startDate->copy()->endOfMonth();
+        
+        // Adjust dates based on employee hire_date and end_date
+        if ($employee->hire_date && Carbon::parse($employee->hire_date)->greaterThan($startDate)) {
+            $startDate = Carbon::parse($employee->hire_date);
+        }
+        
+        if ($employee->end_date && Carbon::parse($employee->end_date)->lessThan($endDate)) {
+            $endDate = Carbon::parse($employee->end_date);
+        }
+        
+        // If employee wasn't active during this month
+        if ($startDate->greaterThan($endDate)) {
+            return [
+                'present_days' => 0, 'absent_days' => 0, 'half_days' => 0,
+                'sick_leave' => 0, 'casual_leave' => 0, 'regularization' => 0,
+                'holidays' => 0, 'short_attendance' => 0
+            ];
+        }
         
         $presentDays = 0;
         $absentDays = 0;
         $halfDays = 0;
         $sickLeave = 0;
         $casualLeave = 0;
-        $weekOff = 0;
+        $regularization = 0;
         $holidays = 0;
         $shortAttendance = 0;
         
-        for ($day = 1; $day <= $endDate->day; $day++) {
-            $date = Carbon::create($year, $month, $day)->format('Y-m-d');
+        $currentDate = $startDate->copy();
+        while ($currentDate->lessThanOrEqualTo($endDate)) {
+            $date = $currentDate->format('Y-m-d');
             $entries = TimeEntry::where('employee_id', $empId)
                 ->whereDate('entry_time', $date)
                 ->get();
@@ -277,30 +359,31 @@ class SalaryCalculationService
                         $absentDays++;
                     }
                 }
-                continue;
-            }
-            
-            // Has time entries - check entry types
-            if ($entries->where('entry_type', 'holiday')->count() > 0) {
-                $holidays++;
-            } elseif ($entries->where('entry_type', 'casual_leave')->count() > 0) {
-                $casualLeave++;
-            } elseif ($entries->where('entry_type', 'sick_leave')->count() > 0) {
-                $sickLeave++;
-            } elseif ($entries->where('entry_type', 'week_off')->count() > 0) {
-                $weekOff++;
-            } elseif ($entries->where('entry_type', 'half_day')->count() > 0) {
-                $halfDays++;
             } else {
-                $dayAttendance = $this->calculateDayAttendance($empId, $date);
-                if ($dayAttendance >= 1.0) {
-                    $presentDays++;
-                } elseif ($dayAttendance > 0) {
-                    $shortAttendance++;
+                // Has time entries - check entry types
+                if ($entries->where('entry_type', 'holiday')->count() > 0) {
+                    $holidays++;
+                } elseif ($entries->where('entry_type', 'casual_leave')->count() > 0) {
+                    $casualLeave++;
+                } elseif ($entries->where('entry_type', 'sick_leave')->count() > 0) {
+                    $sickLeave++;
+                } elseif ($entries->where('entry_type', 'regularization')->count() > 0) {
+                    $regularization++;
+                } elseif ($entries->where('entry_type', 'half_day')->count() > 0) {
+                    $halfDays++;
                 } else {
-                    $absentDays++;
+                    $dayAttendance = $this->calculateDayAttendance($empId, $date);
+                    if ($dayAttendance >= 1.0) {
+                        $presentDays++;
+                    } elseif ($dayAttendance > 0) {
+                        $shortAttendance++;
+                    } else {
+                        $absentDays++;
+                    }
                 }
             }
+            
+            $currentDate->addDay();
         }
         
         return [
@@ -309,7 +392,7 @@ class SalaryCalculationService
             'half_days' => $halfDays,
             'sick_leave' => $sickLeave,
             'casual_leave' => $casualLeave,
-            'week_off' => $weekOff,
+            'regularization' => $regularization,
             'holidays' => $holidays,
             'short_attendance' => $shortAttendance
         ];

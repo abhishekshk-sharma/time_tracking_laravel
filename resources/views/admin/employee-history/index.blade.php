@@ -128,7 +128,7 @@
                 <div>
                     <h3 style="margin: 0; color: #0f1111;">{{ $employee->username ?? 'Unknown' }}</h3>
                     <p style="margin: 5px 0 0; color: #565959;">
-                        ID: {{ $employee->emp_id }} | Department: {{ $employee->department ?? 'N/A' }} | Position: {{ $employee->position ?? 'N/A' }}
+                        ID: {{ $employee->emp_id }} | Department: {{ $employee->department->name ?? 'N/A' }} | Position: {{ $employee->position ?? 'N/A' }}
                     </p>
                 </div>
             </div>

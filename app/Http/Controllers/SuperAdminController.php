@@ -391,8 +391,25 @@ class SuperAdminController extends Controller
         $month = request('month');
         $year = request('year');
         
-        $salaryReports = SalaryReport::with(['employee', 'region'])
-            ->when($search, function($query, $search) {
+        $salaryQuery = SalaryReport::with(['employee', 'region']);
+        
+        // Filter salary reports based on employee hire_date and end_date
+        if ($month && $year) {
+            $salaryQuery->whereExists(function($query) use ($month, $year) {
+                $query->select(\DB::raw(1))
+                      ->from('employees')
+                      ->whereRaw('BINARY salary_reports.emp_id = BINARY employees.emp_id')
+                      ->where(function($q) use ($month, $year) {
+                          $q->whereRaw('(
+                              (employees.hire_date IS NULL OR DATE(employees.hire_date) <= LAST_DAY(CONCAT(?, "-", LPAD(?, 2, "0"), "-01")))
+                              AND
+                              (employees.end_date IS NULL OR DATE(employees.end_date) >= CONCAT(?, "-", LPAD(?, 2, "0"), "-01"))
+                          )', [$year, $month, $year, $month]);
+                      });
+            });
+        }
+        
+        $salaryReports = $salaryQuery->when($search, function($query, $search) {
                 $query->where(function($q) use ($search) {
                     $q->where('emp_id', 'like', '%' . $search . '%')
                       ->orWhere('emp_name', 'like', '%' . $search . '%');
@@ -424,8 +441,25 @@ class SuperAdminController extends Controller
         // Clear existing reports for this month/year
         SalaryReport::where('month', $month)->where('year', $year)->delete();
 
-        $employees = Employee::where('status', 'active')
-            ->where('role', 'employee')
+        // Get employees active during the requested month
+        $requestedMonthStart = \Carbon\Carbon::create($year, $month, 1);
+        $requestedMonthEnd = $requestedMonthStart->copy()->endOfMonth();
+        
+        $employees = Employee::where('role', 'employee')
+            ->where(function($q) use ($requestedMonthStart, $requestedMonthEnd) {
+                $q->where(function($subQ) use ($requestedMonthStart, $requestedMonthEnd) {
+                    // Employee was hired before or during the month
+                    $subQ->where(function($hireQ) use ($requestedMonthEnd) {
+                        $hireQ->whereNull('hire_date')
+                              ->orWhere('hire_date', '<=', $requestedMonthEnd->format('Y-m-d'));
+                    })
+                    // Employee end date is after or during the month (or null)
+                    ->where(function($endQ) use ($requestedMonthStart) {
+                        $endQ->whereNull('end_date')
+                             ->orWhere('end_date', '>=', $requestedMonthStart->format('Y-m-d'));
+                    });
+                });
+            })
             ->with(['salary', 'department', 'region'])
             ->get();
 
@@ -433,6 +467,11 @@ class SuperAdminController extends Controller
         $generatedCount = 0;
 
         foreach ($employees as $employee) {
+            // Double-check employee eligibility using service method
+            if (!$salaryService->shouldIncludeEmployeeInReport($employee->emp_id, $month, $year)) {
+                continue;
+            }
+            
             $attendanceData = $salaryService->calculatePayableDays($employee->emp_id, $month, $year);
             $salary = $employee->salary;
 
@@ -445,7 +484,7 @@ class SuperAdminController extends Controller
             $payableDays = $attendanceData['present_days'] + $attendanceData['holidays'] + 
                           $attendanceData['sick_leave'] + $attendanceData['casual_leave'] + 
                           ($attendanceData['half_days'] * 0.5) + ($attendanceData['short_attendance'] * 0.5)
-                          + $attendanceData['week_off'];
+                          + $attendanceData['regularization'];
             
             $payableBasicSalary = ($salary->basic_salary / $totalMonthDays) * $payableDays;
             $grossSalary = $payableBasicSalary + $salary->hra + $salary->conveyance_allowance;
@@ -472,7 +511,7 @@ class SuperAdminController extends Controller
                 'half_days' => $attendanceData['half_days'],
                 'sick_leave' => $attendanceData['sick_leave'],
                 'casual_leave' => $attendanceData['casual_leave'],
-                'regularization' => $attendanceData['week_off'],
+                'regularization' => $attendanceData['regularization'],
                 'holidays' => $attendanceData['holidays'],
                 'short_attendance' => $attendanceData['short_attendance'],
                 'payable_days' => $payableDays,
@@ -1003,8 +1042,25 @@ class SuperAdminController extends Controller
         $month = $request->month;
         $year = $request->year;
         
-        $employees = Employee::where('status', 'active')
-            ->where('role', 'employee')
+        // Get employees active during the requested month
+        $requestedMonthStart = \Carbon\Carbon::create($year, $month, 1);
+        $requestedMonthEnd = $requestedMonthStart->copy()->endOfMonth();
+        
+        $employees = Employee::where('role', 'employee')
+            ->where(function($q) use ($requestedMonthStart, $requestedMonthEnd) {
+                $q->where(function($subQ) use ($requestedMonthStart, $requestedMonthEnd) {
+                    // Employee was hired before or during the month
+                    $subQ->where(function($hireQ) use ($requestedMonthEnd) {
+                        $hireQ->whereNull('hire_date')
+                              ->orWhere('hire_date', '<=', $requestedMonthEnd->format('Y-m-d'));
+                    })
+                    // Employee end date is after or during the month (or null)
+                    ->where(function($endQ) use ($requestedMonthStart) {
+                        $endQ->whereNull('end_date')
+                             ->orWhere('end_date', '>=', $requestedMonthStart->format('Y-m-d'));
+                    });
+                });
+            })
             ->with(['department', 'region'])
             ->get();
 
@@ -1012,6 +1068,11 @@ class SuperAdminController extends Controller
         $attendanceData = [];
 
         foreach ($employees as $employee) {
+            // Double-check employee eligibility using service method
+            if (!$salaryService->shouldIncludeEmployeeInReport($employee->emp_id, $month, $year)) {
+                continue;
+            }
+            
             $attendance = $salaryService->calculatePayableDays($employee->emp_id, $month, $year);
             
             $attendanceData[] = [
@@ -1028,12 +1089,12 @@ class SuperAdminController extends Controller
                 'Casual Leave' => $attendance['casual_leave'],
                 'Half Days' => $attendance['half_days'],
                 'Holidays' => $attendance['holidays'],
-                'Regularization' => $attendance['week_off'],
+                'Regularization' => $attendance['regularization'],
                 'Short Attendance' => $attendance['short_attendance'],
                 'Total Payable Days' => $attendance['present_days'] + $attendance['holidays'] + 
                                        $attendance['sick_leave'] + $attendance['casual_leave'] + 
                                        ($attendance['half_days'] * 0.5) + ($attendance['short_attendance'] * 0.5) + 
-                                       $attendance['week_off']
+                                       $attendance['regularization']
             ];
         }
 

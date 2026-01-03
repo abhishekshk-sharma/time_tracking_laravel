@@ -267,6 +267,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="{{ route('payslips.index') }}" class="nav-link {{ request()->routeIs('payslips.*') ? 'active' : '' }}">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span>Payslips</span>
+                            <div class="nav-indicator"></div>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="nav-link logout-btn">

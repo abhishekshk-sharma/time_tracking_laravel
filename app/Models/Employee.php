@@ -26,7 +26,6 @@ class Employee extends Authenticatable
         'end_date',
         'dob',
         'status',
-        'password',
         'password_hash',
         'role',
         'address',
@@ -50,6 +49,11 @@ class Employee extends Authenticatable
     public function getAuthPassword()
     {
         return $this->password_hash;
+    }
+
+    public function getAuthPasswordName() 
+    { 
+        return 'password_hash'; // 👈 column name for updates 
     }
 
     public function department()

@@ -15,6 +15,22 @@ class DashboardController extends Controller
         $employee = Auth::user();
         $today = today();
         
+        // Check if today is half day
+        $halfDayApplication = \App\Models\Application::where('employee_id', $employee->emp_id)
+            ->where('req_type', 'half_day')
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->first();
+            
+        $isHalfDay = $halfDayApplication ? true : false;
+        $halfDayTime = null;
+        
+        if ($isHalfDay) {
+            $halfDayTime = \App\Models\SystemSetting::where('setting_key', 'half_day_time')
+                ->value('setting_value') ?? '4:30';
+        }
+        
         // Get today's time entries
         $todayEntries = $employee->getTodayTimeEntries();
         
@@ -30,14 +46,6 @@ class DashboardController extends Controller
         // Get system settings
         $workStartTime = SystemSetting::getWorkStartTime();
         $workEndTime = SystemSetting::getWorkEndTime();
-        $halfDayTime = SystemSetting::getHalfDayTime();
-        
-        // Check if today is half day
-        $isHalfDay = $employee->applications()
-            ->where('req_type', 'half_day')
-            ->where('status', 'approved')
-            ->whereDate('start_date', $today)
-            ->exists();
 
         return view('dashboard.index', compact(
             'employee',
@@ -46,8 +54,8 @@ class DashboardController extends Controller
             'buttonStates',
             'workStartTime',
             'workEndTime',
-            'halfDayTime',
-            'isHalfDay'
+            'isHalfDay',
+            'halfDayTime'
         ));
     }
 
@@ -267,14 +275,21 @@ class DashboardController extends Controller
         $year = $request->input('year', now()->year);
         $userid = Auth::user()->emp_id;
         
+        \Log::info('getScheduleData called with data:', $request->all());
+        \Log::info('Schedule params:', ['month' => $month, 'year' => $year, 'userid' => $userid]);
+        
         // Get time entries for the month
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+        
+        \Log::info('Date range:', ['start' => $startDate->toDateTimeString(), 'end' => $endDate->toDateTimeString()]);
         
         $timeEntries = TimeEntry::where('employee_id', $userid)
             ->whereBetween('entry_time', [$startDate, $endDate])
             ->orderBy('entry_time')
             ->get();
+            
+        \Log::info('Found entries count:', $timeEntries->count());
             
         // Process entries by date
         $dateWiseData = [];
@@ -349,15 +364,29 @@ class DashboardController extends Controller
             return '<label style="color:green;">Present</label>';
         }
         
-        $startTime = Carbon::createFromFormat('H:i:s', $workStartTime->setting_value);
-        $punchTime = $punchInTime->entry_time;
-        
-        $minutesLate = $punchTime->diffInMinutes($startTime);
-        
-        if ($minutesLate <= intval($lateThreshold->setting_value)) {
+        try {
+            // Ensure the time format is correct
+            $timeValue = $workStartTime->setting_value;
+            if (strlen($timeValue) == 5) {
+                $timeValue .= ':00'; // Add seconds if missing
+            }
+            
+            $startTime = Carbon::createFromFormat('H:i:s', $timeValue);
+            $punchTime = Carbon::parse($punchInTime->entry_time);
+            
+            // Set the same date for comparison
+            $startTime->setDate($punchTime->year, $punchTime->month, $punchTime->day);
+            
+            $minutesLate = $startTime->diffInMinutes($punchTime, false);
+            
+            if ($minutesLate <= intval($lateThreshold->setting_value)) {
+                return '<label style="color:green;">Present</label>';
+            } else {
+                return '<label style="color:orange;">Late</label>';
+            }
+        } catch (\Exception $e) {
+            \Log::error('Late status calculation error: ' . $e->getMessage());
             return '<label style="color:green;">Present</label>';
-        } else {
-            return '<label style="color:orange;">Late</label>';
         }
     }
 }

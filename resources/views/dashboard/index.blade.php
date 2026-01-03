@@ -366,6 +366,13 @@
 
 @section('page-content')
 
+@if($isHalfDay)
+<div class="alert alert-info" style="margin-bottom: 2rem; padding: 1rem 1.5rem; background: linear-gradient(135deg, #e3f2fd, #bbdefb); border: 1px solid #2196f3; border-radius: 8px; color: #1565c0;">
+    <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+    <strong>Today is your Half Day</strong> - Work hour for today is {{ $halfDayTime }}
+</div>
+@endif
+
 <div class="clock-widget">
     <div class="clock-display" id="clockTime">--:--</div>
     <div class="clock-date" id="clockDate">Loading...</div>
@@ -580,6 +587,7 @@ $(document).ready(function() {
             },
             timeout: 30000, // 30 second timeout
             success: function(response) {
+                console.log('Time action response:', response);
                 if (response === 'nothing') {
                     Swal.fire({
                         icon: 'success',
@@ -591,6 +599,35 @@ $(document).ready(function() {
                     loadTimeData();
                     loadActivityData();
                     updateButtonStates();
+                } else if (response === 'duplicate_action') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Already Recorded!',
+                        text: 'This action has already been recorded today.',
+                    });
+                } else if (response === 'work_complete') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Work Day Complete!',
+                        text: 'You have completed your required work hours for today.',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                    loadTimeData();
+                    loadActivityData();
+                    updateButtonStates();
+                } else if (response === 'invalid_sequence') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Invalid Action!',
+                        text: 'Please follow the correct sequence of actions.',
+                    });
+                } else if (response === 'must_punch_in_first') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Punch In Required!',
+                        text: 'Please punch in first before other actions.',
+                    });
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -634,50 +671,52 @@ $(document).ready(function() {
             },
             success: function(data) {
                 console.log('Time data received:', data); // Debug log
-                console.log('Network value:', data.network);
-                console.log('Total hours value:', data.total_hours);
-                console.log('Lunch value:', data.totalLunchByemp);
-                if (data.debug_error) {
-                    console.error('API Error:', data.debug_error);
-                }
                 
                 if (data) {
+                    console.log('Updating DOM elements...');
+                    
                     // Update work time - use network or total_hours as fallback
                     let workTimeValue = data.network || data.total_hours || '0H 0M';
-                    console.log('Final work time value:', workTimeValue);
+                    console.log('Work time value:', workTimeValue);
                     
-                    if (workTimeValue === '0H 0M' || workTimeValue === '00:00:00') {
-                        $('#workTime').text('No work logged');
+                    if (workTimeValue === '0H 0M' || workTimeValue === '00:00:00' || workTimeValue === '') {
+                        $('#workTime').text(workTimeValue).css('color', '#666');
+                        console.log('Set work time to: No work logged');
                     } else {
-                        $('#workTime').text(workTimeValue);
+                        $('#workTime').text(workTimeValue).css('color', '#333');
+                        console.log('Set work time to:', workTimeValue);
                     }
                     
                     // Update lunch time
-                    let lunchTimeValue = data.totalLunchByemp || '0H 0M';
-                    console.log('Final lunch time value:', lunchTimeValue);
+                    let lunchTimeValue = data.totalLunchByemp || '0M';
+                    console.log('Lunch time value:', lunchTimeValue);
                     
-                    if (lunchTimeValue === '0H 0M' || lunchTimeValue === '0H : 0M') {
-                        $('#lunchTime').text('No lunch taken');
+                    if (lunchTimeValue === '0H 0M' || lunchTimeValue === '0M' || lunchTimeValue === '') {
+                        $('#lunchTime').text(lunchTimeValue).css('color', '#666');
+                        console.log('Set lunch time to: No lunch taken');
                     } else {
-                        $('#lunchTime').text(lunchTimeValue);
+                        $('#lunchTime').text(lunchTimeValue).css('color', '#333');
+                        console.log('Set lunch time to:', lunchTimeValue);
                     }
                     
                     // Update status - remove HTML tags for clean display
                     let statusText = data.late || 'Not Punched In';
+                    console.log('Raw status text:', statusText);
                     statusText = statusText.replace(/<[^>]*>/g, ''); // Remove HTML tags
                     $('#status').text(statusText);
+                    console.log('Set status to:', statusText);
                     
                     // Update status indicator based on the status
-                    if (statusText.includes('Present')) {
+                    if (statusText.toLowerCase().includes('present')) {
                         $('#statusIndicator').text('Working');
                         $('.status-card .card-icon').css('color', '#22c55e');
-                    } else if (statusText.includes('Late')) {
+                    } else if (statusText.toLowerCase().includes('late')) {
                         $('#statusIndicator').text('Late arrival');
                         $('.status-card .card-icon').css('color', '#f59e0b');
-                    } else if (statusText.includes('Absent')) {
+                    } else if (statusText.toLowerCase().includes('absent')) {
                         $('#statusIndicator').text('Not present');
                         $('.status-card .card-icon').css('color', '#ef4444');
-                    } else if (statusText.includes('Not Available')) {
+                    } else if (statusText.toLowerCase().includes('not available')) {
                         $('#statusIndicator').text('System loading...');
                         $('.status-card .card-icon').css('color', '#6b7280');
                     } else {
@@ -688,6 +727,7 @@ $(document).ready(function() {
                     console.error('No data received from time API');
                     $('#workTime').text('API Error');
                     $('#lunchTime').text('API Error');
+                    $('#status').text('Data unavailable');
                 }
             },
             error: function(xhr, status, error) {
@@ -777,14 +817,14 @@ $(document).ready(function() {
                     // Lunch ended - disable punch in and lunch end, enable punch out and lunch start
                     $('#punchInBtn, #lunchEndBtn').prop('disabled', true).addClass('disabled');
                 } else if (response == '4') {
-                    // Punched out - check if 9 hours completed
-                    if (totalHours >= 9) {
-                        // 9+ hours completed - disable all buttons
-                        $('.tracking-btn').prop('disabled', true).addClass('disabled');
-                    } else {
-                        // Less than 9 hours - disable all except punch in
-                        $('#punchOutBtn, #lunchStartBtn, #lunchEndBtn').prop('disabled', true).addClass('disabled');
-                    }
+                    // Punched out - allow punch in again to continue work
+                    $('#punchOutBtn, #lunchStartBtn, #lunchEndBtn').prop('disabled', true).addClass('disabled');
+                } else if (response == 'work_complete') {
+                    // Work completed - disable all buttons
+                    $('.tracking-btn').prop('disabled', true).addClass('disabled');
+                } else if (response.includes('leave') || response.includes('holiday') || response === 'regularization') {
+                    // On leave/holiday - disable all buttons
+                    $('.tracking-btn').prop('disabled', true).addClass('disabled');
                 }
             },
             error: function(xhr, status, error) {
@@ -793,11 +833,11 @@ $(document).ready(function() {
         });
     }
     
-    // Refresh data every 60 seconds (reduced from 30 to prevent too many requests)
+    // Refresh data every 5 minutes (300 seconds) to reduce server load
     setInterval(function() {
         loadTimeData();
         updateButtonStates();
-    }, 60000);
+    }, 300000);
 });
 </script>
 @endpush

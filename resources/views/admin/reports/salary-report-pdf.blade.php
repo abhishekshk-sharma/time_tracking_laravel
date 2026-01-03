@@ -195,10 +195,10 @@
             
             <tr style="background-color: #fff;">
                 <td class="bold text-gray">TOTAL EARNINGS</td>
-                <td class="bold text-right">&#8377; {{ number_format($salaryReport->gross_salary, 2) }}</td>
+                <td class="bold text-right">Rs. {{ number_format($salaryReport->gross_salary, 2) }}</td>
                 <td></td>
                 <td class="bold text-gray">TOTAL DEDUCTIONS</td>
-                <td class="bold text-right">&#8377; {{ number_format($salaryReport->total_deductions, 2) }}</td>
+                <td class="bold text-right">Rs. {{ number_format($salaryReport->total_deductions, 2) }}</td>
             </tr>
         </tbody>
     </table>
@@ -214,7 +214,7 @@
                 <td width="40%">
                     <div class="net-pay-box">
                         <div class="net-label">Net Salary Payable</div>
-                        <div class="net-amount">&#8377; {{ number_format($salaryReport->net_salary, 2) }}</div>
+                        <div class="net-amount">Rs. {{ number_format($salaryReport->net_salary, 2) }}</div>
                     </div>
                 </td>
             </tr>
