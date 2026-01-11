@@ -3,15 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\LeaveCount;
 use App\Models\TimeEntry;
 use App\Models\Application;
 use App\Models\Department;
 use App\Models\SystemSetting;
 use App\Models\Wfh;
+use App\Models\Salary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Validation\Rule; 
+
 
 class AdminController extends Controller
 {
@@ -73,6 +77,7 @@ class AdminController extends Controller
         $employees = $query->with('department')->paginate(15);
         $departments = Department::all();
 
+        // return $employees->first()->department->name;
         return view('admin.employees.index', compact('employees', 'departments'));
     }
 
@@ -157,21 +162,41 @@ class AdminController extends Controller
         $request->validate([
             'emp_id' => 'required|unique:employees,emp_id',
             'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255',
+            'position' => 'required|string|max:255',
+            'hiredate' => [ 
+                'required', 
+                'date', 
+                'beforeOrEqual:' . Carbon::now()->addDays(30)->toDateString(), 
+            ],
+            
+            'dob' => 
+            [ 
+                'required', 
+                'date', 
+                'beforeOrEqual:' . Carbon::now()->subYears(18)->toDateString(), 
+            ],
             'email' => 'required|email|unique:employees,email',
             'password' => 'required|min:6',
             'department_id' => 'required|exists:departments,id',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
+            
         ]);
-
+        $hashpassword = Hash::make($request->password);
         Employee::create([
             'emp_id' => $request->emp_id,
-            'name' => $request->name,
+            'full_name' => $request->name,
+            'username' => $request->username,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password_hash' => $hashpassword,
             'department_id' => $request->department_id,
+            'hire_date' => $request->hiredate,
+            'dob' => $request->dob,
             'phone' => $request->phone,
             'address' => $request->address,
+            'referrance' => auth()->user()->emp_id,
+            'position' => $request->position,
             'role' => 'employee',
             'status' => 'active',
         ]);
@@ -182,6 +207,8 @@ class AdminController extends Controller
     public function editEmployee(Employee $employee)
     {
         $adminEmpId = auth()->user()->emp_id;
+
+        // $departments = departments::get();
         
         // Check if the employee belongs to the current admin
         if ($employee->referrance !== $adminEmpId) {
@@ -189,8 +216,9 @@ class AdminController extends Controller
                 ->with('error', 'You do not have permission to edit this employee.');
         }
         
-        $departments = Department::all();
-        return view('admin.employees.edit', compact('employee', 'departments'));
+        $departments = Department::get();
+        $leaveCount = $employee->leaveCount;
+        return view('admin.employees.edit', compact('employee', 'departments', 'leaveCount'));
     }
 
     public function updateEmployee(Request $request, Employee $employee)
@@ -205,15 +233,31 @@ class AdminController extends Controller
         
         $request->validate([
             'username' => 'required|string|max:255',
+            'full_name' => 'required|string|max:255',
+            'position' => 'required|string|max:255',
+            'hire_date' => [ 
+                'required', 
+                'date', 
+                'beforeOrEqual:' . Carbon::now()->addDays(30)->toDateString(), 
+            ],
+            
+            'dob' => 
+            [ 
+                'required', 
+                'date', 
+                'beforeOrEqual:' . Carbon::now()->subYears(18)->toDateString(), 
+            ],
             'email' => 'required|email|unique:employees,email,' . $employee->id,
-            'departments' => 'required|exists:departments,name',
+            'department_id' => 'required|exists:departments,id',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
             'status' => 'required|in:active,inactive',
             'end_date' => 'nullable|date',
+            'casual_leave' => 'nullable|integer|min:0|max:365',
+            'sick_leave' => 'nullable|integer|min:0|max:365',
         ]);
 
-        $updateData = $request->only(['username', 'email', 'departments', 'phone', 'address', 'status', 'end_date']);
+        $updateData = $request->only(['username', 'email', 'full_name', 'hire_date', 'dob', 'position', 'department_id', 'phone', 'address', 'status', 'end_date']);
         
         // If end_date is set, automatically make employee inactive
         if ($request->end_date) {
@@ -223,7 +267,18 @@ class AdminController extends Controller
         $employee->update($updateData);
 
         if ($request->password) {
-            $employee->update(['password' => Hash::make($request->password)]);
+            $employee->update(['password_hash' => Hash::make($request->password)]);
+        }
+
+        // Update or create leave count
+        if ($request->has('casual_leave') || $request->has('sick_leave')) {
+            LeaveCount::updateOrCreate(
+                ['employee_id' => $employee->emp_id],
+                [
+                    'casual_leave' => $request->casual_leave ?? 0,
+                    'sick_leave' => $request->sick_leave ?? 0,
+                ]
+            );
         }
 
         return redirect()->route('admin.employees')->with('success', 'Employee updated successfully');
@@ -260,60 +315,128 @@ class AdminController extends Controller
         }
 
         $applications = $query->orderBy('created_at', 'desc')->paginate(15);
-
+        // return $applications;
         return view('admin.applications.index', compact('applications'));
     }
 
     public function updateApplicationStatus(Request $request, Application $application)
     {
-        $request->validate([
-            'status' => 'required|in:approved,rejected',
-            'admin_remarks' => 'nullable|string',
-        ]);
+        try {
+            \Log::info('Admin updateApplicationStatus called', [
+                'application_id' => $application->id,
+                'request_data' => $request->all(),
+                'admin_emp_id' => auth()->user()->emp_id
+            ]);
+            
+            $adminEmpId = auth()->user()->emp_id;
+            
+            // Check if admin has permission to update this application
+            if ($application->employee->referrance !== $adminEmpId) {
+                \Log::warning('Admin permission denied', [
+                    'admin_emp_id' => $adminEmpId,
+                    'employee_referrance' => $application->employee->referrance
+                ]);
+                return response()->json(['error' => 'You do not have permission to update this application.'], 403);
+            }
+            
+            $request->validate([
+                'status' => 'required|in:approved,rejected',
+            ]);
+            
+            // Validate before updating status for approved applications
+            if ($request->status === 'approved') {
+                $this->validateApplicationForApproval($application);
+            }
 
-        $application->update([
-            'status' => $request->status,
-            'admin_remarks' => $request->admin_remarks,
-            'action_by' => auth()->user()->emp_id,
-            'action_date' => now(),
-        ]);
-        
-        // Create time entries for approved applications
-        if ($request->status === 'approved') {
-            $this->createTimeEntryForApplication($application);
+            $application->update([
+                'status' => $request->status,
+                'action_by' => auth()->user()->emp_id,
+            ]);
+            
+            // Create time entries for approved applications
+            if ($request->status === 'approved') {
+                $this->createTimeEntryForApplication($application);
+            }
+
+            \Log::info('Application status updated successfully', ['application_id' => $application->id]);
+            return response()->json(['success' => true, 'message' => 'Application ' . $request->status . ' successfully']);
+        } catch (\Exception $e) {
+            \Log::error('Application status update error: ' . $e->getMessage(), [
+                'application_id' => $application->id ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to update application status: ' . $e->getMessage()], 500);
         }
-
-        return response()->json(['success' => true, 'message' => 'Application ' . $request->status . ' successfully']);
+    }
+    
+    private function validateApplicationForApproval(Application $application)
+    {
+        if (in_array($application->req_type, ['casual_leave', 'sick_leave', 'regularization'])) {
+            $startDate = \Carbon\Carbon::parse($application->start_date);
+            $endDate = $application->end_date ? \Carbon\Carbon::parse($application->end_date) : $startDate;
+            
+            $currentDate = $startDate->copy();
+            $conflictDates = [];
+            
+            while ($currentDate <= $endDate) {
+                $existingEntry = TimeEntry::where('employee_id', $application->employee_id)
+                    ->whereDate('entry_time', $currentDate->format('Y-m-d'))
+                    ->first();
+                
+                if ($existingEntry) {
+                    $conflictDates[] = $currentDate->format('Y-m-d') . ' (' . $existingEntry->entry_type . ')';
+                }
+                
+                $currentDate->addDay();
+            }
+            
+            if (!empty($conflictDates)) {
+                throw new \Exception("Cannot approve application. Employee already has entries for dates: " . implode(', ', $conflictDates));
+            }
+        }
     }
     
     private function createTimeEntryForApplication(Application $application)
     {
-        $entryType = null;
-        $entryTime = null;
-        
-        // Handle different request types
         switch ($application->req_type) {
             case 'casual_leave':
             case 'sick_leave':
             case 'regularization':
-                $entryType = $application->req_type;
-                $entryTime = $application->start_date ?? now();
+                $startDate = \Carbon\Carbon::parse($application->start_date);
+                $endDate = $application->end_date ? \Carbon\Carbon::parse($application->end_date) : $startDate;
+                
+                $currentDate = $startDate->copy();
+                $totalDays = 0;
+                while ($currentDate <= $endDate) {
+                    TimeEntry::create([
+                        'employee_id' => $application->employee_id,
+                        'entry_type' => $application->req_type,
+                        'entry_time' => $currentDate->format('Y-m-d 09:00:00'),
+                        'notes' => 'Auto-created from approved application #' . $application->id
+                    ]);
+                    $currentDate->addDay();
+                    $totalDays++;
+                }
+                
+                if (in_array($application->req_type, ['casual_leave', 'sick_leave'])) {
+                    $leaveCount = \App\Models\LeaveCount::where('employee_id', $application->employee_id)->first();
+                    if ($leaveCount) {
+                        $currentLeave = $leaveCount->{$application->req_type};
+                        $newLeaveCount = max(0, $currentLeave - $totalDays);
+                        $leaveCount->update([$application->req_type => $newLeaveCount]);
+                    }
+                }
                 break;
                 
             case 'punch_Out_regularization':
-                $entryType = 'punch_out';
-                // Use custom_time if provided, otherwise use end_date
                 $entryTime = request('custom_time') ?? $application->end_date;
+                TimeEntry::create([
+                    'employee_id' => $application->employee_id,
+                    'entry_type' => 'punch_out',
+                    'entry_time' => $entryTime,
+                    'notes' => 'Auto-created from approved application #' . $application->id
+                ]);
                 break;
-        }
-        
-        if ($entryType && $entryTime) {
-            TimeEntry::create([
-                'employee_id' => $application->employee_id,
-                'entry_type' => $entryType,
-                'entry_time' => $entryTime,
-                'notes' => 'Auto-created from approved application #' . $application->id
-            ]);
         }
     }
 
@@ -350,25 +473,203 @@ class AdminController extends Controller
         }
 
         $employees = $query->paginate($perPage);
+        
+        // Check for half-day applications and calculate working hours for each employee
+        foreach ($employees as $employee) {
+            $employee->halfDayApplication = \App\Models\Application::where('employee_id', $employee->emp_id)
+                ->whereIn('req_type', ['half_day', 'half_leave'])
+                ->where('status', 'approved')
+                ->whereDate('start_date', $date)
+                ->exists();
+                
+            // Calculate working hours and get first/last punch times
+            $punchIns = $employee->timeEntries->where('entry_type', 'punch_in')->sortBy('entry_time');
+            $punchOuts = $employee->timeEntries->where('entry_type', 'punch_out')->sortBy('entry_time');
+            
+            $employee->firstPunchIn = $punchIns->first();
+            $employee->lastPunchOut = $punchOuts->last();
+            
+            // Calculate total working hours by pairing punch in/out sessions
+            $totalMinutes = 0;
+            $punchInArray = $punchIns->values()->toArray();
+            $punchOutArray = $punchOuts->values()->toArray();
+            
+            for ($i = 0; $i < count($punchInArray); $i++) {
+                if (isset($punchOutArray[$i])) {
+                    $punchInTime = \Carbon\Carbon::parse($punchInArray[$i]['entry_time']);
+                    $punchOutTime = \Carbon\Carbon::parse($punchOutArray[$i]['entry_time']);
+                    $totalMinutes += $punchOutTime->diffInMinutes($punchInTime);
+                }
+            }
+            
+            $employee->workingHours = $totalMinutes > 0 ? sprintf('%d:%02d', floor($totalMinutes / 60), $totalMinutes % 60) : '0:00';
+            
+            // Determine status
+            if ($employee->halfDayApplication) {
+                $employee->attendanceStatus = 'half_day';
+            } elseif ($employee->firstPunchIn) {
+                $employee->attendanceStatus = 'present';
+            } else {
+                $employee->attendanceStatus = 'absent';
+            }
+        }
+        
         $departments = Department::all();
         
-        // Check if the date is Sunday or 2nd/4th Saturday
+        // Get weekend policy from system settings
+        $weekendPolicySetting = SystemSetting::where('setting_key', 'weekend_policy')->first();
+        $weekendPolicy = $weekendPolicySetting ? json_decode($weekendPolicySetting->setting_value, true) : [
+            'recurring_days' => [0], // Default: Sunday only
+            'specific_pattern' => []
+        ];
+        
+        // Check schedule exceptions
+        $scheduleException = \App\Models\ScheduleException::where('exception_date', $date)->first();
+        
+        // Determine if date is weekend/holiday
         $dateCarbon = \Carbon\Carbon::parse($date);
         $isWeekend = false;
         $weekendType = '';
         
-        if ($dateCarbon->isSunday()) {
-            $isWeekend = true;
-            $weekendType = 'Sunday';
-        } elseif ($dateCarbon->isSaturday()) {
-            $weekOfMonth = ceil($dateCarbon->day / 7);
-            if ($weekOfMonth == 2 || $weekOfMonth == 4) {
+        if ($scheduleException) {
+            if ($scheduleException->type === 'holiday') {
                 $isWeekend = true;
-                $weekendType = ($weekOfMonth == 2 ? 'Second' : 'Fourth') . ' Saturday';
+                $weekendType = 'Holiday';
+            } elseif ($scheduleException->type === 'weekend') {
+                $isWeekend = true;
+                $weekendType = 'Weekend';
+            }
+        } else {
+            // Check weekend policy
+            $dayOfWeek = $dateCarbon->dayOfWeek; // 0 = Sunday, 6 = Saturday
+            
+            // Check recurring days
+            if (in_array($dayOfWeek, $weekendPolicy['recurring_days'])) {
+                $isWeekend = true;
+                $weekendType = $dayOfWeek === 0 ? 'Sunday' : 'Saturday';
+            }
+            
+            // Check specific patterns (e.g., 2nd/4th Saturday)
+            if (isset($weekendPolicy['specific_pattern'][$dayOfWeek])) {
+                $weekOfMonth = ceil($dateCarbon->day / 7);
+                if (in_array($weekOfMonth, $weekendPolicy['specific_pattern'][$dayOfWeek])) {
+                    $isWeekend = true;
+                    $weekendType = $this->getOrdinal($weekOfMonth) . ' ' . $dateCarbon->format('l');
+                }
             }
         }
 
         return view('admin.attendance.index', compact('employees', 'departments', 'date', 'isWeekend', 'weekendType'));
+    }
+    
+    private function getOrdinal($number) {
+        $ordinals = ['', 'First', 'Second', 'Third', 'Fourth', 'Fifth'];
+        return $ordinals[$number] ?? $number . 'th';
+    }
+
+    public function attendanceFilter(Request $request)
+    {
+        $adminEmpId = auth()->user()->emp_id;
+        $date = $request->get('date', today()->format('Y-m-d'));
+        $department = $request->get('department');
+        $search = $request->get('search');
+        $entryType = $request->get('entry_type', 'all');
+
+        $query = Employee::where('role', 'employee')
+            ->where('status', 'active')
+            ->where('referrance', $adminEmpId)
+            ->with(['department', 'timeEntries' => function($q) use ($date) {
+                $q->whereDate('entry_time', $date)->orderBy('entry_time');
+            }]);
+
+        // Add entry images relationship for camera filter
+        if ($entryType === 'camera') {
+            $query->with(['entryImages' => function($q) use ($date) {
+                $q->whereDate('entry_time', $date);
+            }]);
+        }
+
+        if ($department) {
+            $query->where('department_id', $department);
+        }
+        
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('username', 'like', '%' . $search . '%')
+                  ->orWhere('emp_id', 'like', '%' . $search . '%');
+            });
+        }
+
+        $employees = $query->get();
+
+        // Filter based on entry type
+        if ($entryType === 'camera') {
+            $employees = $employees->filter(function($employee) use ($date) {
+                return $employee->entryImages->where('entry_time', '>=', $date . ' 00:00:00')
+                                            ->where('entry_time', '<=', $date . ' 23:59:59')
+                                            ->count() > 0;
+            });
+        }
+
+        // Transform data for JSON response
+        $employeesData = $employees->map(function($employee) {
+            return [
+                'emp_id' => $employee->emp_id,
+                'username' => $employee->username,
+                'department' => $employee->department,
+                'time_entries' => $employee->timeEntries->toArray(),
+                'entry_images' => $employee->entryImages ?? []
+            ];
+        });
+
+        return response()->json([
+            'employees' => $employeesData,
+            'count' => $employees->count()
+        ]);
+    }
+
+    public function timeEntries(Request $request)
+    {
+        $empId = $request->get('employee');
+        $fromDate = $request->get('from_date');
+        $toDate = $request->get('to_date');
+
+        $query = \App\Models\TimeEntry::where('employee_id', $empId);
+        
+        if ($fromDate) {
+            $query->whereDate('entry_time', '>=', $fromDate);
+        }
+        
+        if ($toDate) {
+            $query->whereDate('entry_time', '<=', $toDate);
+        }
+        
+        $entries = $query->orderBy('entry_time')->get();
+        
+        // Get entry images matched by entry_id
+        $images = \App\Models\EntryImage::whereIn('entry_id', $entries->pluck('id'))
+            ->get()
+            ->keyBy('entry_id');
+        
+        return response()->json([
+            'entries' => $entries,
+            'images' => $images
+        ]);
+    }
+
+    public function entryImages(Request $request)
+    {
+        $empId = $request->get('employee');
+        $date = $request->get('date');
+
+        $images = \App\Models\EntryImage::where('emp_id', $empId)
+            ->whereDate('entry_time', $date)
+            ->orderBy('entry_time')
+            ->get();
+
+        return response()->json([
+            'images' => $images
+        ]);
     }
 
     public function reports(Request $request)
@@ -534,8 +835,9 @@ class AdminController extends Controller
             return redirect()->route('admin.reports')->with('error', 'Salary report not found or access denied.');
         }
         
+        $employee = Employee::where('emp_id', $salaryReport->emp_id)->first();
         // Use the same approach as super-admin with Browsershot and original template
-        $html = view('super-admin.reports.salary-report-pdf', compact('salaryReport'))->render();
+        $html = view('super-admin.reports.salary-report-pdf', compact('salaryReport', 'employee'))->render();
         
         $pdf = \Spatie\Browsershot\Browsershot::html($html)
             ->format('A4')
@@ -546,6 +848,166 @@ class AdminController extends Controller
         return response($pdf)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'attachment; filename="salary_slip_' . $salaryReport->emp_id . '_' . $salaryReport->month . '_' . $salaryReport->year . '.pdf"');
+    }
+
+    public function showSalarySlipPreview($id)
+    {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        $salaryReport = \App\Models\SalaryReport::where('id', $id)
+            ->where('admin_id', $adminEmpId)
+            ->with(['employee', 'region'])
+            ->first();
+            
+        if (!$salaryReport) {
+            return redirect()->route('admin.reports')->with('error', 'Salary report not found or access denied.');
+        }
+
+        $employee = Employee::with('region')->where('emp_id', $salaryReport->emp_id)->first();
+        
+        // return $employee;
+        return view('admin.reports.salary-slip-preview', compact('salaryReport', 'employee'));
+    }
+
+    public function editSalaryReport($id)
+    {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        $salaryReport = \App\Models\SalaryReport::where('id', $id)
+            ->where('admin_id', $adminEmpId)
+            ->with(['employee', 'region'])
+            ->first();
+            
+        if (!$salaryReport) {
+            return redirect()->route('admin.reports')->with('error', 'Salary report not found or access denied.');
+        }
+        
+        // Get detailed daily attendance data with admin priority
+        $salaryService = new \App\Services\SalaryCalculationService();
+        $dailyAttendance = $salaryService->getDailyAttendanceDetails($salaryReport->emp_id, $salaryReport->month, $salaryReport->year, $adminEmpId);
+        
+        // Calculate per day basic salary
+        $perDayBasicSalary = $salaryReport->basic_salary / $salaryReport->total_working_days;
+        
+        return view('admin.reports.edit-salary-report', compact('salaryReport', 'dailyAttendance', 'perDayBasicSalary'));
+    }
+
+    public function updateSalaryReport(Request $request, $id)
+    {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        $salaryReport = \App\Models\SalaryReport::where('id', $id)
+            ->where('admin_id', $adminEmpId)
+            ->first();
+            
+        if (!$salaryReport) {
+            return redirect()->route('admin.reports')->with('error', 'Salary report not found or access denied.');
+        }
+        
+        $request->validate([
+            'emp_name' => 'required|string|max:255',
+            'designation' => 'required|string|max:255',
+            'department' => 'required|string|max:255',
+            'total_working_days' => 'required|integer|min:1',
+            'present_days' => 'required|integer|min:0',
+            'absent_days' => 'required|integer|min:0',
+            'half_days' => 'required|integer|min:0',
+            'sick_leave' => 'required|integer|min:0',
+            'casual_leave' => 'required|integer|min:0',
+            'regularization' => 'required|integer|min:0',
+            'holidays' => 'required|integer|min:0',
+            'short_attendance' => 'required|integer|min:0',
+            'payable_days' => 'required|numeric|min:0',
+            'basic_salary' => 'required|numeric|min:0',
+            'hra' => 'required|numeric|min:0',
+            'conveyance_allowance' => 'required|numeric|min:0',
+            'pf' => 'required|numeric|min:0',
+            'pt' => 'required|numeric|min:0',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account' => 'nullable|string|max:255',
+            'ifsc_code' => 'nullable|string|max:11',
+            'bank_branch' => 'nullable|string|max:255',
+            'uan' => 'nullable|string|max:12',
+            'pf_no' => 'nullable|string|max:255',
+            'esic_no' => 'nullable|string|max:17'
+        ]);
+
+        if($request->payable_days + $request->absent_days > $request->total_working_days ){
+            return back()->withErrors(['error' => 'Days can\'t exceed total month days!'])
+                            ->withInput();
+        }
+
+        // Get original salary data for validation
+        $employee = \App\Models\Employee::with('salary')->where('emp_id', $salaryReport->emp_id)->first();
+        $originalSalary = $employee->salary;
+        
+        // Validate salary components don't exceed original amounts
+        if ($originalSalary) {
+            if ($request->basic_salary > $originalSalary->basic_salary) {
+                return back()->withErrors(['basic_salary' => 'Basic salary cannot exceed original amount of ₹' . number_format($originalSalary->basic_salary, 2)])
+                            ->withInput();
+            }
+            if ($request->hra > $originalSalary->hra) {
+                return back()->withErrors(['hra' => 'HRA cannot exceed original amount of ₹' . number_format($originalSalary->hra, 2)])
+                            ->withInput();
+            }
+            if ($request->conveyance_allowance > $originalSalary->conveyance_allowance) {
+                return back()->withErrors(['conveyance_allowance' => 'Conveyance allowance cannot exceed original amount of ₹' . number_format($originalSalary->conveyance_allowance, 2)])
+                            ->withInput();
+            }
+            if ($request->pf > $originalSalary->pf) {
+                return back()->withErrors(['pf' => 'PF cannot exceed original amount of ₹' . number_format($originalSalary->pf, 2)])
+                            ->withInput();
+            }
+            if ($request->pt > $originalSalary->pt) {
+                return back()->withErrors(['pt' => 'PT cannot exceed original amount of ₹' . number_format($originalSalary->pt, 2)])
+                            ->withInput();
+            }
+        }
+        
+        $payableBasicSalary = ($request->basic_salary / $request->total_working_days) * $request->payable_days;
+        $grossSalary = $payableBasicSalary + $request->hra + $request->conveyance_allowance;
+        $totalDeductions = $request->pf + $request->pt;
+        $netSalary = $grossSalary - $totalDeductions;
+
+        $salaryReport->update([
+            'emp_name' => $request->emp_name,
+            'designation' => $request->designation,
+            'department' => $request->department,
+            'total_working_days' => $request->total_working_days,
+            'present_days' => $request->present_days,
+            'absent_days' => $request->absent_days,
+            'half_days' => $request->half_days,
+            'sick_leave' => $request->sick_leave,
+            'casual_leave' => $request->casual_leave,
+            'regularization' => $request->regularization,
+            'holidays' => $request->holidays,
+            'short_attendance' => $request->short_attendance,
+            'payable_days' => $request->payable_days,
+            'basic_salary' => $request->basic_salary,
+            'hra' => $request->hra,
+            'conveyance_allowance' => $request->conveyance_allowance,
+            'pf' => $request->pf,
+            'pt' => $request->pt,
+            'payable_basic_salary' => $payableBasicSalary,
+            'gross_salary' => $grossSalary,
+            'total_deductions' => $totalDeductions,
+            'net_salary' => $netSalary,
+            'has_negative_salary' => $netSalary < 0,
+            'has_missing_data' => !$request->basic_salary || !$request->department,
+            'needs_review' => $netSalary < 0 || !$request->basic_salary || !$request->department || $request->payable_days < 10,
+            'status' => 'reviewed',
+            'bank_name' => $request->bank_name,
+            'bank_account' => $request->bank_account,
+            'ifsc_code' => $request->ifsc_code,
+            'bank_branch' => $request->bank_branch,
+            'uan' => $request->uan,
+            'pf_no' => $request->pf_no,
+            'esic_no' => $request->esic_no
+        ]);
+
+        return redirect()->route('admin.reports')
+            ->with('success', 'Salary report updated successfully');
     }
 
     private function getPresentToday()
@@ -565,7 +1027,9 @@ class AdminController extends Controller
     {
         $adminEmpId = auth()->user()->emp_id;
         
-        $totalEmployees = Employee::where('role', 'employee')->where('referrance', $adminEmpId)->count();
+        $totalEmployees = Employee::where('role', 'employee')
+        ->where('status', 'active')
+        ->where('referrance', $adminEmpId)->count();
         $presentToday = $this->getPresentToday();
         $absentToday = $totalEmployees - $presentToday;
 
@@ -658,26 +1122,22 @@ class AdminController extends Controller
               ->orderBy('entry_time', 'asc');
         }])->paginate(1);
         
+        // Check for half-day applications for each employee
+        foreach ($employees as $employee) {
+            $employee->halfDayApplications = \App\Models\Application::where('employee_id', $employee->emp_id)
+                ->whereIn('req_type', ['half_day', 'half_leave'])
+                ->where('status', 'approved')
+                ->whereBetween('start_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->pluck('start_date')
+                ->map(function($date) {
+                    return Carbon::parse($date)->format('Y-m-d');
+                })
+                ->toArray();
+        }
+        
         $departments = Department::all();
         
         return view('admin.employee-history.index', compact('employees', 'departments'));
-    }
-
-    public function workFromHome(Request $request)
-    {
-        $query = Application::with('employee')->where('req_type', 'work_from_home');
-        
-        if ($request->status) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->fromdate && $request->todate) {
-            $query->whereBetween('created_at', [$request->fromdate, $request->todate]);
-        }
-        
-        $wfhRequests = $query->orderBy('created_at')->paginate(15);
-        
-        return view('admin.wfh.index', compact('wfhRequests'));
     }
 
     // deleteTimeEntry method moved to SuperAdminController
@@ -731,14 +1191,25 @@ class AdminController extends Controller
     {
         $currentMonth = request('month', Carbon::now()->month);
         $currentYear = request('year', Carbon::now()->year);
+        $adminEmpId = auth()->user()->emp_id;
         
         $scheduleExceptions = \App\Models\ScheduleException::whereMonth('exception_date', $currentMonth)
             ->whereYear('exception_date', $currentYear)
+            ->where(function($query) use ($adminEmpId) {
+                $query->whereNotNull('superadmin_id')
+                      ->orWhere('admin_id', $adminEmpId);
+            })
+            ->orderBy('admin_id', 'desc') // Prioritize admin exceptions over super admin
             ->get()
-            ->keyBy('exception_date');
+            ->groupBy('exception_date')
+            ->map(function($exceptions) {
+                // If admin exception exists, show only that; otherwise show super admin exception
+                return $exceptions->where('admin_id', '!=', null)->first() ?? $exceptions->first();
+            });
         
         $calendar = $this->generateCalendar($currentYear, $currentMonth, $scheduleExceptions);
         
+        // return $calendar;
         return view('admin.schedule.index', compact('calendar', 'currentMonth', 'currentYear', 'scheduleExceptions'));
     }
     
@@ -751,14 +1222,34 @@ class AdminController extends Controller
         ]);
         
         try {
-            \App\Models\ScheduleException::updateOrCreate(
-                ['exception_date' => $request->date],
-                [
+            $adminEmpId = auth()->user()->emp_id;
+            
+            // Check if there's a super admin exception for this date
+            $existingSuperAdminException = \App\Models\ScheduleException::where('exception_date', $request->date)
+                ->whereNotNull('superadmin_id')
+                ->first();
+            
+            if ($existingSuperAdminException) {
+                // If super admin exception exists, create a new admin exception (don't update)
+                \App\Models\ScheduleException::create([
+                    'exception_date' => $request->date,
                     'type' => $request->type,
                     'description' => $request->description,
-                    'admin_id' => auth()->user()->emp_id
-                ]
-            );
+                    'admin_id' => $adminEmpId
+                ]);
+            } else {
+                // Normal behavior: update or create admin exception
+                \App\Models\ScheduleException::updateOrCreate(
+                    [
+                        'exception_date' => $request->date,
+                        'admin_id' => $adminEmpId
+                    ],
+                    [
+                        'type' => $request->type,
+                        'description' => $request->description
+                    ]
+                );
+            }
             
             return response()->json(['success' => true, 'message' => 'Schedule exception saved successfully']);
         } catch (\Exception $e) {
@@ -769,28 +1260,45 @@ class AdminController extends Controller
     
     public function deleteScheduleException(Request $request)
     {
-        \App\Models\ScheduleException::where('exception_date', $request->date)->delete();
+        \App\Models\ScheduleException::where('id', $request->id)->delete();
         return response()->json(['success' => true]);
     }
     
-    private function generateCalendar($year, $month, $scheduleExceptions)
+    private function generateCalendar($year, $month, )
     {
         $firstDay = Carbon::create($year, $month, 1);
         $lastDay = $firstDay->copy()->endOfMonth();
-        $startOfWeek = $firstDay->copy()->startOfWeek();
-        $endOfWeek = $lastDay->copy()->endOfWeek();
+        
+        // Start from Monday (1) and end on Sunday (0)
+        $startOfWeek = $firstDay->copy()->startOfWeek(Carbon::MONDAY);
+        $endOfWeek = $lastDay->copy()->endOfWeek(Carbon::SUNDAY);
+
+        $adminEmpId = auth()->user()->emp_id;
         
         $calendar = [];
         $current = $startOfWeek->copy();
         
         while ($current <= $endOfWeek) {
-            $dateStr = $current->format('Y-m-d');
-            $exception = $scheduleExceptions->get($dateStr);
+            // $dateStr = $current->format('d');
+            // $monthStr = $current->format('m');
+            // $yearStr = $current->format('Y');
+
+            
+
+            $exception = \App\Models\ScheduleException::where('exception_date', $current)
+            // ->whereMonth('exception_date', $monthStr)
+            // ->whereYear('exception_date', $yearStr)
+            ->where(function($query) use ($adminEmpId) {
+                $query->whereNotNull('superadmin_id')
+                      ->orWhere('admin_id', $adminEmpId);
+            })
+            ->get();
+            // $exception = $scheduleExceptions->firstWhere('exception_date', $dateStr);
             
             $calendar[] = [
                 'date' => $current->copy(),
                 'is_current_month' => $current->month == $month,
-                'exception' => $exception
+                'exception' => (count($exception) <= 0)?false:$exception
             ];
             
             $current->addDay();
@@ -1091,6 +1599,31 @@ class AdminController extends Controller
         ]);
     }
     
+    public function updateTimeEntry(Request $request)
+    {
+        $request->validate([
+            'entry_id' => 'required|exists:time_entries,id',
+            'new_time' => 'required|date_format:Y-m-d H:i:s'
+        ]);
+        
+        $timeEntry = \App\Models\TimeEntry::findOrFail($request->entry_id);
+        
+        // Check if admin has permission to edit this employee's data
+        $adminEmpId = auth()->user()->emp_id;
+        $employee = \App\Models\Employee::where('emp_id', $timeEntry->employee_id)->first();
+        
+        if (!$employee || $employee->referrance !== $adminEmpId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
+        
+        $timeEntry->update([
+            'entry_time' => $request->new_time,
+            'notes' => ($timeEntry->notes ? $timeEntry->notes . ' | ' : '') . 'Edited by admin on ' . now()->format('Y-m-d H:i:s')
+        ]);
+        
+        return response()->json(['success' => true, 'message' => 'Time entry updated successfully']);
+    }
+
     public function exportReport(Request $request, $type)
     {
         $reportData = null;
@@ -1161,5 +1694,171 @@ class AdminController extends Controller
         };
         
         return response()->stream($callback, 200, $headers);
+    }
+    
+    public function profile()
+    {
+        $admin = auth()->user();
+        return view('admin.profile.index', compact('admin'));
+    }
+    
+    public function updateProfile(Request $request)
+    {
+        $admin = auth()->user();
+        
+        $request->validate([
+            'full_name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:employees,username,' . $admin->id,
+            'email' => 'required|email|unique:employees,email,' . $admin->id,
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'password' => 'nullable|min:6|confirmed',
+        ]);
+        
+        $updateData = $request->only(['full_name', 'username', 'email', 'phone', 'address']);
+        
+        if ($request->password) {
+            $updateData['password'] = Hash::make($request->password);
+        }
+        
+        $admin->update($updateData);
+        
+        return redirect()->route('admin.profile')->with('success', 'Profile updated successfully!');
+    }
+
+    // Salary Management
+    public function salaries()
+    {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        $salaries = Salary::whereExists(function($query) use ($adminEmpId) {
+            $query->select(DB::raw(1))
+                  ->from('employees')
+                  ->whereRaw('BINARY salaries.emp_id = BINARY employees.emp_id')
+                  ->where('employees.referrance', $adminEmpId);
+        })->with('employee')->paginate(15);
+        
+        return view('admin.salaries.index', compact('salaries'));
+    }
+
+    public function createSalary()
+    {
+        return view('admin.salaries.create');
+    }
+
+    public function getPendingEmployees()
+    {
+        $adminEmpId = auth()->user()->emp_id;
+        $perPage = request('per_page', 10);
+        $search = request('search');
+        
+        $employeesWithSalary = DB::table('salaries')->pluck('emp_id')->toArray();
+        $employees = Employee::where('role', 'employee')
+            ->where('referrance', $adminEmpId)
+            ->whereNotIn('emp_id', $employeesWithSalary)
+            ->when($search, function($query, $search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('emp_id', 'like', '%' . $search . '%')
+                      ->orWhere('username', 'like', '%' . $search . '%');
+                });
+            })
+            ->with(['department'])
+            ->paginate($perPage);
+        
+        if (request()->ajax()) {
+            return response()->json([
+                'employees' => $employees->items(),
+                'pagination' => [
+                    'current_page' => $employees->currentPage(),
+                    'last_page' => $employees->lastPage(),
+                    'per_page' => $employees->perPage(),
+                    'total' => $employees->total()
+                ]
+            ]);
+        }
+        
+        return $employees;
+    }
+
+    public function storeSalary(Request $request)
+    {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        $request->validate([
+            'emp_id' => 'required|exists:employees,emp_id',
+            'basic_salary' => 'required|numeric|min:0',
+            'hra' => 'required|numeric|min:0',
+            'conveyance_allowance' => 'required|numeric|min:0',
+            'pf' => 'required|numeric|min:0',
+            'pt' => 'required|numeric|min:0',
+            'effective_from' => 'required|date',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account' => 'nullable|string|max:255',
+            'ifsc_code' => 'nullable|string|max:11',
+            'bank_branch' => 'nullable|string|max:255',
+            'uan' => 'nullable|string|max:12',
+            'pf_no' => 'nullable|string|max:255',
+            'esic_no' => 'nullable|string|max:17'
+        ]);
+
+        // Verify employee belongs to this admin
+        $employee = Employee::where('emp_id', $request->emp_id)
+            ->where('referrance', $adminEmpId)
+            ->first();
+            
+        if (!$employee) {
+            return back()->withErrors(['emp_id' => 'Employee not found or not assigned to you.']);
+        }
+
+        Salary::create($request->all());
+
+        return redirect()->route('admin.salaries')->with('success', 'Salary created successfully');
+    }
+
+    public function editSalary(Salary $salary)
+    {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        // Verify salary belongs to admin's employee
+        if ($salary->employee->referrance !== $adminEmpId) {
+            return redirect()->route('admin.salaries')
+                ->with('error', 'You do not have permission to edit this salary.');
+        }
+        
+        return view('admin.salaries.edit', compact('salary'));
+    }
+
+    public function updateSalary(Request $request, Salary $salary)
+    {
+        $adminEmpId = auth()->user()->emp_id;
+        
+        // Verify salary belongs to admin's employee
+        if ($salary->employee->referrance !== $adminEmpId) {
+            return redirect()->route('admin.salaries')
+                ->with('error', 'You do not have permission to edit this salary.');
+        }
+        
+        $request->validate([
+            'basic_salary' => 'required|numeric|min:0',
+            'hra' => 'required|numeric|min:0',
+            'conveyance_allowance' => 'required|numeric|min:0',
+            'pf' => 'required|numeric|min:0',
+            'pt' => 'required|numeric|min:0',
+            'effective_from' => 'required|date',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account' => 'nullable|string|max:255',
+            'ifsc_code' => 'nullable|string|max:11',
+            'bank_branch' => 'nullable|string|max:255',
+            'uan' => 'nullable|string|max:12',
+            'pf_no' => 'nullable|string|max:255',
+            'esic_no' => 'nullable|string|max:17'
+        ]);
+
+        $salary->update($request->only([
+            'basic_salary', 'hra', 'conveyance_allowance', 'pf', 'pt', 'effective_from',
+            'bank_name', 'bank_account', 'ifsc_code', 'bank_branch', 'uan', 'pf_no', 'esic_no'
+        ]));
+
+        return redirect()->route('admin.salaries')->with('success', 'Salary updated successfully');
     }
 }

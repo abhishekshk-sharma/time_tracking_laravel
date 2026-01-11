@@ -4,170 +4,189 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TimeTrack - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #2c3e50;
-            --secondary: #3498db;
-            --accent: #e74c3c;
-            --light: #ecf0f1;
-            --dark: #2c3e50;
-            --success: #2ecc71;
-            --warning: #f39c12;
-            --danger: #e74c3c;
-            --gray: #95a5a6;
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --white: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --border-radius: 0.75rem;
         }
         
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         body {
-            background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
-            height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #333;
+            color: var(--dark);
             line-height: 1.6;
+            padding: 1rem;
         }
         
         .login-container {
             width: 100%;
             max-width: 400px;
-            padding: 20px;
         }
         
         .login-card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            text-align: center;
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .logo i {
-            font-size: 32px;
-            color: var(--secondary);
+            text-align: center;
+            margin-bottom: 2rem;
         }
         
         .logo h1 {
+            font-size: 2rem;
             font-weight: 700;
-            font-size: 28px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
         }
         
-        .login-header {
-            margin-bottom: 25px;
-        }
-        
-        .login-header h2 {
-            font-size: 22px;
-            color: var(--dark);
-            margin-bottom: 8px;
-        }
-        
-        .login-header p {
+        .logo p {
             color: var(--gray);
-            font-size: 15px;
+            font-size: 0.875rem;
         }
         
-        .input-group {
-            margin-bottom: 20px;
-            text-align: left;
+        .form-group {
+            margin-bottom: 1.5rem;
         }
         
-        .input-group label {
+        .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
             color: var(--dark);
-            font-size: 14px;
+            font-size: 0.875rem;
         }
         
-        .input-field {
-            width: 100%;
-            padding: 14px 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-        
-        .input-field:focus {
-            border-color: var(--secondary);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-        }
-        
-        .input-with-icon {
+        .input-wrapper {
             position: relative;
         }
         
-        .input-with-icon i {
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: var(--transition);
+            background: var(--white);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .password-toggle {
             position: absolute;
-            left: 15px;
+            right: 0.75rem;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--gray);
-        }
-        
-        .input-with-icon .input-field {
-            padding-left: 45px;
-        }
-        
-        .login-button {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
+            background: none;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            color: var(--gray);
+            cursor: pointer;
+            padding: 0.25rem;
+            transition: var(--transition);
+        }
+        
+        .password-toggle:hover {
+            color: var(--primary);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--white);
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
+            transition: var(--transition);
+            margin-bottom: 1rem;
         }
         
-        .login-button:hover {
+        .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .forgot-password {
+            text-align: center;
+        }
+        
+        .forgot-password a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        .forgot-password a:hover {
+            color: var(--secondary);
+            text-decoration: underline;
         }
         
         .alert {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: left;
+            padding: 0.875rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
         }
         
         .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
         }
         
         @media (max-width: 480px) {
-            .login-container {
-                padding: 15px;
+            .login-card {
+                padding: 1.5rem;
             }
             
-            .login-card {
-                padding: 20px;
+            .logo h1 {
+                font-size: 1.75rem;
             }
         }
     </style>
@@ -177,13 +196,8 @@
     <div class="login-container">
         <div class="login-card">
             <div class="logo">
-                <i class="fas fa-clock"></i>
                 <h1>TimeTrack</h1>
-            </div>
-            
-            <div class="login-header">
-                <h2>Welcome Back</h2>
-                <p>Sign in to your account to continue</p>
+                <p>Employee Time Management System</p>
             </div>
             
             @if ($errors->any())
@@ -197,39 +211,53 @@
             <form action="{{ route('login') }}" method="POST">
                 @csrf
                 
-                <div class="input-group">
+                <div class="form-group">
                     <label for="username">Username</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-user"></i>
-                        <input type="text" id="username" name="username" class="input-field" 
-                               placeholder="Enter your username" required 
-                               value="{{ old('username') }}">
-                    </div>
+                    <input type="text" id="username" name="username" class="form-input" 
+                           placeholder="Enter your username" required 
+                           value="{{ old('username') }}">
                 </div>
                 
-                <div class="input-group">
+                <div class="form-group">
                     <label for="password">Password</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="password" name="password" class="input-field" 
+                    <div class="input-wrapper">
+                        <input type="password" id="password" name="password" class="form-input" 
                                placeholder="Enter your password" required>
-                        <i class="fas fa-eye-slash" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer;" id="togglePassword"></i>
+                        <button type="button" class="password-toggle" id="togglePassword">
+                            <i class="fas fa-eye-slash"></i>
+                        </button>
                     </div>
                 </div>
                 
-                <button type="submit" class="login-button">Sign In</button>
+                <button type="submit" class="btn">Sign In</button>
+                
+                <div class="forgot-password">
+                    <a href="#">Forgot your password?</a>
+                </div>
             </form>
         </div>
     </div>
     
     <script>
+        // Focus on username field when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('username').focus();
+        });
+        
         // Toggle password visibility
         document.getElementById('togglePassword').addEventListener('click', function() {
             const passwordField = document.getElementById('password');
-            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordField.setAttribute('type', type);
-            this.classList.toggle('fa-eye');
-            this.classList.toggle('fa-eye-slash');
+            const icon = this.querySelector('i');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            } else {
+                passwordField.type = 'password';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
         });
     </script>
 </body>

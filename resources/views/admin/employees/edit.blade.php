@@ -25,6 +25,14 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" name="full_name" class="form-control @error('full_name') is-invalid @enderror" 
+                           value="{{ old('full_name', $employee->full_name) }}" required>
+                    @error('full_name')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>  
+                <div class="form-group">
                     <label class="form-label">Username *</label>
                     <input type="text" name="username" class="form-control @error('username') is-invalid @enderror" 
                            value="{{ old('username', $employee->username) }}" required>
@@ -42,22 +50,15 @@
                     @enderror
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">New Password</label>
-                    <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" 
-                           placeholder="Leave blank to keep current password">
-                    @error('password')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
+                
 
                 <div class="form-group">
                     <label class="form-label">Department *</label>
-                    <select name="departments" class="form-control @error('departments') is-invalid @enderror" required>
+                    <select name="department_id" class="form-control @error('department_id') is-invalid @enderror" required>
                         <option value="">Select Department</option>
                         @foreach($departments as $department)
-                            <option value="{{ $department->name }}" 
-                                {{ old('departments', $employee->department) == $department->name ? 'selected' : '' }}>
+                            <option value="{{ $department->id }}" 
+                                {{ old('department_id', $employee->department_id) == $department->id ? 'selected' : '' }}>
                                 {{ $department->name }}
                             </option>
                         @endforeach
@@ -67,6 +68,14 @@
                     @enderror
                 </div>
 
+                <div class="form-group">
+                    <label class="form-label">Position</label>
+                    <input type="text" name="position" class="form-control @error('position') is-invalid @enderror" 
+                           value="{{ old('position', $employee->position) }}">
+                    @error('position')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
                 <div class="form-group">
                     <label class="form-label">Phone Number</label>
                     <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" 
@@ -88,11 +97,37 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">DOB</label>
+                    <input type="date" name="dob" class="form-control @error('dob') is-invalid @enderror" 
+                           value="{{ old('dob', $employee->dob ? $employee->dob->format('Y-m-d') : '') }}">
+                    <small style="color: #565959;">Date Of Birth</small>
+                    @error('dob')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Hire Date</label>
+                    <input type="date" name="hire_date" class="form-control @error('hire_date') is-invalid @enderror" 
+                           value="{{ old('hire_date', $employee->hire_date ? $employee->hire_date->format('Y-m-d') : '') }}">
+                    <small style="color: #565959;">Hire Date</small>
+                    @error('hire_date')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="form-group">
                     <label class="form-label">End Date</label>
                     <input type="date" name="end_date" class="form-control @error('end_date') is-invalid @enderror" 
                            value="{{ old('end_date', $employee->end_date ? $employee->end_date->format('Y-m-d') : '') }}">
                     <small style="color: #565959;">Setting an end date will automatically make the employee inactive</small>
                     @error('end_date')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" 
+                           placeholder="Leave blank to keep current password">
+                    @error('password')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
@@ -105,6 +140,37 @@
                 @error('address')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
+            </div>
+
+            <!-- Leave Count Section -->
+            <div class="card" style="margin-top: 20px; border: 1px solid #e0e2e6; border-radius: 8px;">
+                <div class="card-header" style="background: #f8f9fa; padding: 15px; border-bottom: 1px solid #e0e2e6;">
+                    <h4 style="margin: 0; font-size: 16px; color: #0f1111;">Leave Balance</h4>
+                    <small style="color: #565959;">Manage employee's available leave days</small>
+                </div>
+                <div class="card-body" style="padding: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">Casual Leave Days</label>
+                            <input type="number" name="casual_leave" class="form-control @error('casual_leave') is-invalid @enderror" 
+                                   value="{{ old('casual_leave', $leaveCount->casual_leave ?? 0) }}" min="0" max="365">
+                            <small style="color: #565959;">Available casual leave days for the employee</small>
+                            @error('casual_leave')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Sick Leave Days</label>
+                            <input type="number" name="sick_leave" class="form-control @error('sick_leave') is-invalid @enderror" 
+                                   value="{{ old('sick_leave', $leaveCount->sick_leave ?? 0) }}" min="0" max="365">
+                            <small style="color: #565959;">Available sick leave days for the employee</small>
+                            @error('sick_leave')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div style="display: flex; gap: 15px; margin-top: 30px;">

@@ -144,10 +144,20 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="{{ route('admin.salary-reports.download', $report->id) }}" 
-                                       class="btn btn-sm btn-primary">
-                                        <i class="fas fa-download"></i> Download PDF
-                                    </a>
+                                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                                        <a href="{{ route('admin.salary-reports.view', $report->id) }}" 
+                                           class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> 
+                                        </a>
+                                        <a href="{{ route('admin.salary-reports.edit', $report->id) }}" 
+                                           class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i> 
+                                        </a>
+                                        <a href="{{ route('admin.salary-reports.download', $report->id) }}" 
+                                           class="btn btn-sm btn-primary">
+                                            <i class="fas fa-download"></i> 
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -201,6 +211,74 @@ document.getElementById('employee-search')?.addEventListener('keypress', functio
         applyFilters();
     }
 });
+
+// Salary Slip Preview Function
+function previewSalarySlip(reportId) {
+    fetch(`/admin/salary-reports/${reportId}/preview`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                Swal.fire('Error', data.error, 'error');
+                return;
+            }
+            
+            const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            Swal.fire({
+                title: `Salary Slip - ${monthNames[data.month]} ${data.year}`,
+                html: `
+                    <div style="text-align: left; font-size: 14px;">
+                        <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <strong>Employee:</strong> ${data.emp_name} (${data.emp_id})<br>
+                            <strong>Department:</strong> ${data.department}<br>
+                            <strong>Designation:</strong> ${data.designation}
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <h6 style="margin-bottom: 10px; color: #495057;">Attendance Details</h6>
+                                <div style="font-size: 13px;">
+                                    Present Days: <strong>${data.present_days}</strong><br>
+                                    Absent Days: <strong>${data.absent_days}</strong><br>
+                                    Half Days: <strong>${data.half_days}</strong><br>
+                                    Sick Leave: <strong>${data.sick_leave}</strong><br>
+                                    Casual Leave: <strong>${data.casual_leave}</strong><br>
+                                    Holidays: <strong>${data.holidays}</strong><br>
+                                    Payable Days: <strong>${data.payable_days}</strong>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h6 style="margin-bottom: 10px; color: #495057;">Salary Breakdown</h6>
+                                <div style="font-size: 13px;">
+                                    Basic Salary: <strong>₹${parseFloat(data.basic_salary).toLocaleString()}</strong><br>
+                                    HRA: <strong>₹${parseFloat(data.hra).toLocaleString()}</strong><br>
+                                    Conveyance: <strong>₹${parseFloat(data.conveyance_allowance).toLocaleString()}</strong><br>
+                                    PF: <strong>₹${parseFloat(data.pf).toLocaleString()}</strong><br>
+                                    PT: <strong>₹${parseFloat(data.pt).toLocaleString()}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="padding: 10px; background: ${data.net_salary >= 0 ? '#d4edda' : '#f8d7da'}; border-radius: 5px; text-align: center;">
+                            <strong style="font-size: 16px; color: ${data.net_salary >= 0 ? '#155724' : '#721c24'};">Net Salary: ₹${parseFloat(data.net_salary).toLocaleString()}</strong>
+                        </div>
+                    </div>
+                `,
+                width: '600px',
+                showCloseButton: true,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'swal-wide'
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Failed to load salary slip preview', 'error');
+        });
+}
 </script>
 @endpush
 

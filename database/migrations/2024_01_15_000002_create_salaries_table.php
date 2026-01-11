@@ -15,7 +15,7 @@ return new class extends Migration
             $table->decimal('hra', 10, 2)->default(0);
             $table->decimal('pf', 10, 2)->default(0);
             $table->decimal('pt', 10, 2)->default(0);
-            $table->decimal('ta', 10, 2)->default(0);
+            // $table->decimal('ta', 10, 2)->default(0);
             $table->decimal('conveyance_allowance', 10, 2)->default(0);
             $table->decimal('gross_salary', 10, 2);
             $table->date('effective_from');

@@ -21,14 +21,18 @@ class Application extends Model
         'file',
         'status',
         'action_by',
+        'action_date',
+        'admin_remarks',
     ];
 
     protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
-    public $timestamps = false;
+    public $timestamps = true;
 
     public function employee(): BelongsTo
     {

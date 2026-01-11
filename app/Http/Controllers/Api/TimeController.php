@@ -13,6 +13,111 @@ use Carbon\Carbon;
 
 class TimeController extends Controller
 {
+    private function calculateTotalWorkHours($dayEntries)
+    {
+        $punchInEntries = $dayEntries->where('entry_type', 'punch_in')->sortBy('entry_time');
+        $punchOutEntries = $dayEntries->where('entry_type', 'punch_out')->sortBy('entry_time');
+        $lunchStartEntries = $dayEntries->where('entry_type', 'lunch_start')->sortBy('entry_time');
+        $lunchEndEntries = $dayEntries->where('entry_type', 'lunch_end')->sortBy('entry_time');
+        
+        // Calculate total work time by pairing punch in/out sessions
+        $totalMinutes = 0;
+        $punchInArray = $punchInEntries->values()->toArray();
+        $punchOutArray = $punchOutEntries->values()->toArray();
+        
+        for ($i = 0; $i < count($punchInArray); $i++) {
+            if (isset($punchOutArray[$i])) {
+                $punchInTime = Carbon::parse($punchInArray[$i]['entry_time']);
+                $punchOutTime = Carbon::parse($punchOutArray[$i]['entry_time']);
+                $totalMinutes += $punchInTime->diffInMinutes($punchOutTime);
+            }
+        }
+        
+        // Subtract lunch time
+        $lunchStartArray = $lunchStartEntries->values()->toArray();
+        $lunchEndArray = $lunchEndEntries->values()->toArray();
+        
+        for ($i = 0; $i < count($lunchStartArray); $i++) {
+            if (isset($lunchEndArray[$i])) {
+                $lunchStartTime = Carbon::parse($lunchStartArray[$i]['entry_time']);
+                $lunchEndTime = Carbon::parse($lunchEndArray[$i]['entry_time']);
+                $totalMinutes -= $lunchStartTime->diffInMinutes($lunchEndTime);
+            }
+        }
+        
+        // Format total hours
+        $hours = floor($totalMinutes / 60);
+        $minutes = $totalMinutes % 60;
+        return sprintf('%d:%02d', $hours, $minutes);
+    }
+    
+    private function getStatusBadges($date, $dayEntries, $employeeId)
+    {
+        $punchIn = $dayEntries->where('entry_type', 'punch_in')->first();
+        $lunchStart = $dayEntries->where('entry_type', 'lunch_start')->first();
+        $lunchEnd = $dayEntries->where('entry_type', 'lunch_end')->first();
+        
+        $systemsettings = SystemSetting::whereIn('setting_key', ['work_start_time', 'late_threshold', 'lunch_duration'])->pluck('setting_value', 'setting_key', )->toArray();
+
+        // $latecheck = $systemsettings->work_start_time + $systemsettings->late_threshold ;
+         $letscheck = [];
+        foreach ($systemsettings as $key => $value) {
+            $letscheck[$key] = $value;
+        }
+
+        $work_start_time = Carbon::createFromFormat('H:i', $letscheck['work_start_time']);
+        $late_threshold   = Carbon::createFromFormat('i', $letscheck['late_threshold']);
+
+        $result = $work_start_time->copy()->addMinutes($late_threshold->minute);
+        $latecheck = $result->format('H:i')  ;
+        // return $latecheck;
+
+
+        $statuses = [];
+        
+        // Check for half-day application
+        $isHalfDay = Application::where('employee_id', $employeeId)
+            ->where('req_type', 'half_day')
+            ->where('status', 'approved')
+            ->whereDate('start_date', $date)
+            ->exists();
+        
+        if (!$punchIn) {
+            // Check if it's a weekend
+            $dateCarbon = Carbon::parse($date);
+            if ($dateCarbon->isSunday() || ($dateCarbon->isSaturday() && in_array(ceil($dateCarbon->day / 7), [2, 4]))) {
+                $statuses[] = '<span class="badge" style="background:#17a2b8;color:white">Week Off</span>';
+            } else {
+                $statuses[] = '<span class="badge" style="background:#dc3545;color:white">Absent</span>';
+            }
+        } else {
+            if ($isHalfDay) {
+                $statuses[] = '<span class="badge" style="background:#fd7e14;color:white">Half Day</span>';
+            } else {
+
+                // Check if late (after 9:15 AM)
+                if (Carbon::parse($punchIn->entry_time)->format('H:i') > $latecheck) {
+                    $statuses[] = '<span class="badge" style="background:#ffc107;color:black">Late</span>';
+                }
+                else{
+
+                    $statuses[] = '<span class="badge" style="background:#28a745;color:white">Present</span>';
+                }
+            }
+            
+            
+        }
+        
+        // Check for long lunch (over 60 minutes)
+        if ($lunchStart && $lunchEnd) {
+            $lunchMinutes = Carbon::parse($lunchStart->entry_time)->diffInMinutes(Carbon::parse($lunchEnd->entry_time));
+            if ($lunchMinutes > $letscheck['lunch_duration']) {
+                $statuses[] = '<span class="badge" style="background:#fd7e14;color:white">Long Lunch</span>';
+            }
+        }
+        
+        return implode(' ', $statuses);
+    }
     public function handleTimeAction(Request $request)
     {
         try {
@@ -311,12 +416,9 @@ class TimeController extends Controller
         $lastEntry = $todayEntries->last();
         $firstEntry = $todayEntries->first();
 
-        // Simple punch-out handling - temporarily disable work completion check
-        if ($lastEntry->entry_type === 'punch_out') {
-            if ($this->checkWorkCompletion($userid, $today, $todayEntries)) {
-                return response('work_complete');
-            }
-            return response('4'); // Punched out but can continue
+        // Check work completion first
+        if ($this->checkWorkCompletionForButtons($userid, $today, $todayEntries)) {
+            return response('6'); // Work complete, disable all buttons
         }
 
         // Check current state based on last entry
@@ -327,6 +429,8 @@ class TimeController extends Controller
                 return response('2'); // On lunch
             case 'lunch_end':
                 return response('3'); // Lunch ended
+            case 'punch_out':
+                return response('4'); // Punched out but can continue
             case 'casual_leave':
             case 'sick_leave':
             case 'holiday':
@@ -334,6 +438,53 @@ class TimeController extends Controller
                 return response($lastEntry->entry_type);
             default:
                 return response('5');
+        }
+    }
+
+    private function checkWorkCompletionForButtons($userid, $today, $todayEntries)
+    {
+        try {
+            // Get work start and end times from system settings
+            $workStartTime = SystemSetting::where('setting_key', 'work_start_time')->value('setting_value') ?? '09:00';
+            $workEndTime = SystemSetting::where('setting_key', 'work_end_time')->value('setting_value') ?? '18:00';
+            
+            // Calculate required work hours from system settings
+            $startTime = Carbon::createFromFormat('H:i', $workStartTime);
+            $endTime = Carbon::createFromFormat('H:i', $workEndTime);
+            $requiredHours = $startTime->diffInHours($endTime);
+            
+            // Sum all punch in/out sessions for the day
+            $punchInEntries = $todayEntries->where('entry_type', 'punch_in')->sortBy('entry_time');
+            $punchOutEntries = $todayEntries->where('entry_type', 'punch_out')->sortBy('entry_time');
+            
+            $totalWorkedMinutes = 0;
+            $punchInArray = $punchInEntries->values()->toArray();
+            $punchOutArray = $punchOutEntries->values()->toArray();
+            
+            // Calculate total worked time by pairing punch in/out sessions
+            for ($i = 0; $i < count($punchInArray); $i++) {
+                if (isset($punchOutArray[$i])) {
+                    $punchInTime = Carbon::parse($punchInArray[$i]['entry_time']);
+                    $punchOutTime = Carbon::parse($punchOutArray[$i]['entry_time']);
+                    $totalWorkedMinutes += $punchInTime->diffInMinutes($punchOutTime);
+                }
+            }
+            
+            // Convert minutes to hours (including decimal part)
+            $totalWorkedHours = $totalWorkedMinutes / 60;
+            
+            // Check if last action is punch out
+            $lastEntry = $todayEntries->last();
+            $isLastActionPunchOut = $lastEntry && $lastEntry->entry_type === 'punch_out';
+            
+            // Work is complete if:
+            // 1. Total worked hours >= required hours AND
+            // 2. Last action is punch out
+            return $totalWorkedHours >= $requiredHours && $isLastActionPunchOut;
+            
+        } catch (\Exception $e) {
+            \Log::error('CheckWorkCompletionForButtons Error: ' . $e->getMessage());
+            return false;
         }
     }
 
@@ -423,6 +574,10 @@ class TimeController extends Controller
 
     public function detailsById(Request $request)
     {
+
+        
+
+        // return $systemsettings;
         \Log::info('detailsById called with data:', [$request->all()]);
         
         $id = $request->input('id');
@@ -437,46 +592,117 @@ class TimeController extends Controller
             return response('Employee not found');
         }
         
-        $today = Carbon::today()->format('Y-m-d');
-        
+        // Get current month entries
+        $currentMonth = Carbon::now();
         $entries = TimeEntry::where('employee_id', $id)
-            ->whereDate('entry_time', $today)
-            ->orderBy('entry_time')
+            ->whereYear('entry_time', $currentMonth->year)
+            ->whereMonth('entry_time', $currentMonth->month)
+            ->orderBy('entry_time', 'desc')
             ->get();
             
-        $output = '<h3 class="section-title">
-                    <i class="fas fa-history"></i>
-                    Today\'s Activity for ' . $employee->name . '
-                </h3>';
-
-        foreach ($entries as $row) {
-            $icon = "bullseye";
-            switch ($row->entry_type) {
-                case 'punch_in':
-                    $icon = "fingerprint";
-                    break;
-                case 'lunch_start':
-                case 'lunch_end':
-                    $icon = "utensils";
-                    break;
-                case 'punch_out':
-                    $icon = "door-open";
-                    break;
-            }
-
-            $output .= '<ul class="activity-list">
-                        <li class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-' . $icon . '"></i>
-                            </div>
-                            <div class="activity-details">
-                                <div class="activity-name">' . $row->entry_type . '</div>
-                                <div class="activity-time">' . $row->entry_time . '</div>
-                            </div>
-                        </li>
-                        </ul>';
+        if ($entries->isEmpty()) {
+            return response('');
         }
+        
+        // Group entries by date
+        $groupedEntries = $entries->groupBy(function($entry) {
+            return Carbon::parse($entry->entry_time)->format('Y-m-d');
+        });
+        
+        $output = '';
+        
+        foreach ($groupedEntries as $date => $dayEntries) {
+            $punchIn = $dayEntries->where('entry_type', 'punch_in')->first();
+            $lunchStart = $dayEntries->where('entry_type', 'lunch_start')->first();
+            $lunchEnd = $dayEntries->where('entry_type', 'lunch_end')->first();
+            $punchOut = $dayEntries->where('entry_type', 'punch_out')->first();
+            
+            // Calculate total hours using new method
+            $totalHours = $this->calculateTotalWorkHours($dayEntries);
+            
+            // Get status badges with robust checking
+            $statusBadges = $this->getStatusBadges($date, $dayEntries, $id);
+            
+            $output .= '<tr>
+                <td>' . Carbon::parse($date)->format('M d, Y') . '</td>
+                <td>' . ($punchIn ? Carbon::parse($punchIn->entry_time)->format('H:i A') : '-') . '</td>
+                <td>' . ($lunchStart ? Carbon::parse($lunchStart->entry_time)->format('H:i A') : '-') . '</td>
+                <td>' . ($lunchEnd ? Carbon::parse($lunchEnd->entry_time)->format('H:i A') : '-') . '</td>
+                <td>' . ($punchOut ? Carbon::parse($punchOut->entry_time)->format('H:i A') : '-') . '</td>
+                <td>' . $totalHours . '</td>
+                <td>' . $statusBadges . '</td>
+            </tr>';
+        }
+        
+        return response($output);
+    }
 
+    public function filterTime(Request $request)
+    {
+        $id = $request->input('id');
+        $click = $request->input('click');
+        
+        if (!$id) {
+            return response('error');
+        }
+        
+        $employee = \App\Models\Employee::where('emp_id', $id)->first();
+        if (!$employee) {
+            return response('Employee not found');
+        }
+        
+        $query = TimeEntry::where('employee_id', $id);
+        
+        if ($click === 'filterLastMonth') {
+            $lastMonth = Carbon::now()->subMonth();
+            $query->whereYear('entry_time', $lastMonth->year)
+                  ->whereMonth('entry_time', $lastMonth->month);
+        } elseif ($click === 'filterCustomRange') {
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+            
+            if ($startDate && $endDate) {
+                $query->whereDate('entry_time', '>=', $startDate)
+                      ->whereDate('entry_time', '<=', $endDate);
+            }
+        }
+        
+        $entries = $query->orderBy('entry_time', 'desc')->get();
+        
+        if ($entries->isEmpty()) {
+            return response('');
+        }
+        
+        // Group entries by date
+        $groupedEntries = $entries->groupBy(function($entry) {
+            return Carbon::parse($entry->entry_time)->format('Y-m-d');
+        });
+        
+        $output = '';
+        
+        foreach ($groupedEntries as $date => $dayEntries) {
+            $punchIn = $dayEntries->where('entry_type', 'punch_in')->first();
+            $lunchStart = $dayEntries->where('entry_type', 'lunch_start')->first();
+            $lunchEnd = $dayEntries->where('entry_type', 'lunch_end')->first();
+            $punchOut = $dayEntries->where('entry_type', 'punch_out')->first();
+            
+            // Calculate total hours using new method
+            $totalHours = $this->calculateTotalWorkHours($dayEntries);
+            
+            // Get status badges with robust checking
+            $statusBadges = $this->getStatusBadges($date, $dayEntries, $id);
+            
+            $output .= '<tr>
+                <td>' . Carbon::parse($date)->format('M d, Y') . '</td>
+                <td>' . ($punchIn ? Carbon::parse($punchIn->entry_time)->format('H:i A') : '-') . '</td>
+                <td>' . ($lunchStart ? Carbon::parse($lunchStart->entry_time)->format('H:i A') : '-') . '</td>
+                <td>' . ($lunchEnd ? Carbon::parse($lunchEnd->entry_time)->format('H:i A') : '-') . '</td>
+                <td>' . ($punchOut ? Carbon::parse($punchOut->entry_time)->format('H:i A') : '-') . '</td>
+                <td>' . $totalHours . '</td>
+                <td>' . $statusBadges . '</td>
+            </tr>';
+        }
+        
         return response($output);
     }
 }

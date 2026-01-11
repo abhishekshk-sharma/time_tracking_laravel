@@ -7,7 +7,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
             <h1 class="page-title">Employee Details</h1>
-            <p class="page-subtitle">{{ $employee->name }} ({{ $employee->emp_id }})</p>
+            <p class="page-subtitle">{{ $employee->full_name }} ({{ $employee->emp_id }})</p>
         </div>
         <div style="display: flex; gap: 10px;">
             <a href="{{ route('admin.employees.edit', $employee) }}" class="btn btn-primary">
@@ -52,12 +52,20 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Joined Date</label>
+                    <label class="form-label">Phone</label>
                     <div style="padding: 10px; background: #f8f9fa; border-radius: 4px;">
-                        {{ $employee->created_at ? $employee->created_at->format('M d, Y') : 'N/A' }}
+                        {{ $employee->phone ?: 'Not provided' }}
                     </div>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">DOB</label>
+                    <div style="padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                        {{ $employee->dob ? $employee->dob->format('M d, Y') : 'N/A' }}
+                    </div>
+                </div>
+                
             </div>
+
             
             <div>
                 <div class="form-group">
@@ -72,27 +80,33 @@
                         @endif
                     </div>
                 </div>
-                
                 <div class="form-group">
-                    <label class="form-label">Phone</label>
+                    <label class="form-label">Position</label>
                     <div style="padding: 10px; background: #f8f9fa; border-radius: 4px;">
-                        {{ $employee->phone ?: 'Not provided' }}
+                        {{ $employee->position }}
                     </div>
                 </div>
+                
+                
                 
                 
                 <div class="form-group">
                     <label class="form-label">Status</label>
                     <div style="padding: 10px; background: #f8f9fa; border-radius: 4px;">
                         @if($employee->status === 'active')
-                            <span class="badge badge-success">Active</span>
+                            <span class="badge text-bg-success">Active</span>
                         @else
-                            <span class="badge badge-danger">Inactive</span>
+                            <span class="badge text-bg-danger">Inactive</span>
                         @endif
                     </div>
                 </div>
                 
-                
+                <div class="form-group">
+                    <label class="form-label">Joined Date</label>
+                    <div style="padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                        {{ $employee->created_at ? $employee->created_at->format('M d, Y') : 'N/A' }}
+                    </div>
+                </div>
                 <div class="form-group">
                     <label class="form-label">End Date</label>
                     <div style="padding: 10px; background: #f8f9fa; border-radius: 4px;">

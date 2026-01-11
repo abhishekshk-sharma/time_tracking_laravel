@@ -34,6 +34,15 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
+                <div class="form-group">
+                    <label class="form-label">UserName *</label>
+                    <input type="text" name="username" class="form-control @error('username') is-invalid @enderror" 
+                           value="{{ old('username') }}" placeholder="Enter Username" required>
+                    @error('username')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                
 
                 <div class="form-group">
                     <label class="form-label">Email Address *</label>
@@ -44,14 +53,8 @@
                     @enderror
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Password *</label>
-                    <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" 
-                           placeholder="Minimum 6 characters" required>
-                    @error('password')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
+                
+
 
                 <div class="form-group">
                     <label class="form-label">Department *</label>
@@ -67,7 +70,16 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
-
+                <div class="form-group">
+                    <label class="form-label">Position *</label>
+                    <input type="text" name="position" class="form-control @error('position') is-invalid @enderror" 
+                           value="{{ old('position') }}" placeholder="position" >
+                    @error('position')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                
+                
                 <div class="form-group">
                     <label class="form-label">Phone Number</label>
                     <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" 
@@ -76,6 +88,32 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
+                <div class="form-group">
+                    <label class="form-label">DOB *</label>
+                    <input type="date" name="dob" class="form-control @error('dob') is-invalid @enderror" 
+                           value="{{ old('dob') }}" placeholder="Enter dob" required>
+                    @error('dob')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Hire Date *</label>
+                    <input type="date" name="hiredate" class="form-control @error('hiredate') is-invalid @enderror" 
+                           value="{{ old('hiredate') }}" placeholder="Enter hiredate" required>
+                    @error('hiredate')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" 
+                           placeholder="Minimum 6 characters" required>
+                    @error('password')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                
             </div>
 
             <div class="form-group">

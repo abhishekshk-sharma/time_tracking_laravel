@@ -9,6 +9,11 @@
             <h1 class="page-title">Employees</h1>
             <p class="page-subtitle">Manage employee records and information</p>
         </div>
+        <div>
+            <a href="{{ route('super-admin.employees.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Employee
+            </a>
+        </div>
     </div>
 </div>
 
@@ -94,16 +99,23 @@
                                         {{ strtoupper(substr($employee->username ?? 'N', 0, 1)) }}
                                     </div>
                                     <div>
-                                        <div style="font-weight: 500;">{{ $employee->name }}</div>
+                                        <div style="font-weight: 500;">{{ $employee->username }}</div>
                                         <div style="font-size: 12px; color: #565959;">{{ $employee->emp_id }}</div>
                                     </div>
                                 </div>
                             </td>
                             <td>
                                 @if($employee->department && is_object($employee->department))
-                                    <span class="badge badge-secondary">{{ $employee->department->name }}</span>
+                                    @if ($employee->status !== 'inactive')
+                                
+                                        <span class="badge p-2 text-bg-primary">{{ $employee->department->name }}</span>
+                                    @else
+                                        <span class="badge p-2 text-bg-secondary">{{ $employee->department->name }}</span>
+                                    
+                                    @endif
                                 @elseif($employee->department)
-                                    <span class="badge badge-secondary">{{ $employee->department }}</span>
+                                    
+                                    <span class="badge p-2 text-bg-secondary">{{ $employee->department }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -111,7 +123,38 @@
                             <td>{{ $employee->email }}</td>
                             <td>{{ $employee->phone ?: '-' }}</td>
                             <td>
-                                <span class="badge badge-info">{{ $employee->region ?: 'Not Set' }}</span>
+                                
+                             
+                                    @foreach ($admins as $admin)
+                                        @if($admin->emp_id == $employee->referrance)
+
+
+                                            @if ($employee->status !== 'inactive')
+                                                @if (($employee->region->name ?? null) !== null)
+                                                    <span class="badge p-2 text-bg-success">{{ $admin->region->name ?: 'Not Set' }}</span>
+                                                @else
+
+                                                <span class="badge p-2 text-bg-success">{{ $admin->region->name ?: 'Not Set' }}</span>
+                                                @endif
+                                            @else
+                                                @if (($employee->region->name ?? null) !== null)
+                                                    <span class="badge p-2 text-bg-secondary">{{ $admin->region->name ?: 'Not Set' }}</span>
+                                                @else
+
+                                                <span class="badge p-2 text-bg-secondary">{{ $admin->region->name ?: 'Not Set' }}</span>
+                                                @endif
+                                            
+                                            @endif
+                                           
+                                            {{-- hello --}}
+                                            @break;
+                                        
+                                        @endif
+                                        
+                                    @endforeach
+                                
+
+                                {{-- <span class="badge p-2 text-bg-info">{{ $employee->region ?: 'Not Set' }}</span> --}}
                             </td>
                             <td>
                                 @if($employee->salary)
@@ -127,9 +170,9 @@
                             </td>
                             <td>
                                 @if($employee->status === 'active')
-                                    <span class="badge badge-success">Active</span>
+                                    <span class="badge p-2 text-bg-success">Active</span>
                                 @else
-                                    <span class="badge badge-danger">Inactive</span>
+                                    <span class="badge p-2 text-bg-danger">Inactive</span>
                                 @endif
                             </td>
                             <td>
@@ -168,6 +211,8 @@ function applyFilters() {
     const search = document.getElementById('employee-search').value;
     const adminFilter = document.getElementById('admin-filter').value;
     const statusFilter = document.getElementById('status-filter').value;
+
+    // alert(statusFilter);
     const perPage = document.getElementById('per-page-select').value;
     
     const params = new URLSearchParams();

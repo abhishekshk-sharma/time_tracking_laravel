@@ -94,17 +94,7 @@
                     <tbody>
                         @forelse($employees as $employee)
                         @php
-                            $punchIn = $employee->timeEntries->where('entry_type', 'punch_in')->first();
-                            $punchOut = $employee->timeEntries->where('entry_type', 'punch_out')->first();
-                            $isPresent = $punchIn !== null;
-                            $workingHours = 0;
-                            
-                            if ($punchIn && $punchOut) {
-                                $workingMinutes = $punchIn->entry_time->diffInMinutes($punchOut->entry_time);
-                                if ($workingMinutes > 0) {
-                                    $workingHours = floor($workingMinutes / 60) . ':' . sprintf('%02d', $workingMinutes % 60);
-                                }
-                            }
+                            $hasImages = $employee->entryImages->where('entry_time', '>=', $date . ' 00:00:00')->where('entry_time', '<=', $date . ' 23:59:59')->count() > 0;
                         @endphp
                         <tr>
                             <td>
@@ -116,55 +106,62 @@
                                         <div style="font-weight: 500;">{{ $employee->username }}</div>
                                         <div style="font-size: 12px; color: #565959;">{{ $employee->emp_id }}</div>
                                     </div>
+                                    @if($hasImages)
+                                        <i class="fas fa-camera" style="color: #28a745; margin-left: 8px;" title="Images captured"></i>
+                                    @endif
                                 </div>
                             </td>
                             <td>
                                 @if($employee->department && is_object($employee->department))
-                                    <span class="badge badge-secondary">{{ $employee->department->name }}</span>
+                                    <span class="badge p-2 text-bg-secondary">{{ $employee->department->name }}</span>
                                 @elseif($employee->department)
-                                    <span class="badge badge-secondary">{{ $employee->department }}</span>
+                                    <span class="badge p-2 text-bg-secondary">{{ $employee->department }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>
-                                @if($isPresent)
-                                    <span class="badge badge-success">Present</span>
+                                @if($employee->attendanceStatus == 'half_day')
+                                    <span class="badge p-2 text-bg-warning">Half Day</span>
+                                @elseif($employee->attendanceStatus == 'present')
+                                    <span class="badge p-2 text-bg-success">Present</span>
                                 @else
-                                    <span class="badge badge-danger">Absent</span>
+                                    <span class="badge p-2 text-bg-danger">Absent</span>
                                 @endif
                             </td>
                             <td>
-                                @if($punchIn)
-                                    <div style="font-weight: 500;">{{ $punchIn->entry_time->format('h:i A') }}</div>
-                                    <div style="font-size: 12px; color: #565959;">{{ $punchIn->entry_time->format('M d') }}</div>
+                                @if($employee->firstPunchIn)
+                                    <div style="font-weight: 500;">{{ $employee->firstPunchIn->entry_time->format('h:i A') }}</div>
+                                    <div style="font-size: 12px; color: #565959;">{{ $employee->firstPunchIn->entry_time->format('M d') }}</div>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>
-                                @if($punchOut)
-                                    <div style="font-weight: 500;">{{ $punchOut->entry_time->format('h:i A') }}</div>
-                                    <div style="font-size: 12px; color: #565959;">{{ $punchOut->entry_time->format('M d') }}</div>
+                                @if($employee->lastPunchOut)
+                                    <div style="font-weight: 500;">{{ $employee->lastPunchOut->entry_time->format('h:i A') }}</div>
+                                    <div style="font-size: 12px; color: #565959;">{{ $employee->lastPunchOut->entry_time->format('M d') }}</div>
                                 @else
-                                    @if($isPresent)
-                                        <span class="badge badge-warning">Still Working</span>
+                                    @if($employee->firstPunchIn)
+                                        <span class="badge p-2 text-bg-warning">Still Working</span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 @endif
                             </td>
                             <td>
-                                @if($workingHours && $workingHours !== '0:00')
-                                    <span style="font-weight: 500;">{{ $workingHours }}</span>
+                                @if(isset($employee->workingHours) && $employee->workingHours && $employee->workingHours !== '0:00')
+                                    <span style="font-weight: 500;">{{ $employee->workingHours }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-primary" onclick="editTimeEntries('{{ $employee->emp_id }}', '{{ $date }}', '{{ $employee->username }}')" title="Edit Time Entries">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
+                                <div style="display: flex; gap: 5px;">
+                                    <button class="btn btn-sm btn-secondary" onclick="viewTimeEntries('{{ $employee->emp_id }}', '{{ $date }}')" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -421,6 +418,166 @@
 }
 </style>
 <script>
+function viewTimeEntries(empId, date) {
+    // Fetch time entries via AJAX
+    fetch(`/super-admin/time-entries?employee=${empId}&from_date=${date}&to_date=${date}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        let entriesHtml = '';
+        if (data.entries && data.entries.length > 0) {
+            data.entries.forEach(entry => {
+                const time = new Date(entry.entry_time).toLocaleTimeString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                const type = entry.entry_type.replace('_', ' ').toUpperCase();
+                const hasImage = data.images && data.images[entry.id];
+                
+                entriesHtml += `<div style="margin: 10px 0; padding: 8px; border-left: 3px solid #ff6b35; background: #f8f9fa;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div><strong>${type}</strong> - ${time}</div>
+                        ${hasImage ? `<button class="btn btn-sm btn-info" onclick="viewEntryImage('${hasImage.imageFile}', '${type}', '${time}')" title="View captured image" style="padding: 2px 8px; font-size: 11px;"><i class="fas fa-camera"></i> View Image</button>` : ''}
+                    </div>
+                    ${entry.notes ? `<small style="color: #666;">${entry.notes}</small>` : ''}
+                </div>`;
+            });
+        } else {
+            entriesHtml = '<p style="text-align: center; color: #666; margin: 20px 0;">No time entries found for this date.</p>';
+        }
+        
+        Swal.fire({
+            title: `Time Entries - ${empId}`,
+            html: `<div style="text-align: left;">
+                <h6 style="margin-bottom: 15px; color: #333;">${new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h6>
+                ${entriesHtml}
+            </div>`,
+            width: '500px',
+            confirmButtonColor: '#6366f1',
+            customClass: {
+                container: 'swal-high-z-index'
+            }
+        });
+    })
+    .catch(error => {
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to load time entries. Please try again.',
+            icon: 'error',
+            confirmButtonColor: '#6366f1',
+            customClass: {
+                container: 'swal-high-z-index'
+            }
+        });
+    });
+}
+
+function viewEntryImage(imageFile, entryType, time) {
+    // Create fullscreen overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 15000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    `;
+    
+    // Create image container
+    const container = document.createElement('div');
+    container.style.cssText = `
+        position: relative;
+        width: 50vw;
+        height: 50vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    `;
+    
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+        cursor: pointer;
+        z-index: 15001;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    
+    // Create image
+    const img = document.createElement('img');
+    img.src = `/entry_images/${imageFile}`;
+    img.style.cssText = `
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    `;
+    
+    // Create title
+    const title = document.createElement('div');
+    title.textContent = `${entryType} - ${time}`;
+    title.style.cssText = `
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 15px;
+        text-align: center;
+    `;
+    
+    // Close function
+    const closeImage = () => {
+        document.body.removeChild(overlay);
+        document.body.style.overflow = 'auto';
+    };
+    
+    // Event listeners
+    closeBtn.onclick = closeImage;
+    overlay.onclick = (e) => {
+        if (e.target === overlay) closeImage();
+    };
+    
+    // Escape key to close
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeImage();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Assemble and show
+    container.appendChild(closeBtn);
+    container.appendChild(img);
+    container.appendChild(title);
+    overlay.appendChild(container);
+    
+    document.body.style.overflow = 'hidden';
+    document.body.appendChild(overlay);
+}
+
 function editTimeEntries(empId, date, empName) {
     // Fetch time entries for the employee and date
     fetch(`/super-admin/time-entries/employee/${empId}/${date}`)
@@ -641,4 +798,12 @@ function deleteTimeEntry(entryId) {
     });
 }
 </script>
+<style>
+.swal-high-z-index {
+    z-index: 10000 !important;
+}
+.swal2-container.swal-high-z-index {
+    z-index: 10000 !important;
+}
+</style>
 @endpush

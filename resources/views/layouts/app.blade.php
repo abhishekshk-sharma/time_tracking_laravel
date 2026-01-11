@@ -55,7 +55,7 @@
         
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea2f 0%, #764ba22c 100%);
             background-attachment: fixed;
             min-height: 100vh;
             color: var(--gray-900);
@@ -91,10 +91,16 @@
             border-radius: var(--radius-xl);
             padding: 1.5rem;
             box-shadow: var(--shadow-xl);
-            height: fit-content;
+            height: 100vh;
+            overflow-y: scroll;
+            
             position: sticky;
             top: 1.5rem;
             transition: var(--transition);
+        }
+
+        .sidebar::-webkit-scrollbar{
+            display: none;
         }
         
         .sidebar:hover {

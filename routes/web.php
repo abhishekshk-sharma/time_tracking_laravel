@@ -59,13 +59,19 @@ Route::middleware(['auth'])->prefix('api')->name('api.')->group(function () {
 
 // Employee Routes (Protected)
 Route::middleware(['auth', 'employee'])->group(function () {
+
+    Route::post('/api.time.details-by-id', [TimeController::class, 'detailsById'])->name('api.time.details-by-id');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+
+    Route::get('/applications-history', [DashboardController::class, 'employeehistory'])->name('applications.history');
+    // Route::get('/employeehistory', [DashboardController::class, 'employeehistory'])->name('employeehistory');
     // Time Tracking AJAX Routes
     Route::post('/punch-in', [DashboardController::class, 'punchIn'])->name('punch.in');
     Route::post('/punch-out', [DashboardController::class, 'punchOut'])->name('punch.out');
     Route::post('/lunch-start', [DashboardController::class, 'lunchStart'])->name('lunch.start');
     Route::post('/lunch-end', [DashboardController::class, 'lunchEnd'])->name('lunch.end');
+    Route::post('/capture-image', [DashboardController::class, 'captureImage'])->name('capture.image');
+    
     Route::post('/time-data', [DashboardController::class, 'getTimeData'])->name('time.data');
     Route::post('/check-punch-in', [DashboardController::class, 'checkFirstPunchIn'])->name('check.punch.in');
     
@@ -73,7 +79,7 @@ Route::middleware(['auth', 'employee'])->group(function () {
     Route::get('/applications', [ApplicationController::class, 'index'])->name('applications.index');
     Route::post('/applications', [ApplicationController::class, 'store'])->name('applications.store');
     Route::get('/applications/{application}', [ApplicationController::class, 'show'])->name('applications.show');
-    Route::get('/applications-history', [ApplicationController::class, 'history'])->name('applications.history');
+    
     Route::get('/applications/{application}/download', [ApplicationController::class, 'downloadAttachment'])->name('applications.download');
     
     // History and Schedule Routes
@@ -109,19 +115,27 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     
     // Employee Management (Copy from Admin)
     Route::get('/employees', [SuperAdminController::class, 'employees'])->name('employees');
+    Route::get('/employees/create', [SuperAdminController::class, 'createEmployee'])->name('employees.create');
+    Route::post('/employees', [SuperAdminController::class, 'storeEmployee'])->name('employees.store');
     Route::get('/employees/{employee}', [SuperAdminController::class, 'showEmployee'])->name('employees.show');
     Route::get('/employees/{employee}/edit', [SuperAdminController::class, 'editEmployee'])->name('employees.edit');
     Route::put('/employees/{employee}', [SuperAdminController::class, 'updateEmployee'])->name('employees.update');
+    Route::get('/employees/{employee}/history', [SuperAdminController::class, 'employeeTimeHistory'])->name('employees.history');
     Route::get('/employee-history', [SuperAdminController::class, 'employeeHistory'])->name('employee-history');
     // Time Entries Management
     Route::get('/time-entries', [SuperAdminController::class, 'timeEntries'])->name('time-entries');
+    Route::get('/time-entry-images', [SuperAdminController::class, 'timeEntryImages'])->name('time-entry-images');
+    Route::post('/time-entry-images/download', [SuperAdminController::class, 'downloadImages'])->name('time-entry-images.download');
+    Route::post('/time-entry-images/delete', [SuperAdminController::class, 'deleteImages'])->name('time-entry-images.delete');
     Route::get('/time-entries/employee/{empId}/{date}', [SuperAdminController::class, 'getEmployeeTimeEntries'])->name('time-entries.employee');
-    Route::post('/time-entries/update', [SuperAdminController::class, 'updateTimeEntries'])->name('time-entries.update');
+    Route::post('/time-entries/update', [SuperAdminController::class, 'updateTimeEntry'])->name('time-entries.update');
     Route::post('/time-entries/add', [SuperAdminController::class, 'addTimeEntry'])->name('time-entries.add');
     Route::delete('/time-entries/{timeEntry}', [SuperAdminController::class, 'deleteTimeEntry'])->name('time-entries.delete');
     
-    // Application Management (Copy from Admin)
+    // Application Management
     Route::get('/applications', [SuperAdminController::class, 'applications'])->name('applications');
+    Route::get('/applications/{application}', [SuperAdminController::class, 'showApplication'])->name('applications.show');
+    Route::post('/applications/{application}/status', [SuperAdminController::class, 'updateApplicationStatus'])->name('applications.status');
     
     // Attendance Management (Copy from Admin)
     Route::get('/attendance', [SuperAdminController::class, 'attendance'])->name('attendance');
@@ -136,6 +150,8 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     Route::get('/salary-reports/{id}/download', [SuperAdminController::class, 'downloadSalaryReport'])->name('salary-reports.download');
     Route::get('/salary-reports/{id}/edit', [SuperAdminController::class, 'editSalaryReport'])->name('salary-reports.edit');
     Route::put('/salary-reports/{id}', [SuperAdminController::class, 'updateSalaryReport'])->name('salary-reports.update');
+    Route::get('/salary-reports/{id}/preview', [SuperAdminController::class, 'getSalarySlipPreview'])->name('salary-reports.preview');
+    Route::get('/salary-reports/{id}/view', [SuperAdminController::class, 'showSalarySlipPreview'])->name('salary-reports.view');
     
     // Attendance Reports
     Route::post('/attendance-reports/generate', [SuperAdminController::class, 'generateAttendanceReports'])->name('attendance-reports.generate');
@@ -150,8 +166,15 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     Route::get('/settings', [SuperAdminController::class, 'settings'])->name('settings');
     Route::post('/settings', [SuperAdminController::class, 'updateSettings'])->name('settings.update');
     
+    // Location Settings
+    Route::get('/location-settings', [\App\Http\Controllers\SuperAdmin\LocationSettingsController::class, 'index'])->name('location-settings.index');
+    Route::post('/location-settings', [\App\Http\Controllers\SuperAdmin\LocationSettingsController::class, 'update'])->name('location-settings.update');
+    Route::get('/location-settings/{empId}/edit', [\App\Http\Controllers\SuperAdmin\LocationSettingsController::class, 'edit'])->name('location-settings.edit');
+    
     // Admin Management
     Route::get('/admins', [SuperAdminController::class, 'admins'])->name('admins');
+    Route::get('/admins/create', [SuperAdminController::class, 'createAdmin'])->name('admins.create');
+    Route::post('/admins', [SuperAdminController::class, 'storeAdmin'])->name('admins.store');
     Route::get('/admins/{admin}', [SuperAdminController::class, 'showAdmin'])->name('admins.show');
     Route::get('/admins/{admin}/edit', [SuperAdminController::class, 'editAdmin'])->name('admins.edit');
     Route::put('/admins/{admin}', [SuperAdminController::class, 'updateAdmin'])->name('admins.update');
@@ -173,6 +196,10 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     Route::get('/schedule', [SuperAdminController::class, 'schedule'])->name('schedule');
     Route::post('/schedule/exception', [SuperAdminController::class, 'storeScheduleException'])->name('schedule.exception.store');
     Route::delete('/schedule/exception', [SuperAdminController::class, 'deleteScheduleException'])->name('schedule.exception.delete');
+    
+    // Profile Management
+    Route::get('/profile', [SuperAdminController::class, 'profile'])->name('profile');
+    Route::put('/profile', [SuperAdminController::class, 'updateProfile'])->name('profile.update');
 });
 
 // Super Admin Auth Routes
@@ -202,16 +229,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     // Attendance Management
     Route::get('/attendance', [AdminController::class, 'attendance'])->name('attendance');
+    Route::get('/attendance/filter', [AdminController::class, 'attendanceFilter'])->name('attendance.filter');
+    Route::get('/time-entries', [AdminController::class, 'timeEntries'])->name('time-entries');
+    Route::get('/entry-images', [AdminController::class, 'entryImages'])->name('entry-images');
     Route::get('/attendance/export/{date?}', [AdminController::class, 'exportAttendance'])->name('attendance.export');
     
     // Employee History
     Route::get('/employee-history', [AdminController::class, 'employeeHistory'])->name('employee-history');
     
-    // Work From Home
-    Route::get('/wfh', [AdminController::class, 'workFromHome'])->name('wfh');
-    Route::post('/wfh/{wfh}/status', [AdminController::class, 'updateWfhStatus'])->name('wfh.status');
-    
     // Time Entries
+    Route::post('/time-entries/update', [AdminController::class, 'updateTimeEntry'])->name('time-entries.update');
     // Route::get('/time-entries', [AdminController::class, 'timeEntries'])->name('time-entries');
     // Route::delete('/time-entries/{timeEntry}', [AdminController::class, 'deleteTimeEntry'])->name('time-entries.delete');
     
@@ -224,11 +251,31 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     // Salary Reports Download
     Route::get('/salary-reports/{id}/download', [AdminController::class, 'downloadSalaryReport'])->name('salary-reports.download');
+    Route::get('/salary-reports/{id}/preview', [AdminController::class, 'getSalarySlipPreview'])->name('salary-reports.preview');
+    Route::get('/salary-reports/{id}/view', [AdminController::class, 'showSalarySlipPreview'])->name('salary-reports.view');
+    Route::get('/salary-reports/{id}/edit', [AdminController::class, 'editSalaryReport'])->name('salary-reports.edit');
+    Route::put('/salary-reports/{id}', [AdminController::class, 'updateSalaryReport'])->name('salary-reports.update');
     
     // Schedule Management
     Route::get('/schedule', [AdminController::class, 'schedule'])->name('schedule');
     Route::post('/schedule/exception', [AdminController::class, 'storeScheduleException'])->name('schedule.exception.store');
     Route::delete('/schedule/exception', [AdminController::class, 'deleteScheduleException'])->name('schedule.exception.delete');
+    
+    // Salary Management
+    Route::get('/salaries', [AdminController::class, 'salaries'])->name('salaries');
+    Route::get('/salaries/create', [AdminController::class, 'createSalary'])->name('salaries.create');
+    Route::post('/salaries', [AdminController::class, 'storeSalary'])->name('salaries.store');
+    Route::get('/salaries/{salary}/edit', [AdminController::class, 'editSalary'])->name('salaries.edit');
+    Route::put('/salaries/{salary}', [AdminController::class, 'updateSalary'])->name('salaries.update');
+    Route::get('/salaries/pending-employees', [AdminController::class, 'getPendingEmployees'])->name('salaries.pending-employees');
+    
+    // Profile Management
+    Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
+    Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
+    
+    // Location Settings
+    Route::get('/location-settings', [\App\Http\Controllers\Admin\LocationSettingsController::class, 'index'])->name('location-settings.index');
+    Route::post('/location-settings', [\App\Http\Controllers\Admin\LocationSettingsController::class, 'update'])->name('location-settings.update');
     
     // Legacy Admin Routes (keeping for backward compatibility)
     Route::post('/dashboard/data', [AdminDashboardController::class, 'getEmployeeData'])->name('dashboard.data');

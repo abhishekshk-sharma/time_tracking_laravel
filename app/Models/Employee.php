@@ -109,8 +109,20 @@ class Employee extends Authenticatable
         return $this->hasMany(Employee::class, 'referrance', 'emp_id');
     }
 
+    public function entryImages(): HasMany
+    {
+        return $this->hasMany(EntryImage::class, 'emp_id', 'emp_id');
+    }
+
     public function region()
     {
         return $this->belongsTo(Region::class);
     }
+
+    // public function getEmployeedetails(){
+    //     return $this->where('role' == 'employee');
+    // }
+    // public function getEmployeeRegion(){
+    //     return $this->where(['role' == 'admin', 'emp']);
+    // }
 }

@@ -128,14 +128,88 @@
         </tr>
         <tr>
             <td class="emp-label">Region</td>
-            <td class="emp-value">{{ $salaryReport->region->name ?? 'N/A' }}</td>
+            <td class="emp-value">{{ $employee->region->name ?? 'N/A' }}</td>
             <td class="emp-label">Admin</td>
             <td class="emp-value">{{ $salaryReport->admin_id ?? 'N/A' }}</td>
         </tr>
+        <tr>
+            <td class="emp-label">DOB</td>
+            <td class="emp-value">{{ $employee->dob->format("d M, Y") ?? 'N/A' }}</td>
+            <td class="emp-label">Date of Joining</td>
+            <td class="emp-value">{{ $employee->hire_date->format("d M, Y") ?? 'N/A' }}</td>
+        </tr>
     </table>
 
-    <div class="attendance-box">
-        <table width="100%">
+    @if($salaryReport->bank_name || $salaryReport->uan || $salaryReport->pf_no || $salaryReport->esic_no)
+    <div class="section-title">Bank & Statutory Details</div>
+    <table class="emp-info-table" style="margin-bottom: 20px;">
+        @if($salaryReport->bank_name || $salaryReport->bank_account)
+        <tr>
+            @if($salaryReport->bank_name)
+            <td class="emp-label">Bank Name</td>
+            <td class="emp-value">{{ $salaryReport->bank_name }}</td>
+            @else
+            <td class="emp-label"></td>
+            <td class="emp-value"></td>
+            @endif
+            @if($salaryReport->bank_account)
+            <td class="emp-label">Account Number</td>
+            <td class="emp-value">{{ $salaryReport->bank_account }}</td>
+            @else
+            <td class="emp-label"></td>
+            <td class="emp-value"></td>
+            @endif
+        </tr>
+        @endif
+        @if($salaryReport->ifsc_code || $salaryReport->bank_branch)
+        <tr>
+            @if($salaryReport->ifsc_code)
+            <td class="emp-label">IFSC Code</td>
+            <td class="emp-value">{{ $salaryReport->ifsc_code }}</td>
+            @else
+            <td class="emp-label"></td>
+            <td class="emp-value"></td>
+            @endif
+            @if($salaryReport->bank_branch)
+            <td class="emp-label">Bank Branch</td>
+            <td class="emp-value">{{ $salaryReport->bank_branch }}</td>
+            @else
+            <td class="emp-label"></td>
+            <td class="emp-value"></td>
+            @endif
+        </tr>
+        @endif
+        @if($salaryReport->uan || $salaryReport->pf_no)
+        <tr>
+            @if($salaryReport->uan)
+            <td class="emp-label">UAN</td>
+            <td class="emp-value">{{ $salaryReport->uan }}</td>
+            @else
+            <td class="emp-label"></td>
+            <td class="emp-value"></td>
+            @endif
+            @if($salaryReport->pf_no)
+            <td class="emp-label">PF Number</td>
+            <td class="emp-value">{{ $salaryReport->pf_no }}</td>
+            @else
+            <td class="emp-label"></td>
+            <td class="emp-value"></td>
+            @endif
+        </tr>
+        @endif
+        @if($salaryReport->esic_no)
+        <tr>
+            <td class="emp-label">ESIC Number</td>
+            <td class="emp-value">{{ $salaryReport->esic_no }}</td>
+            <td class="emp-label"></td>
+            <td class="emp-value"></td>
+        </tr>
+        @endif
+    </table>
+    @endif
+
+    {{-- <div class="attendance-box">
+        <table width="100%" class="emp-info-table" style="margin-bottom: 20px;">
             <tr>
                 <td class="text-center">
                     <span class="stat-label">Working Days</span>
@@ -155,7 +229,7 @@
                 </td>
             </tr>
         </table>
-    </div>
+    </div> --}}
 
     <table class="salary-table" style="margin-top: 20px;">
         <thead>
@@ -195,26 +269,46 @@
             
             <tr style="background-color: #fff;">
                 <td class="bold text-gray">TOTAL EARNINGS</td>
-                <td class="bold text-right">Rs. {{ number_format($salaryReport->gross_salary, 2) }}</td>
+                <td class="bold text-right">&#8377; {{ number_format($salaryReport->gross_salary, 2) }}</td>
                 <td></td>
                 <td class="bold text-gray">TOTAL DEDUCTIONS</td>
-                <td class="bold text-right">Rs. {{ number_format($salaryReport->total_deductions, 2) }}</td>
+                <td class="bold text-right">&#8377; {{ number_format($salaryReport->total_deductions, 2) }}</td>
             </tr>
         </tbody>
     </table>
 
-    <div class="total-box">
-        <table width="100%">
+    
+        <table width="100%" class="emp-info-table" style="margin-bottom: 20px; margin-top: 20px; display: flex; position: absolute;">
+            <tr>
+                <td class="emp-label">Working Days</td>
+                <td class="emp-label">{{ $salaryReport->total_working_days }}</td>
+                
+                
+            </tr>
+            <tr>
+                <td class="emp-label"  >Payable Days</td>
+                <td class="emp-label">{{ $salaryReport->payable_days }}</td>
+            </tr>
+            <tr>
+                <td  class="emp-label">Leaves Taken</td>
+                <td class="emp-label">{{ $salaryReport->casual_leave + $salaryReport->sick_leave }}</td>
+                
+            </tr>
+            <tr>
+                <td  class="emp-label">Absent Days</td>
+                <td class="emp-label">{{ $salaryReport->absent_days }}</td>
+            </tr>
+        </table>
+    
+        <table width="100%" style="margin-top: 20px;">
             <tr>
                 <td width="60%">
-                    <div style="margin-top: 20px;">
-                        <span class="text-gray" style="font-size: 10px;">Generated by System • No Signature Required</span>
-                    </div>
+                    
                 </td>
                 <td width="40%">
                     <div class="net-pay-box">
                         <div class="net-label">Net Salary Payable</div>
-                        <div class="net-amount">Rs. {{ number_format($salaryReport->net_salary, 2) }}</div>
+                        <div class="net-amount">&#8377; {{ number_format($salaryReport->net_salary, 2) }}</div>
                     </div>
                 </td>
             </tr>
@@ -223,6 +317,9 @@
 
     <div class="footer">
         Confidential Information • St zk Digital Media co. LLC • Private & Confidential
+    </div>
+    <div class="footer" style="margin-top: 20px;">
+        <span style="font-size: 10px;   ">Generated by System • No Signature Required</span>
     </div>
 
 </body>

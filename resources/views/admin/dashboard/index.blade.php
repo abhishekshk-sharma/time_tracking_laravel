@@ -60,16 +60,16 @@
                             <tr>
                                 <td>{{ $application->employee->username }}</td>
                                 <td>
-                                    <span class="badge badge-secondary">{{ ucfirst(str_replace('_', ' ', $application->req_type)) }}</span>
+                                    <span class="badge p-2 text-bg-secondary">{{ ucfirst(str_replace('_', ' ', $application->req_type)) }}</span>
                                 </td>
                                 <td>{{ $application->start_date->format('M d, Y') }}</td>
                                 <td>
                                     @if($application->status === 'pending')
-                                        <span class="badge badge-warning">Pending</span>
+                                        <span class="badge p-2 text-bg-warning">Pending</span>
                                     @elseif($application->status === 'approved')
-                                        <span class="badge badge-success">Approved</span>
+                                        <span class="badge p-2 text-bg-success">Approved</span>
                                     @else
-                                        <span class="badge badge-danger">Rejected</span>
+                                        <span class="badge p-2 text-bg-danger">Rejected</span>
                                     @endif
                                 </td>
                                 <td>
@@ -129,7 +129,14 @@
             </div>
             
             <div style="text-align: center; margin-top: 20px;">
-                <a href="{{ route('admin.attendance') }}" class="btn btn-primary">
+                <a href="{{ route('admin.attendance') }}" class="btn btn-primary" 
+                style="    
+                    position: absolute;
+                    
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                ">
                     View Full Attendance
                 </a>
             </div>

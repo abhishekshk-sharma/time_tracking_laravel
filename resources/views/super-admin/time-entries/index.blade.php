@@ -97,7 +97,7 @@
                                             default => 'primary'
                                         };
                                     @endphp
-                                    <span class="badge badge-{{ $badgeClass }}">
+                                    <span class="badge p-2 text-bg-{{ $badgeClass }}">
                                         {{ ucwords(str_replace('_', ' ', $entry->entry_type)) }}
                                     </span>
                                 </td>

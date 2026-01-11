@@ -10,7 +10,7 @@
             <p class="page-subtitle">{{ $admin->username }} ({{ $admin->emp_id }})</p>
         </div>
         <div>
-            <a href="{{ route('super-admin.admins.edit', $admin) }}" class="btn btn-primary">
+            <a href="{{ route('super-admin.admins.edit', $admin) }}" class="btn btn-primary" style="margin-top: 10px;">
                 <i class="fas fa-edit"></i> Edit Admin
             </a>
             <a href="{{ route('super-admin.admins') }}" class="btn btn-secondary">
@@ -29,7 +29,7 @@
         <div class="card-body">
             <div class="info-row">
                 <label>Employee ID:</label>
-                <span class="badge badge-info">{{ $admin->emp_id }}</span>
+                <span class="badge p-2 text-bg-info">{{ $admin->emp_id }}</span>
             </div>
             <div class="info-row">
                 <label>Full Name:</label>
@@ -41,11 +41,11 @@
             </div>
             <div class="info-row">
                 <label>Role:</label>
-                <span class="badge badge-primary">{{ ucfirst($admin->role) }}</span>
+                <span class="badge p-2 text-bg-primary">{{ ucfirst($admin->role) }}</span>
             </div>
             <div class="info-row">
                 <label>Status:</label>
-                <span class="badge {{ $admin->status == 'active' ? 'badge-success' : 'badge-danger' }}">
+                <span class="badge p-2 {{ $admin->status == 'active' ? 'text-bg-success' : 'text-bg-danger' }}">
                     {{ ucfirst($admin->status) }}
                 </span>
             </div>
@@ -74,6 +74,10 @@
             <div class="info-row">
                 <label>PIN Code:</label>
                 <span>{{ $admin->region->pin_code }}</span>
+            </div>
+            <div class="info-row" title="{{ $admin->address }}">
+                <label style="margin-right: 9px;">Address:</label>
+                <span >{{$admin->address }}</span>
             </div>
             @endif
             {{-- <div class="info-row">
@@ -231,29 +235,29 @@ document.addEventListener('click', function(e) {
     font-size: 14px;
 }
 
-.badge {
+.badge p-2 {
     padding: 6px 12px;
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
 }
 
-.badge-success {
+.text-bg-success {
     background: #d4edda;
     color: #155724;
 }
 
-.badge-danger {
+.text-bg-danger {
     background: #f8d7da;
     color: #721c24;
 }
 
-.badge-primary {
+.text-bg-primary {
     background: #d1ecf1;
     color: #0c5460;
 }
 
-.badge-info {
+.text-bg-info {
     background: #d1ecf1;
     color: #0c5460;
 }

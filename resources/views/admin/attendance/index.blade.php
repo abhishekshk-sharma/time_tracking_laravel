@@ -59,17 +59,18 @@
                 <label class="form-label">Search Employee</label>
                 <input type="text" name="search" class="form-control" placeholder="Name or ID" value="{{ request('search') }}">
             </div>
+            <button type="submit" class="btn btn-secondary">
+                <i class="fas fa-search"></i> Filter
+            </button>
             <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Per Page</label>
-                <select name="per_page" class="form-control">
+                <select name="per_page" class="form-control" style="width: 45px;">
                     <option value="15" {{ request('per_page', 15) == 15 ? 'selected' : '' }}>15</option>
                     <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
                     <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-secondary">
-                <i class="fas fa-search"></i> Filter
-            </button>
+            
         </form>
     </div>
 </div>
@@ -103,17 +104,7 @@
                     <tbody>
                         @foreach($employees as $employee)
                         @php
-                            $punchIn = $employee->timeEntries->where('entry_type', 'punch_in')->first();
-                            $punchOut = $employee->timeEntries->where('entry_type', 'punch_out')->first();
-                            $isPresent = $punchIn !== null;
-                            $workingHours = 0;
-                            
-                            if ($punchIn && $punchOut) {
-                                $workingMinutes = $punchIn->entry_time->diffInMinutes($punchOut->entry_time);
-                                if ($workingMinutes > 0) {
-                                    $workingHours = floor($workingMinutes / 60) . ':' . sprintf('%02d', $workingMinutes % 60);
-                                }
-                            }
+                            $hasImages = $employee->entryImages->where('entry_time', '>=', $date . ' 00:00:00')->where('entry_time', '<=', $date . ' 23:59:59')->count() > 0;
                         @endphp
                         <tr>
                             <td>
@@ -125,49 +116,54 @@
                                         <div style="font-weight: 500;">{{ $employee->username }}</div>
                                         <div style="font-size: 12px; color: #565959;">{{ $employee->emp_id }}</div>
                                     </div>
+                                    @if($hasImages)
+                                        <i class="fas fa-camera" style="color: #28a745; margin-left: 8px;" title="Images captured"></i>
+                                    @endif
                                 </div>
                             </td>
                             <td>
                                 @if($employee->department && is_object($employee->department))
-                                    <span class="badge badge-secondary">{{ $employee->department->name }}</span>
+                                    <span class="badge p-2 text-bg-secondary">{{ $employee->department->name }}</span>
                                 @elseif($employee->department)
-                                    <span class="badge badge-secondary">{{ $employee->department }}</span>
+                                    <span class="badge p-2 text-bg-secondary">{{ $employee->department }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>
-                                @if($isPresent)
-                                    <span class="badge badge-success">Present</span>
+                                @if($employee->attendanceStatus == 'half_day')
+                                    <span class="badge p-2 text-bg-warning">Half Day</span>
+                                @elseif($employee->attendanceStatus == 'present')
+                                    <span class="badge p-2 text-bg-success">Present</span>
                                 @elseif($isWeekend)
-                                    <span class="badge badge-info">Week Off</span>
+                                    <span class="badge p-2 text-bg-info">Week Off</span>
                                 @else
-                                    <span class="badge badge-danger">Absent</span>
+                                    <span class="badge p-2 text-bg-danger">Absent</span>
                                 @endif
                             </td>
                             <td>
-                                @if($punchIn)
-                                    <div style="font-weight: 500;">{{ $punchIn->entry_time->format('h:i A') }}</div>
-                                    <div style="font-size: 12px; color: #565959;">{{ $punchIn->entry_time->format('M d') }}</div>
+                                @if($employee->firstPunchIn)
+                                    <div style="font-weight: 500;">{{ $employee->firstPunchIn->entry_time->format('h:i A') }}</div>
+                                    <div style="font-size: 12px; color: #565959;">{{ $employee->firstPunchIn->entry_time->format('M d') }}</div>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>
-                                @if($punchOut)
-                                    <div style="font-weight: 500;">{{ $punchOut->entry_time->format('h:i A') }}</div>
-                                    <div style="font-size: 12px; color: #565959;">{{ $punchOut->entry_time->format('M d') }}</div>
+                                @if($employee->lastPunchOut)
+                                    <div style="font-weight: 500;">{{ $employee->lastPunchOut->entry_time->format('h:i A') }}</div>
+                                    <div style="font-size: 12px; color: #565959;">{{ $employee->lastPunchOut->entry_time->format('M d') }}</div>
                                 @else
-                                    @if($isPresent)
-                                        <span class="badge badge-warning">Still Working</span>
+                                    @if($employee->firstPunchIn)
+                                        <span class="badge p-2 text-bg-warning">Still Working</span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 @endif
                             </td>
                             <td>
-                                @if($workingHours && $workingHours !== '0:00')
-                                    <span style="font-weight: 500;">{{ $workingHours }}</span>
+                                @if($employee->workingHours && $employee->workingHours !== '0:00')
+                                    <span style="font-weight: 500;">{{ $employee->workingHours }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -202,6 +198,34 @@
 @endsection
 
 @push('scripts')
+<style>
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    font-size: 0.75em;
+    padding: 0.375em 0.75em;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.2rem;
+}
+
+.image-link {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 0.8em;
+    margin-left: 8px;
+}
+
+.image-link:hover {
+    text-decoration: underline;
+    color: #0056b3;
+}
+</style>
 <script>
 function viewTimeEntries(empId, date) {
     // Fetch time entries via AJAX
@@ -224,9 +248,14 @@ function viewTimeEntries(empId, date) {
                     hour12: true
                 });
                 const type = entry.entry_type.replace('_', ' ').toUpperCase();
+                const hasImage = data.images && data.images[entry.id];
+                
                 entriesHtml += `<div style="margin: 10px 0; padding: 8px; border-left: 3px solid #ff9900; background: #f8f9fa;">
-                    <strong>${type}</strong> - ${time}
-                    ${entry.notes ? `<br><small style="color: #666;">${entry.notes}</small>` : ''}
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div><strong>${type}</strong> - ${time}</div>
+                        ${hasImage ? `<button class="btn btn-sm btn-info" onclick="viewEntryImage('${hasImage.imageFile}', '${type}', '${time}')" title="View captured image" style="padding: 2px 8px; font-size: 11px;"><i class="fas fa-camera"></i> View Image</button>` : ''}
+                    </div>
+                    ${entry.notes ? `<small style="color: #666;">${entry.notes}</small>` : ''}
                 </div>`;
             });
         } else {
@@ -251,6 +280,105 @@ function viewTimeEntries(empId, date) {
             confirmButtonColor: '#ff9900'
         });
     });
+}
+
+function viewEntryImage(imageFile, entryType, time) {
+    // Create fullscreen overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    `;
+    
+    // Create image container
+    const container = document.createElement('div');
+    container.style.cssText = `
+        position: relative;
+        width: 50vw;
+        height: 50vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    `;
+    
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+        cursor: pointer;
+        z-index: 10000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    
+    // Create image
+    const img = document.createElement('img');
+    img.src = `/entry_images/${imageFile}`;
+    img.style.cssText = `
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    `;
+    
+    // Create title
+    const title = document.createElement('div');
+    title.textContent = `${entryType} - ${time}`;
+    title.style.cssText = `
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 15px;
+        text-align: center;
+    `;
+    
+    // Close function
+    const closeImage = () => {
+        document.body.removeChild(overlay);
+        document.body.style.overflow = 'auto';
+    };
+    
+    // Event listeners
+    closeBtn.onclick = closeImage;
+    overlay.onclick = (e) => {
+        if (e.target === overlay) closeImage();
+    };
+    
+    // Escape key to close
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeImage();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Assemble and show
+    container.appendChild(closeBtn);
+    container.appendChild(img);
+    container.appendChild(title);
+    overlay.appendChild(container);
+    
+    document.body.style.overflow = 'hidden';
+    document.body.appendChild(overlay);
 }
 
 function exportTimesheet(empId, date) {

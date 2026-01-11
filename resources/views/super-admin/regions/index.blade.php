@@ -1,43 +1,43 @@
 @extends('super-admin.layouts.app')
 
-@section('title', 'Regions Management')
+@section('title', 'Branch Management')
 
 @section('content')
 <div class="page-header">
-    <h1 class="page-title">Regions Management</h1>
-    <p class="page-subtitle">Manage office locations and regions</p>
+    <h1 class="page-title">Branch Management</h1>
+    <p class="page-subtitle">Manage office locations and Branch</p>
 </div>
 
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">Add New Region</h3>
+        <h3 class="card-title">Add New Branch</h3>
     </div>
     <div class="card-body">
         <form method="POST" action="{{ route('super-admin.regions.store') }}">
             @csrf
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
                 <div class="form-group">
-                    <label class="form-label">Region Name</label>
-                    <input type="text" name="name" class="form-control" required>
+                    <label class="form-label">Branch Name</label>
+                    <input type="text" name="name" class="form-control" required placeholder='Branch Name'> 
                 </div>
                 <div class="form-group">
                     <label class="form-label">Pin Code</label>
-                    <input type="text" name="pin_code" class="form-control" required>
+                    <input type="text" name="pin_code" class="form-control" required placeholder='Pin Code'>
                 </div>
                 <div class="form-group">
                     <label class="form-label">IP Address</label>
-                    <input type="text" name="ip_address" class="form-control">
+                    <input type="text" name="ip_address" class="form-control" placeholder='IP Address'>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Latitude</label>
-                    <input type="number" name="latitude" class="form-control" step="0.00000001">
+                    <input type="number" name="latitude" class="form-control" step="0.00000001" placeholder='Latitude'>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Longitude</label>
-                    <input type="number" name="longitude" class="form-control" step="0.00000001">
+                    <input type="number" name="longitude" class="form-control" step="0.00000001" placeholder='Longitude'>
                 </div>
                 <div class="form-group" style="display: flex; align-items: end;">
-                    <button type="submit" class="btn btn-primary">Add Region</button>
+                    <button type="submit" class="btn btn-primary">Add Branch</button>
                 </div>
             </div>
         </form>
@@ -46,7 +46,7 @@
 
 <div class="card" style="margin-top: 30px;">
     <div class="card-header">
-        <h3 class="card-title">Existing Regions</h3>
+        <h3 class="card-title">Existing Branch</h3>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -54,7 +54,7 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Name</th>
+                        <th>Branch</th>
                         <th>Pin Code</th>
                         <th>IP Address</th>
                         <th>Latitude</th>
@@ -90,11 +90,11 @@
 </div>
 
 <!-- Edit Modal -->
-<div class="modal fade" id="editModal" tabindex="-1" style="display: none;">
+<div class="modal fade" id="editModal" tabindex="-1" style="display: none; swal-high-z-index;">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Edit Region</h5>
+                <h5 class="modal-title">Edit Branch</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="editForm" method="POST">
@@ -102,29 +102,29 @@
                 @method('PUT')
                 <div class="modal-body">
                     <div class="form-group">
-                        <label class="form-label">Region Name</label>
-                        <input type="text" name="name" id="edit_name" class="form-control" required>
+                        <label class="form-label">Branch Name</label>
+                        <input type="text" name="name" id="edit_name" class="form-control" required placeholder='Enter Branch Name'>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Pin Code</label>
-                        <input type="text" name="pin_code" id="edit_pin_code" class="form-control" required>
+                        <input type="text" name="pin_code" id="edit_pin_code" class="form-control" required placeholder='Enter Pin Code'>
                     </div>
                     <div class="form-group">
                         <label class="form-label">IP Address</label>
-                        <input type="text" name="ip_address" id="edit_ip_address" class="form-control">
+                        <input type="text" name="ip_address" id="edit_ip_address" class="form-control" placeholder='Enter IP Address'>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Latitude</label>
-                        <input type="number" name="latitude" id="edit_latitude" class="form-control" step="0.00000001">
+                        <input type="number" name="latitude" id="edit_latitude" class="form-control" step="0.00000001" placeholder='Enter Latitude'>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Longitude</label>
-                        <input type="number" name="longitude" id="edit_longitude" class="form-control" step="0.00000001">
+                        <input type="number" name="longitude" id="edit_longitude" class="form-control" step="0.00000001" placeholder='Enter Longitude'>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Region</button>
+                    <button type="submit" class="btn btn-primary">Update Branch</button>
                 </div>
             </form>
         </div>
@@ -144,5 +144,13 @@ function editRegion(id, name, pinCode, ipAddress, latitude, longitude) {
     new bootstrap.Modal(document.getElementById('editModal')).show();
 }
 </script>
+<style>
+.swal-high-z-index {
+    z-index: 10000 !important;
+}
+.swal2-container.swal-high-z-index {
+    z-index: 10000 !important;
+}
+</style>
 @endpush
 @endsection

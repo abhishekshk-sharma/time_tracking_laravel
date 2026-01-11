@@ -82,35 +82,35 @@
                             </td>
                             <td>
                                 @if($dayEntries->has('punch_in'))
-                                    <span class="badge badge-success">{{ $dayEntries['punch_in']->entry_time->format('h:i A') }}</span>
+                                    <span class="badge text-bg-success" style="cursor: pointer;" onclick="editTimeEntry('{{ $dayEntries['punch_in']->id }}', 'punch_in', '{{ $dayEntries['punch_in']->entry_time->format('H:i') }}', '{{ $date }}')">{{ $dayEntries['punch_in']->entry_time->format('h:i A') }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>
                                 @if($dayEntries->has('lunch_start'))
-                                    <span class="badge badge-warning">{{ $dayEntries['lunch_start']->entry_time->format('h:i A') }}</span>
+                                    <span class="badge text-bg-warning" style="cursor: pointer;" onclick="editTimeEntry('{{ $dayEntries['lunch_start']->id }}', 'lunch_start', '{{ $dayEntries['lunch_start']->entry_time->format('H:i') }}', '{{ $date }}')">{{ $dayEntries['lunch_start']->entry_time->format('h:i A') }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>
                                 @if($dayEntries->has('lunch_end'))
-                                    <span class="badge badge-warning">{{ $dayEntries['lunch_end']->entry_time->format('h:i A') }}</span>
+                                    <span class="badge text-bg-warning" style="cursor: pointer;" onclick="editTimeEntry('{{ $dayEntries['lunch_end']->id }}', 'lunch_end', '{{ $dayEntries['lunch_end']->entry_time->format('H:i') }}', '{{ $date }}')">{{ $dayEntries['lunch_end']->entry_time->format('h:i A') }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>
                                 @if($dayEntries->has('punch_out'))
-                                    <span class="badge badge-danger">{{ $dayEntries['punch_out']->entry_time->format('h:i A') }}</span>
+                                    <span class="badge text-bg-danger" style="cursor: pointer;" onclick="editTimeEntry('{{ $dayEntries['punch_out']->id }}', 'punch_out', '{{ $dayEntries['punch_out']->entry_time->format('H:i') }}', '{{ $date }}')">{{ $dayEntries['punch_out']->entry_time->format('h:i A') }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>
                                 @if($dayEntries->has('holiday'))
-                                    <span class="badge badge-secondary">{{ $dayEntries['holiday']->notes }}</span>
+                                    <span class="badge text-bg-secondary">{{ $dayEntries['holiday']->notes }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -139,6 +139,85 @@
 
 @push('scripts')
 <script>
+function editTimeEntry(entryId, entryType, currentTime, date) {
+    const typeLabels = {
+        'punch_in': 'Punch In',
+        'punch_out': 'Punch Out', 
+        'lunch_start': 'Lunch Start',
+        'lunch_end': 'Lunch End'
+    };
+    
+    Swal.fire({
+        title: `Edit ${typeLabels[entryType]}`,
+        html: `
+            <div style="text-align: left; margin: 20px 0;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Date: ${new Date(date).toLocaleDateString()}</label>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Time:</label>
+                <input type="time" id="edit-time" value="${currentTime}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Update',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#ff9900',
+        preConfirm: () => {
+            const newTime = document.getElementById('edit-time').value;
+            if (!newTime) {
+                Swal.showValidationMessage('Please select a time');
+                return false;
+            }
+            return newTime;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updateTimeEntry(entryId, result.value, date);
+        }
+    });
+}
+
+function updateTimeEntry(entryId, newTime, date) {
+    fetch('/admin/time-entries/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            entry_id: entryId,
+            new_time: `${date} ${newTime}:00`
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Updated!',
+                text: 'Time entry updated successfully.',
+                confirmButtonColor: '#ff9900'
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: data.message || 'Failed to update time entry.',
+                confirmButtonColor: '#ff9900'
+            });
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'An error occurred while updating the time entry.',
+            confirmButtonColor: '#ff9900'
+        });
+    });
+}
+
 function toggleCustomDates(value) {
     const startDateGroup = document.getElementById('start_date_group');
     const endDateGroup = document.getElementById('end_date_group');

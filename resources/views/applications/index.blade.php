@@ -618,8 +618,8 @@
                         </div> --}}
                         <div class="summary-card">
                             <h3>Total Casual Leave</h3>
-                            <p id="tcl" value="" style='display: inline;'></p> &nbsp;/&nbsp;
-                            <p id="rcl" value="" style='display: inline;'></p>
+                            <p id="rcl" value="" style='display: inline;'></p> &nbsp;/&nbsp;
+                            <p id="tcl" value="" style='display: inline;'></p> 
                         </div>
                         {{-- <div class="summary-card">
                             <h3>Remaining Casual Leave</h3>
@@ -1172,19 +1172,12 @@
                             leaveDayCheck();
                         } else {
                             Swal.fire({
-                                text: "Error! " + e,
+                                text: e,
                                 icon: "error"
                             });
                         }
                     },
-                    error: function(xhr, status, error) {
-                        Swal.fire({
-                            title: "Oops!",
-                            text: "Something went wrong. Please try again later.\nError: " + error,
-                            icon: "error",
-                            confirmButtonText: "OK"
-                        });
-                    }
+                    
                 });
             }
 

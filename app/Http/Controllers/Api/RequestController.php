@@ -59,8 +59,13 @@ class RequestController extends Controller
     public function store(Request $request)
     {
         try {
+            // Add debugging
+            \Log::info('Request store called with data:', $request->all());
+            
             $userid = Auth::user()->emp_id;
             $info = $request->input('info');
+            
+            \Log::info('User ID: ' . $userid . ', Info: ' . $info);
 
             switch ($info) {
                 case 'casualLeave':
@@ -79,10 +84,12 @@ class RequestController extends Controller
                 case 'work_from_home':
                     return $this->handleWorkFromHome($request, $userid);
                 default:
+                    \Log::error('Invalid request type: ' . $info);
                     return response('Invalid request type', 400);
             }
         } catch (\Exception $e) {
             \Log::error('Application store error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response('Error: ' . $e->getMessage(), 500);
         }
     }
@@ -90,46 +97,59 @@ class RequestController extends Controller
     private function handleCasualLeave(Request $request, $userid)
     {
         try {
-            $id = $request->input('id');
-            $type = $request->input('type');
-            $start_date = Carbon::parse($request->input('start_date'))->setTimezone('Asia/Kolkata');
-            $end_date = Carbon::parse($request->input('end_date'))->setTimezone('Asia/Kolkata');
-            $subject = $request->input('subject');
-            $description = $request->input('description');
-            $rcl = intval($request->input('rcl'));
-
-            if (empty($request->input('start_date')) || empty($request->input('end_date'))) {
+            \Log::info('handleCasualLeave called with data:', $request->all());
+            
+            // Basic validation
+            if (!$request->input('id')) {
+                return response('Employee ID is required.', 400);
+            }
+            
+            if (!$request->input('type')) {
+                return response('Request type is required.', 400);
+            }
+            
+            if (!$request->input('subject')) {
+                return response('Subject is required.', 400);
+            }
+            
+            if (!$request->input('start_date') || !$request->input('end_date')) {
                 return response('Start and end dates are required.', 400);
             }
+
+            $id = $request->input('id');
+            $type = $request->input('type');
+            $subject = $request->input('subject');
+            $description = $request->input('description', '');
+            $start_date = Carbon::parse($request->input('start_date'));
+            $end_date = Carbon::parse($request->input('end_date'));
 
             if ($start_date > $end_date) {
                 return response('Start date must be before end date.', 400);
             }
 
-            $checkavailableLeave = 0;
-            for ($date = clone $start_date; $date <= $end_date; $date->addDay()) {
-                $checkavailableLeave += 1;
+            // Calculate requested leave days
+            $requestedDays = $start_date->diffInDays($end_date) + 1;
+            
+            // Check remaining casual leave
+            $leaveCount = LeaveCount::where('employee_id', $userid)->first();
+            $remainingLeave = $leaveCount ? $leaveCount->casual_leave : 0;
+            
+            if ($remainingLeave < $requestedDays) {
+                return response("Insufficient casual leave balance! Available: {$remainingLeave} days, Requested: {$requestedDays} days", 400);
             }
 
-            if ($rcl < $checkavailableLeave) {
-                return response("Can't apply more than remaining days! " . $rcl, 400);
+            // Handle file upload
+            $filePath = '';
+            if ($request->hasFile('image')) {
+                try {
+                    $filePath = $this->handleFileUpload($request);
+                } catch (\Exception $e) {
+                    \Log::error('File upload error: ' . $e->getMessage());
+                    // Continue without file if upload fails
+                }
             }
-
-            $time = $start_date->format('Y-m-d');
-            $firstEntry = TimeEntry::where('employee_id', $userid)
-                ->where('entry_time', 'like', $time . '%')
-                ->orderBy('entry_time', 'asc')
-                ->first();
-
-            if ($firstEntry && in_array($firstEntry->entry_type, ['regularization', 'casual_leave', 'sick_leave', 'holiday'])) {
-                return response("Can't Apply on already declared(Casual Leave, Sick Leave, Holiday, or Regularization).", 400);
-            } else if ($firstEntry && $firstEntry->entry_type === 'punch_in') {
-                return response("Already Punched In.", 400);
-            }
-
-            $filePath = $this->handleFileUpload($request);
-
-            $application = Application::create([
+            
+            \Log::info('Creating application with data:', [
                 'employee_id' => $id,
                 'req_type' => $type,
                 'subject' => $subject,
@@ -139,13 +159,29 @@ class RequestController extends Controller
                 'file' => $filePath
             ]);
 
+            $application = Application::create([
+                'employee_id' => $id,
+                'req_type' => $type,
+                'subject' => $subject,
+                'description' => $description,
+                'start_date' => $start_date->format('Y-m-d H:i:s'),
+                'end_date' => $end_date->format('Y-m-d H:i:s'),
+                'file' => $filePath,
+                'status' => 'pending'
+            ]);
+
             if ($application) {
+                \Log::info('Application created successfully with ID: ' . $application->id);
                 $this->createNotificationsForAdmins($application->id, $id);
                 return response('100');
             }
 
-            return response('Not uploaded', 400);
+            \Log::error('Application creation failed');
+            return response('Application creation failed', 400);
+            
         } catch (\Exception $e) {
+            \Log::error('Casual leave application error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response('Error: ' . $e->getMessage(), 500);
         }
     }
@@ -267,78 +303,129 @@ class RequestController extends Controller
 
     private function handleSickLeave(Request $request, $userid)
     {
-        $id = $request->input('id');
-        $type = $request->input('type');
-        $start_date = Carbon::parse($request->input('start_date'))->setTimezone('Asia/Kolkata');
-        $end_date = Carbon::parse($request->input('end_date'))->setTimezone('Asia/Kolkata');
-        $subject = $request->input('subject');
-        $description = $request->input('description');
-        $rsl = intval($request->input('rsl'));
+        try {
+            \Log::info('handleSickLeave called with data:', $request->all());
+            
+            // Basic validation
+            if (!$request->input('id')) {
+                return response('Employee ID is required.', 400);
+            }
+            
+            if (!$request->input('type')) {
+                return response('Request type is required.', 400);
+            }
+            
+            if (!$request->input('subject')) {
+                return response('Subject is required.', 400);
+            }
+            
+            if (!$request->input('start_date') || !$request->input('end_date')) {
+                return response('Start and end dates are required.', 400);
+            }
 
-        if (empty($request->input('start_date')) || empty($request->input('end_date'))) {
-            return response('Start and end dates are required.', 400);
+            $id = $request->input('id');
+            $type = $request->input('type');
+            $subject = $request->input('subject');
+            $description = $request->input('description', '');
+            $start_date = Carbon::parse($request->input('start_date'));
+            $end_date = Carbon::parse($request->input('end_date'));
+
+            if ($start_date > $end_date) {
+                return response('Start date must be before end date.', 400);
+            }
+
+            // Calculate requested leave days
+            $requestedDays = $start_date->diffInDays($end_date) + 1;
+            
+            // Check remaining sick leave
+            $leaveCount = LeaveCount::where('employee_id', $userid)->first();
+            $remainingLeave = $leaveCount ? $leaveCount->sick_leave : 0;
+            
+            if ($remainingLeave < $requestedDays) {
+                return response("Insufficient sick leave balance! Available: {$remainingLeave} days, Requested: {$requestedDays} days", 400);
+            }
+
+            // Handle file upload
+            $filePath = '';
+            if ($request->hasFile('image')) {
+                try {
+                    $filePath = $this->handleFileUpload($request);
+                } catch (\Exception $e) {
+                    \Log::error('File upload error: ' . $e->getMessage());
+                    // Continue without file if upload fails
+                }
+            }
+            
+            \Log::info('Creating sick leave application with data:', [
+                'employee_id' => $id,
+                'req_type' => $type,
+                'subject' => $subject,
+                'description' => $description,
+                'start_date' => $start_date->format('Y-m-d H:i:s'),
+                'end_date' => $end_date->format('Y-m-d H:i:s'),
+                'file' => $filePath
+            ]);
+
+            $application = Application::create([
+                'employee_id' => $id,
+                'req_type' => $type,
+                'subject' => $subject,
+                'description' => $description,
+                'start_date' => $start_date->format('Y-m-d H:i:s'),
+                'end_date' => $end_date->format('Y-m-d H:i:s'),
+                'file' => $filePath,
+                'status' => 'pending'
+            ]);
+
+            if ($application) {
+                \Log::info('Sick leave application created successfully with ID: ' . $application->id);
+                $this->createNotificationsForAdmins($application->id, $id);
+                return response('100');
+            }
+
+            \Log::error('Sick leave application creation failed');
+            return response('Application creation failed', 400);
+            
+        } catch (\Exception $e) {
+            \Log::error('Sick leave application error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response('Error: ' . $e->getMessage(), 500);
         }
-
-        if ($start_date > $end_date) {
-            return response('Start date must be before end date.', 400);
-        }
-
-        $checkavailableLeave = 0;
-        for ($date = clone $start_date; $date <= $end_date; $date->addDay()) {
-            $checkavailableLeave += 1;
-        }
-
-        if ($rsl < $checkavailableLeave) {
-            return response("Can't apply more than remaining days! " . $rsl, 400);
-        }
-
-        $filePath = $this->handleFileUpload($request);
-
-        $application = Application::create([
-            'employee_id' => $id,
-            'req_type' => $type,
-            'subject' => $subject,
-            'description' => $description,
-            'start_date' => $start_date->format('Y-m-d H:i:s'),
-            'end_date' => $end_date->format('Y-m-d H:i:s'),
-            'file' => $filePath
-        ]);
-
-        if ($application) {
-            $this->createNotificationsForAdmins($application->id, $id);
-            return response('100');
-        }
-
-        return response('Not uploaded', 400);
     }
 
     private function handleHalfDay(Request $request, $userid)
     {
-        $id = $request->input('id');
-        $type = $request->input('type');
-        $start_date = Carbon::parse($request->input('start_date'))->setTimezone('Asia/Kolkata');
-        $subject = $request->input('subject');
-        $description = $request->input('description');
-        $half_day_type = $request->input('half_day_type', 'first_half');
+        try {
+            $id = $request->input('id');
+            $type = $request->input('type');
+            $start_date = Carbon::parse($request->input('start_date'))->setTimezone('Asia/Kolkata');
+            $subject = $request->input('subject');
+            $description = $request->input('description');
+            $half_day_type = $request->input('half_day_type', 'first_half');
 
-        $filePath = $this->handleFileUpload($request);
+            $filePath = $this->handleFileUpload($request);
 
-        $application = Application::create([
-            'employee_id' => $id,
-            'req_type' => $type,
-            'subject' => $subject,
-            'description' => $description,
-            'start_date' => $start_date->format('Y-m-d H:i:s'),
-            'half_day' => $half_day_type,
-            'file' => $filePath
-        ]);
+            $application = Application::create([
+                'employee_id' => $id,
+                'req_type' => $type,
+                'subject' => $subject,
+                'description' => $description,
+                'start_date' => $start_date->format('Y-m-d H:i:s'),
+                'half_day' => $half_day_type,
+                'file' => $filePath,
+                'status' => 'pending'
+            ]);
 
-        if ($application) {
-            $this->createNotificationsForAdmins($application->id, $id);
-            return response('100');
+            if ($application) {
+                $this->createNotificationsForAdmins($application->id, $id);
+                return response('100');
+            }
+
+            return response('Not uploaded', 400);
+        } catch (\Exception $e) {
+            \Log::error('Half day application error: ' . $e->getMessage());
+            return response('Error: ' . $e->getMessage(), 500);
         }
-
-        return response('Not uploaded', 400);
     }
 
     private function handleComplaintOrOther(Request $request, $userid)

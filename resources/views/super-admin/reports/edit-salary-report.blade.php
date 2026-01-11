@@ -167,6 +167,45 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Bank & Statutory Details Card -->
+                                <div class="card shadow-sm border-0 mb-4">
+                                    <div class="card-header bg-light border-0">
+                                        <h6 class="card-title text-dark fw-bold mb-0">
+                                            <i class="fas fa-university me-2 text-info"></i>Bank & Statutory Details
+                                        </h6>
+                                    </div>
+                                    <div class="card-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <div>
+                                            <label class="form-label fw-bold">Bank Name</label>
+                                            <input type="text" class="form-control" name="bank_name" value="{{ old('bank_name', $salaryReport->bank_name) }}" maxlength="255">
+                                        </div>
+                                        <div>
+                                            <label class="form-label fw-bold">Bank Account</label>
+                                            <input type="text" class="form-control" name="bank_account" value="{{ old('bank_account', $salaryReport->bank_account) }}" maxlength="255">
+                                        </div>
+                                        <div>
+                                            <label class="form-label fw-bold">IFSC Code</label>
+                                            <input type="text" class="form-control" name="ifsc_code" value="{{ old('ifsc_code', $salaryReport->ifsc_code) }}" maxlength="11">
+                                        </div>
+                                        <div>
+                                            <label class="form-label fw-bold">Bank Branch</label>
+                                            <input type="text" class="form-control" name="bank_branch" value="{{ old('bank_branch', $salaryReport->bank_branch) }}" maxlength="255">
+                                        </div>
+                                        <div>
+                                            <label class="form-label fw-bold">UAN</label>
+                                            <input type="text" class="form-control" name="uan" value="{{ old('uan', $salaryReport->uan) }}" maxlength="12">
+                                        </div>
+                                        <div>
+                                            <label class="form-label fw-bold">PF Number</label>
+                                            <input type="text" class="form-control" name="pf_no" value="{{ old('pf_no', $salaryReport->pf_no) }}" maxlength="255">
+                                        </div>
+                                        <div style="grid-column: 1 / -1;">
+                                            <label class="form-label fw-bold">ESIC Number</label>
+                                            <input type="text" class="form-control" name="esic_no" value="{{ old('esic_no', $salaryReport->esic_no) }}" maxlength="17">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Calculation Summary Sidebar -->

@@ -51,18 +51,39 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Full Name</label>
-                    <input type="text" name="username" class="form-control" value="{{ old('username', $employee->username) }}" required>
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" name="full_name" class="form-control @error('full_name') is-invalid @enderror" 
+                           value="{{ old('full_name', $employee->full_name) }}" required>
+                    @error('full_name')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>  
+                <div class="form-group">
+                    <label class="form-label">Username *</label>
+                    <input type="text" name="username" class="form-control @error('username') is-invalid @enderror" 
+                           value="{{ old('username', $employee->username) }}" required>
+                    @error('username')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email Address *</label>
+                    <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" 
+                           value="{{ old('email', $employee->email) }}" required>
+                    @error('email')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Email Address</label>
-                    <input type="email" name="email" class="form-control" value="{{ old('email', $employee->email) }}" required>
+                    <label class="form-label">DOB</label>
+                    <input type="date" name="dob" class="form-control" value="{{ old('dob', $employee->dob) }}" @error('dob') is-invalid @enderror">
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label">Role</label>
-                    <select class="form-control" name="role" required>
+                    <select class="form-control" name="role" required @error('role') is-invalid @enderror"> 
                         <option value="employee" {{ $employee->role == 'employee' ? 'selected' : '' }}>Employee</option>
                         <option value="admin" {{ $employee->role == 'admin' ? 'selected' : '' }}>Admin</option>
                     </select>
@@ -70,7 +91,7 @@
                 
                 <div class="form-group">
                     <label class="form-label">Status</label>
-                    <select class="form-control" name="status" required>
+                    <select class="form-control" name="status" required @error('status') is-invalid @enderror">
                         <option value="active" {{ $employee->status == 'active' ? 'selected' : '' }}>Active</option>
                         <option value="inactive" {{ $employee->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
                     </select>
@@ -86,7 +107,7 @@
             <div class="card-body">
                 <div class="form-group">
                     <label class="form-label">Department</label>
-                    <select class="form-control" name="department_id">
+                    <select class="form-control" name="department_id" @error('department_id') is-invalid @enderror">
                         <option value="">Select Department</option>
                         @foreach($departments as $department)
                             <option value="{{ $department->id }}" {{ $employee->department_id == $department->id ? 'selected' : '' }}>
@@ -97,8 +118,23 @@
                 </div>
                 
                 <div class="form-group">
+                    <label class="form-label">Position</label>
+                    <input type="text" name="position" class="form-control" value="{{ old('position', $employee->position) }}" @error('position') is-invalid @enderror">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Hire Date</label>
+                    <input type="date" name="hire_date" class="form-control"  value="{{ old('hire_date', $employee->hire_date ? $employee->hire_date->format('Y-m-d') : '') }}" required @error('hire_date') is-invalid @enderror">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">End Date</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ old('end_date', $employee->end_date) }}" @error('end_date') is-invalid @enderror">
+                </div>
+                
+                <div class="form-group">
                     <label class="form-label">Region</label>
-                    <select class="form-control" name="region_id">
+                    <select class="form-control" name="region_id" @error('region_id') is-invalid @enderror">
                         <option value="">Select Region</option>
                         @foreach($regions as $region)
                             <option value="{{ $region->id }}" {{ $employee->region_id == $region->id ? 'selected' : '' }}>
@@ -108,22 +144,63 @@
                     </select>
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Position</label>
-                    <input type="text" name="position" class="form-control" value="{{ old('position', $employee->position) }}">
-                </div>
              
                 <div class="form-group">
                     <label class="form-label">Referrance Admin</label>
-                    <select class="form-control" name="referrance">
+                    <select class="form-control" name="referrance" @error('referrance') is-invalid @enderror">
                         <option value="">Select Admin</option>
                         
                         @foreach($admins as $admin)
-                            <option value="{{ $admin->emp_id }}" {{ $employee->referrance == $admin->emp_id ? 'selected' : '' }}>
+                            <option value="{{ $admin->emp_id }}" {{ old('referrance', $employee->referrance) == $admin->emp_id ? 'selected' : '' }} >
                                 {{ $admin->username }} --  {{ $admin->department?->name ?? 'No Department Assigned' }}
                             </option>
                         @endforeach
                     </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" placeholder='Optional' @error('password') is-invalid @enderror">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+                <label class="form-label">Address</label>
+                <textarea name="address" class="form-control @error('address') is-invalid @enderror" 
+                          rows="3">{{ old('address', $employee->address) }}</textarea>
+                @error('address')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+    <!-- Leave Count Section -->
+    <div class="card" style="margin-top: 20px; border: 1px solid #e0e2e6; border-radius: 8px;">
+        <div class="card-header" style="background: #f8f9fa; padding: 15px; border-bottom: 1px solid #e0e2e6;">
+            <h4 style="margin: 0; font-size: 16px; color: #0f1111;">Leave Balance</h4>
+            <small style="color: #565959;">Manage employee's available leave days</small>
+        </div>
+        <div class="card-body" style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label class="form-label">Casual Leave Days</label>
+                    <input type="number" name="casual_leave" class="form-control @error('casual_leave') is-invalid @enderror" 
+                           value="{{ old('casual_leave', $leaveCount->casual_leave ?? 0) }}" min="0" max="365">
+                    <small style="color: #565959;">Available casual leave days for the employee</small>
+                    @error('casual_leave')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Sick Leave Days</label>
+                    <input type="number" name="sick_leave" class="form-control @error('sick_leave') is-invalid @enderror" 
+                           value="{{ old('sick_leave', $leaveCount->sick_leave ?? 0) }}" min="0" max="365">
+                    <small style="color: #565959;">Available sick leave days for the employee</small>
+                    @error('sick_leave')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
             </div>
         </div>

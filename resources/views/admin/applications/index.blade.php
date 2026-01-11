@@ -13,7 +13,7 @@
 <!-- Filters -->
 <div class="card">
     <div class="card-body" >
-        <form method="GET" action="{{ route('admin.applications') }}" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(155 px, 5fr)); gap: 15px; align-items: end; " class="filter-form">
+        <form method="GET" action="{{ route('admin.applications') }}" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: end; " class="filter-form">
             <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-control">
@@ -89,7 +89,7 @@
                                 
                             </td>
                             <td>
-                                <span class="badge badge-secondary">{{ ucfirst(str_replace('_', ' ', $application->req_type)) }}</span>
+                                <span class="badge text-bg-secondary p-1" style="font-size: 0.8rem;">{{ ucfirst($application->req_type) }}</span>
                             </td>
                             <td>
                                 <div style="max-width: 200px;">
@@ -112,11 +112,11 @@
                             <td>{{ $application->created_at instanceof \Carbon\Carbon ? $application->created_at->format('M d, Y') : $application->created_at }}</td>
                             <td>
                                 @if($application->status === 'pending')
-                                    <span class="badge badge-warning">Pending</span>
+                                    <span class="badge text-bg-warning p-2">Pending</span>
                                 @elseif($application->status === 'approved')
-                                    <span class="badge badge-success">Approved</span>
+                                    <span class="badge text-bg-success p-2">Approved</span>
                                 @else
-                                    <span class="badge badge-danger">Rejected</span>
+                                    <span class="badge text-bg-danger p-2">Rejected</span>
                                 @endif
                             </td>
                             <td>
@@ -126,15 +126,15 @@
                                     </button>
                                     @if($application->status === 'pending')
                                         @if($application->req_type === 'punch_Out_regularization')
-                                            <button class="btn btn-sm btn-success" onclick="showPunchOutModal({{ $application->id }}, '{{ $application->end_date }}')" title="Approve">
+                                            <button class="btn btn-sm btn-success" onclick="showApplicationDetails({{ $application->id }}, 'approved')" title="Approve">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         @else
-                                            <button class="btn btn-sm btn-success" onclick="updateStatus({{ $application->id }}, 'approved')" title="Approve">
+                                            <button class="btn btn-sm btn-success" onclick="showApplicationDetails({{ $application->id }}, 'approved')" title="Approve">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         @endif
-                                        <button class="btn btn-sm btn-danger" onclick="updateStatus({{ $application->id }}, 'rejected')" title="Reject">
+                                        <button class="btn btn-sm btn-danger" onclick="showApplicationDetails({{ $application->id }}, 'rejected')" title="Reject">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     @endif
@@ -174,11 +174,12 @@ function viewApplication(applicationId) {
         };
         
         const statusColor = statusColors[data.status] || '#6b7280';
+        const fileDisplay = data.file ? `<div style="margin-bottom: 15px;"><strong>Attached File:</strong><br><div style="display: flex; flex-direction: column; gap: 10px;"><img src="/${data.file}" alt="Application attachment" style="max-width: 100%; max-height: 300px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" onclick="window.open('/${data.file}', '_blank')"><a href="/${data.file}" download style="color: #007bff; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fas fa-download"></i> Download Attachment</a></div></div>` : '';
         
         let html = `
             <div style="text-align: left;">
                 <div style="margin-bottom: 15px;">
-                    <strong>Employee:</strong> ${data.employee.name} (${data.employee.emp_id})
+                    <strong>Employee:</strong> ${data.employee.username} (${data.employee.emp_id})
                 </div>
                 <div style="margin-bottom: 15px;">
                     <strong>Type:</strong> <span class="badge badge-secondary">${data.req_type.replace('_', ' ')}</span>
@@ -195,10 +196,10 @@ function viewApplication(applicationId) {
                 <div style="margin-bottom: 15px;">
                     <strong>Date Range:</strong> ${data.start_date} ${data.end_date && data.end_date !== data.start_date ? 'to ' + data.end_date : ''}
                 </div>
+                ${fileDisplay}
                 <div style="margin-bottom: 15px;">
                     <strong>Status:</strong> <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${data.status.toUpperCase()}</span>
                 </div>
-                ${data.admin_remarks ? `<div style="margin-bottom: 15px;"><strong>Admin Remarks:</strong><br><div style="background: #f9fafb; padding: 10px; border-radius: 4px; margin-top: 5px;">${data.admin_remarks}</div></div>` : ''}
             </div>
         `;
         
@@ -227,12 +228,7 @@ function updateStatus(applicationId, status) {
         showCancelButton: true,
         confirmButtonColor: status === 'approved' ? '#067d62' : '#d13212',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: `Yes, ${status} it!`,
-        input: 'textarea',
-        inputPlaceholder: 'Add remarks (optional)...',
-        inputAttributes: {
-            'aria-label': 'Admin remarks'
-        }
+        confirmButtonText: `Yes, ${status} it!`
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
@@ -240,10 +236,10 @@ function updateStatus(applicationId, status) {
                 method: 'POST',
                 data: {
                     status: status,
-                    admin_remarks: result.value || '',
                     _token: $('meta[name="csrf-token"]').attr('content')
                 },
                 success: function(response) {
+                    console.log('Success response:', response);
                     Swal.fire({
                         title: 'Success!',
                         text: response.message,
@@ -254,9 +250,24 @@ function updateStatus(applicationId, status) {
                     });
                 },
                 error: function(xhr) {
+                    console.log('Full error object:', xhr);
+                    console.log('Status:', xhr.status);
+                    console.log('Response text:', xhr.responseText);
+                    console.log('Response JSON:', xhr.responseJSON);
+                    
+                    let errorMessage = 'Something went wrong. Please try again.';
+                    
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.responseText) {
+                        errorMessage = xhr.responseText;
+                    }
+                    
                     Swal.fire({
                         title: 'Error!',
-                        text: 'Something went wrong. Please try again.',
+                        text: errorMessage,
                         icon: 'error',
                         confirmButtonColor: '#d13212'
                     });
@@ -266,85 +277,72 @@ function updateStatus(applicationId, status) {
     });
 }
 
-function showPunchOutModal(applicationId, requestedTime) {
-    const date = new Date(requestedTime);
-    const dateStr = date.toISOString().split('T')[0];
-    const timeStr = date.toTimeString().split(' ')[0].substring(0, 5);
-    
-    Swal.fire({
-        title: 'Approve Punch Out Regularization',
-        html: `
-            <div style="text-align: left; margin: 20px 0;">
+function showApplicationDetails(applicationId, action) {
+    $.get(`/admin/applications/${applicationId}`, function(data) {
+        const statusColors = {
+            'pending': '#f59e0b',
+            'approved': '#059669',
+            'rejected': '#dc2626'
+        };
+        
+        const statusColor = statusColors[data.status] || '#6b7280';
+        const fileDisplay = data.file ? `<div style="margin-bottom: 15px;"><strong>Attached File:</strong><br><div style="display: flex; flex-direction: column; gap: 10px;"><img src="/${data.file}" alt="Application attachment" style="max-width: 100%; max-height: 300px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" onclick="window.open('/${data.file}', '_blank')"><a href="/${data.file}" download style="color: #007bff; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fas fa-download"></i> Download Attachment</a></div></div>` : '';
+        
+        let html = `
+            <div style="text-align: left;">
                 <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Requested Date & Time:</label>
-                    <div style="background: #f3f4f6; padding: 10px; border-radius: 4px; font-family: monospace;">
-                        ${date.toLocaleString()}
+                    <strong>Employee:</strong> ${data.employee.username} (${data.employee.emp_id})
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Type:</strong> <span class="badge badge-secondary">${data.req_type.replace('_', ' ')}</span>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Subject:</strong> ${data.subject || 'No subject'}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Description:</strong><br>
+                    <div style="background: #f9fafb; padding: 10px; border-radius: 4px; margin-top: 5px;">
+                        ${data.description || 'No description provided'}
                     </div>
                 </div>
                 <div style="margin-bottom: 15px;">
-                    <label for="punch-date" style="display: block; margin-bottom: 5px; font-weight: 600;">Date:</label>
-                    <input type="date" id="punch-date" value="${dateStr}" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <strong>Date Range:</strong> ${data.start_date} ${data.end_date && data.end_date !== data.start_date ? 'to ' + data.end_date : ''}
                 </div>
+                ${fileDisplay}
                 <div style="margin-bottom: 15px;">
-                    <label for="punch-time" style="display: block; margin-bottom: 5px; font-weight: 600;">Time:</label>
-                    <input type="time" id="punch-time" value="${timeStr}" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
-                </div>
-                <div>
-                    <label for="admin-remarks" style="display: block; margin-bottom: 5px; font-weight: 600;">Admin Remarks (optional):</label>
-                    <textarea id="admin-remarks" placeholder="Add remarks..." style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; min-height: 60px;"></textarea>
+                    <strong>Status:</strong> <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${data.status.toUpperCase()}</span>
                 </div>
             </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Approve',
-        confirmButtonColor: '#067d62',
-        cancelButtonColor: '#6c757d',
-        width: 500,
-        preConfirm: () => {
-            const date = document.getElementById('punch-date').value;
-            const time = document.getElementById('punch-time').value;
-            const remarks = document.getElementById('admin-remarks').value;
-            
-            if (!date || !time) {
-                Swal.showValidationMessage('Please select both date and time');
-                return false;
-            }
-            
-            return { date, time, remarks };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const customTime = `${result.value.date} ${result.value.time}:00`;
-            
-            $.ajax({
-                url: `/admin/applications/${applicationId}/status`,
-                method: 'POST',
-                data: {
-                    status: 'approved',
-                    admin_remarks: result.value.remarks || '',
-                    custom_time: customTime,
-                    _token: $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'Punch out regularization approved successfully!',
-                        icon: 'success',
-                        confirmButtonColor: '#ff9900'
-                    }).then(() => {
-                        location.reload();
-                    });
-                },
-                error: function(xhr) {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Something went wrong. Please try again.',
-                        icon: 'error',
-                        confirmButtonColor: '#d13212'
-                    });
+        `;
+        
+        const actionText = action === 'approved' ? 'Approve' : 'Reject';
+        const actionColor = action === 'approved' ? '#067d62' : '#d13212';
+        
+        Swal.fire({
+            title: 'Application Details',
+            html: html,
+            width: 600,
+            showCancelButton: true,
+            confirmButtonText: actionText,
+            confirmButtonColor: actionColor,
+            cancelButtonText: 'Cancel',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (data.req_type === 'punch_Out_regularization' && action === 'approved') {
+                    showPunchOutModal(applicationId, data.end_date);
+                } else {
+                    updateStatus(applicationId, action);
                 }
-            });
-        }
+            }
+        });
+    }).fail(function() {
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to load application details.',
+            icon: 'error',
+            confirmButtonColor: '#d13212'
+        });
     });
 }
 </script>

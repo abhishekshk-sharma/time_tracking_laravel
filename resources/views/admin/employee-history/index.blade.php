@@ -118,6 +118,11 @@
 
 @if($employees->count() > 0)
     @foreach($employees as $employee)
+    @php
+        $hasImages = $employee->entryImages->where('entry_time', '>=', request('start_date', now()->startOfMonth()->format('Y-m-d')) . ' 00:00:00')
+                                          ->where('entry_time', '<=', request('end_date', now()->endOfMonth()->format('Y-m-d')) . ' 23:59:59')
+                                          ->count() > 0;
+    @endphp
     <!-- Employee Header -->
     <div class="card">
         <div class="card-header">
@@ -155,32 +160,49 @@
                         
                         @forelse($timeEntriesByDate as $date => $entries)
                         @php
-                            $punchIn = $entries->where('entry_type', 'punch_in')->first();
-                            $punchOut = $entries->where('entry_type', 'punch_out')->first();
+                            $punchIns = $entries->where('entry_type', 'punch_in')->sortBy('entry_time');
+                            $punchOuts = $entries->where('entry_type', 'punch_out')->sortBy('entry_time');
                             $lunchStart = $entries->where('entry_type', 'lunch_start')->first();
                             $lunchEnd = $entries->where('entry_type', 'lunch_end')->first();
                             
-                            $workingMinutes = 0;
-                            $lunchMinutes = 0;
+                            $firstPunchIn = $punchIns->first();
+                            $lastPunchOut = $punchOuts->last();
                             
-                            if ($punchIn && $punchOut) {
-                                $workingMinutes = $punchIn->entry_time->diffInMinutes($punchOut->entry_time);
+                            // Calculate total working minutes by pairing punch-ins with punch-outs
+                            $totalWorkingMinutes = 0;
+                            $punchInArray = $punchIns->values()->toArray();
+                            $punchOutArray = $punchOuts->values()->toArray();
+                            
+                            for ($i = 0; $i < count($punchInArray); $i++) {
+                                if (isset($punchOutArray[$i])) {
+                                    $sessionMinutes = \Carbon\Carbon::parse($punchInArray[$i]['entry_time'])->diffInMinutes(\Carbon\Carbon::parse($punchOutArray[$i]['entry_time']));
+                                    $totalWorkingMinutes += $sessionMinutes;
+                                }
                             }
                             
+                            $lunchMinutes = 0;
                             if ($lunchStart && $lunchEnd) {
                                 $lunchMinutes = $lunchStart->entry_time->diffInMinutes($lunchEnd->entry_time);
                             }
                             
-                            $netHours = $workingMinutes > 0 ? floor($workingMinutes / 60) . ':' . sprintf('%02d', $workingMinutes % 60) : '-';
+                            $netHours = $totalWorkingMinutes > 0 ? floor($totalWorkingMinutes / 60) . ':' . sprintf('%02d', $totalWorkingMinutes % 60) : '-';
                             $lunchDuration = $lunchMinutes > 0 ? floor($lunchMinutes / 60) . ':' . sprintf('%02d', $lunchMinutes % 60). ':' . (($lunchMinutes * 60) % 60) : '-';
+                            
+                            // Check if this date has images
+                            $dateHasImages = $employee->entryImages->where('entry_time', '>=', $date . ' 00:00:00')
+                                                                  ->where('entry_time', '<=', $date . ' 23:59:59')
+                                                                  ->count() > 0;
                             
                             // Determine all applicable statuses
                             $statuses = [];
                             $isLate = false;
-                            $isShortHours = false;
+                            $isHalfDay = false;
                             $isLongLunch = false;
                             
-                            if (!$punchIn) {
+                            // Check for half-day application first
+                            $isHalfDay = in_array($date, $employee->halfDayApplications ?? []);
+                            
+                            if (!$firstPunchIn) {
                                 // Check if it's a weekend
                                 $dateCarbon = \Carbon\Carbon::parse($date);
                                 if ($dateCarbon->isSunday() || ($dateCarbon->isSaturday() && in_array(ceil($dateCarbon->day / 7), [2, 4]))) {
@@ -189,9 +211,13 @@
                                     $statuses[] = ['text' => 'Absent', 'color' => '#dc3545', 'bg' => '#f8d7da'];
                                 }
                             } else {
-                                $statuses[] = ['text' => 'Present', 'color' => '#28a745', 'bg' => '#d4edda'];
+                                if ($isHalfDay) {
+                                    $statuses[] = ['text' => 'Half Day', 'color' => '#fd7e14', 'bg' => '#fff3cd'];
+                                } else {
+                                    $statuses[] = ['text' => 'Present', 'color' => '#28a745', 'bg' => '#d4edda'];
+                                }
                                 
-                                if ($punchIn->entry_time->format('H:i') > '09:15') {
+                                if ($firstPunchIn->entry_time->format('H:i') > '09:15') {
                                     $statuses[] = ['text' => 'Late', 'color' => '#ffc107', 'bg' => '#fff3cd'];
                                     $isLate = true;
                                 }
@@ -201,24 +227,22 @@
                                 $statuses[] = ['text' => 'Long Lunch', 'color' => '#fd7e14', 'bg' => '#ffeaa7'];
                                 $isLongLunch = true;
                             }
-                            
-                            if ($workingMinutes < 480 && $workingMinutes > 0) {
-                                $statuses[] = ['text' => 'Short Hours', 'color' => '#e83e8c', 'bg' => '#f8d7da'];
-                                $isShortHours = true;
-                            }
                         @endphp
                         <tr>
                             <td style="color: #495af2; cursor: pointer;" onclick="viewDayDetails('{{ $employee->emp_id }}', '{{ $date }}')">
                                 {{ \Carbon\Carbon::parse($date)->format('M d, Y') }}
                             </td>
-                            <td>{{ $punchIn ? $punchIn->entry_time->format('h:i A') : '-' }}</td>
-                            <td>{{ $punchOut ? $punchOut->entry_time->format('h:i A') : '-' }}</td>
+                            <td>{{ $firstPunchIn ? $firstPunchIn->entry_time->format('h:i A') : '-' }}</td>
+                            <td>{{ $lastPunchOut ? $lastPunchOut->entry_time->format('h:i A') : '-' }}</td>
                             <td>{{ $lunchDuration }}Min.</td>
                             <td>{{ $netHours }}</td>
                             <td>
                                 @foreach($statuses as $status)
                                     <span style="display: inline-block; padding: 2px 8px; margin: 1px; border-radius: 12px; font-size: 11px; font-weight: 600; color: {{ $status['color'] }}; background-color: {{ $status['bg'] }}; border: 1px solid {{ $status['color'] }};">{{ $status['text'] }}</span>
                                 @endforeach
+                                @if($dateHasImages)
+                                    <i class="fas fa-camera" style="color: #28a745; margin-left: 8px;" title="Images captured on this date"></i>
+                                @endif
                             </td>
                         </tr>
                         @empty
@@ -277,11 +301,15 @@ function viewDayDetails(empId, date) {
                     'LUNCH END': '#f59e0b'
                 };
                 const color = typeColors[type] || '#6b7280';
+                const hasImage = data.images && data.images[entry.id];
                 
                 entriesHtml += `<div style="margin: 10px 0; padding: 12px; border-left: 4px solid ${color}; background: #f8f9fa; border-radius: 4px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong style="color: ${color};">${type}</strong>
-                        <span style="font-weight: 600;">${time}</span>
+                        <div><strong style="color: ${color};">${type}</strong></div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-weight: 600;">${time}</span>
+                            ${hasImage ? `<button class="btn btn-sm btn-info" onclick="viewEntryImage('${hasImage.imageFile}', '${type}', '${time}')" title="View captured image" style="padding: 2px 8px; font-size: 11px;"><i class="fas fa-camera"></i> View Image</button>` : ''}
+                        </div>
                     </div>
                     ${entry.notes ? `<div style="margin-top: 5px; font-size: 12px; color: #666;">${entry.notes}</div>` : ''}
                 </div>`;
@@ -308,6 +336,105 @@ function viewDayDetails(empId, date) {
             confirmButtonColor: '#6366f1'
         });
     });
+}
+
+function viewEntryImage(imageFile, entryType, time) {
+    // Create fullscreen overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    `;
+    
+    // Create image container
+    const container = document.createElement('div');
+    container.style.cssText = `
+        position: relative;
+        width: 50vw;
+        height: 50vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    `;
+    
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+        cursor: pointer;
+        z-index: 10000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    
+    // Create image
+    const img = document.createElement('img');
+    img.src = `/entry_images/${imageFile}`;
+    img.style.cssText = `
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    `;
+    
+    // Create title
+    const title = document.createElement('div');
+    title.textContent = `${entryType} - ${time}`;
+    title.style.cssText = `
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 15px;
+        text-align: center;
+    `;
+    
+    // Close function
+    const closeImage = () => {
+        document.body.removeChild(overlay);
+        document.body.style.overflow = 'auto';
+    };
+    
+    // Event listeners
+    closeBtn.onclick = closeImage;
+    overlay.onclick = (e) => {
+        if (e.target === overlay) closeImage();
+    };
+    
+    // Escape key to close
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeImage();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Assemble and show
+    container.appendChild(closeBtn);
+    container.appendChild(img);
+    container.appendChild(title);
+    overlay.appendChild(container);
+    
+    document.body.style.overflow = 'hidden';
+    document.body.appendChild(overlay);
 }
 
 function toggleCustomDates(value) {

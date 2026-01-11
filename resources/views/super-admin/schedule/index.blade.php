@@ -1,518 +1,599 @@
 @extends('super-admin.layouts.app')
 
-@section('title', 'Schedule Management')
+@section('title', 'Schedule')
 
 @section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i> &nbsp; Schedule Management</h3>
-                        <form method="GET" class="d-flex align-items-center gap-2">
-                            <select name="month" class="filter-select" onchange="this.form.submit()">
-                                @for($m = 1; $m <= 12; $m++)
-                                    <option value="{{ $m }}" {{ $currentMonth == $m ? 'selected' : '' }}>
-                                        {{ date('F', mktime(0, 0, 0, $m, 1)) }}
-                                    </option>
-                                @endfor
-                            </select>
-                            <select name="year" class="filter-select" onchange="this.form.submit()">
-                                @for($y = date('Y') - 1; $y <= date('Y') + 1; $y++)
-                                    <option value="{{ $y }}" {{ $currentYear == $y ? 'selected' : '' }}>{{ $y }}</option>
-                                @endfor
-                            </select>
-                        </form>
-                    </div>
+<div class="calendar-container">
+    
+    <div class="calendar-toolbar">
+        <div class="toolbar-left">
+            <h1 class="calendar-title">Schedule</h1>
+            <div class="navigation-group">
+                <button class="btn btn-outline-secondary btn-today" onclick="goToToday()">Today</button>
+                <div class="nav-arrows">
+                    <button class="btn-icon" onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                    <button class="btn-icon" onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
                 </div>
-                <div class="card-body">
-                    <!-- Legend -->
-                    <div class="mb-3 p-2 bg-light rounded">
-                        <div class="d-flex flex-wrap gap-3">
-                            <span><span class="legend-square bg-danger me-1"></span>Holiday</span>
-                            <span><span class="legend-square bg-success me-1"></span>Working Day</span>
-                            <span><span class="legend-square bg-warning me-1"></span>Weekend</span>
-                            <span><span class="legend-square bg-primary me-1"></span>Today</span>
-                        </div>
-                    </div>
+                <h2 class="current-month">
+                    {{ date('F Y', mktime(0, 0, 0, $currentMonth, 1, $currentYear)) }}
+                </h2>
+            </div>
+        </div>
+        
+        <div class="toolbar-right">
+            <form id="calendar-form" method="GET" class="d-none">
+                <input type="hidden" name="month" id="f-month" value="{{ $currentMonth }}">
+                <input type="hidden" name="year" id="f-year" value="{{ $currentYear }}">
+            </form>
 
-                    <!-- Calendar -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered calendar-table">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th class="text-center">Sun</th>
-                                    <th class="text-center">Mon</th>
-                                    <th class="text-center">Tue</th>
-                                    <th class="text-center">Wed</th>
-                                    <th class="text-center">Thu</th>
-                                    <th class="text-center">Fri</th>
-                                    <th class="text-center">Sat</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($calendar as $week)
-                                    <tr>
-                                        @foreach($week as $day)
-                                            <td class="calendar-day {{ !$day['is_current_month'] ? 'text-muted bg-light' : '' }} 
-                                                {{ $day['date']->isToday() ? 'today' : '' }}
-                                                {{ $day['exception'] ? 'exception-' . $day['exception']->type : '' }}" 
-                                                data-date="{{ $day['date']->format('Y-m-d') }}">
-                                                
-                                                <div class="day-header">
-                                                    <span class="day-number">{{ $day['date']->format('j') }}</span>
-                                                    @if($day['is_current_month'])
-                                                        <div class="day-actions">
-                                                            <button class="btn-edit" 
-                                                                    onclick="showScheduleAlert('{{ $day['date']->format('Y-m-d') }}', '{{ $day['exception'] ? $day['exception']->type : '' }}', '{{ $day['exception'] ? addslashes($day['exception']->description) : '' }}')" 
-                                                                    title="{{ $day['exception'] ? 'Edit' : 'Add' }} Schedule">
-                                                                <i class="fas fa-edit"></i>
-                                                            </button>
-                                                            @if($day['exception'])
-                                                                <button class="btn-delete" 
-                                                                        onclick="deleteScheduleException('{{ $day['date']->format('Y-m-d') }}')" 
-                                                                        title="Delete Schedule">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
-                                                            @endif
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                                
-                                                @if($day['exception'])
-                                                    <div class="day-content">
-                                                        <span class="exception-badge exception-{{ $day['exception']->type }}">
-                                                            {{ ucfirst(str_replace('_', ' ', $day['exception']->type)) }}
-                                                        </span>
-                                                        @if($day['exception']->description)
-                                                            <small class="exception-desc">{{ Str::limit($day['exception']->description, 20) }}</small>
-                                                        @endif
-                                                    </div>
-                                                @endif
-                                            </td>
-                                        @endforeach
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                </div>
+            <div class="view-switcher">
+                <button class="btn-view active">Month</button>
+                <button class="btn-view" onclick="document.getElementById('exceptions-list').scrollIntoView({behavior: 'smooth'})">List</button>
             </div>
         </div>
     </div>
-    
-    <!-- Schedule Exceptions List -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i> &nbsp; All Schedule Exceptions</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Type</th>
-                                    <th>Description</th>
-                                    <th>Created By</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($scheduleExceptions as $exception)
-                                    <tr>
-                                        <td>{{ Carbon\Carbon::parse($exception->exception_date)->format('M d, Y') }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ $exception->type == 'holiday' ? 'danger' : ($exception->type == 'working_day' ? 'success' : 'warning') }}">
-                                                {{ ucfirst(str_replace('_', ' ', $exception->type)) }}
-                                            </span>
-                                        </td>
-                                        <td>{{ $exception->description ?: '-' }}</td>
-                                        <td>
-                                            @if($exception->superadmin_id)
-                                                <span class="badge bg-primary">Super Admin</span>
-                                            @elseif($exception->admin_id)
-                                                <span class="badge bg-info">Admin</span>
-                                            @else
-                                                <span class="badge bg-secondary">System</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary me-1" 
-                                                    onclick="showScheduleAlert('{{ $exception->exception_date }}', '{{ $exception->type }}', '{{ addslashes($exception->description) }}')">
-                                                <i class="fas fa-edit"></i> Edit
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" 
-                                                    onclick="deleteScheduleException('{{ $exception->exception_date }}')">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted py-4">
-                                            <i class="fas fa-calendar-times fa-2x mb-2"></i><br>
-                                            No schedule exceptions found for {{ date('F Y', mktime(0, 0, 0, $currentMonth, 1, $currentYear)) }}
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+
+    <div class="calendar-wrapper">
+        <table class="google-calendar-table">
+            <thead>
+                <tr>
+                    <th>MON</th>
+                    <th>TUE</th>
+                    <th>WED</th>
+                    <th>THU</th>
+                    <th>FRI</th>
+                    <th>SAT</th>
+                    <th>SUN</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($calendar as $week)
+                    <tr>
+                        @foreach($week as $day)
+                            <td class="calendar-cell {{ !$day['is_current_month'] ? 'not-current-month' : '' }} 
+                                       {{ $day['date']->isToday() ? 'is-today' : '' }}"
+                                onclick="if(!event.target.closest('.event-pill') && !event.target.closest('.btn-icon-mini')) showScheduleAlert('{{ $day['date']->format('Y-m-d') }}', '', '')">
+                                
+                                <div class="cell-header">
+                                    <span class="day-number">{{ $day['date']->format('j') }}</span>
+                                </div>
+
+                                <div class="cell-content">
+                                    @if($day['exception'])
+
+                                        @foreach ($day['exception'] as $exception)
+                                            
+                                        <div class="event-pill event-{{ $exception['type'] }}" 
+                                             onclick="event.stopPropagation(); showScheduleAlert('{{ $day['date']->format('Y-m-d') }}', '{{ $exception['type'] }}', '{{ addslashes($exception['description']) }}')">
+                                            <div class="event-title">{{ ucfirst(str_replace('_', ' ', $exception['type'])) }}</div>
+                                            <div class="event-creator" style="font-size: 9px; opacity: 0.8;">
+                                                @if($exception['superadmin_id'])
+                                                    Super Admin
+                                                @elseif($exception['admin_id'])
+                                                    Admin
+                                                @else
+                                                    System
+                                                @endif
+                                            </div>
+                                        </div>
+                                        @endforeach
+
+                                    @else
+                                        <!-- DEBUG: {{ $day['date']->format('Y-m-d') }} - No exception -->
+                                        @php
+                                            // Show default weekend based on system settings
+                                            $dayOfWeek = $day['date']->dayOfWeek;
+                                            $isDefaultWeekend = false;
+                                            $weekendType = '';
+                                            
+                                            // Get weekend policy from system settings
+                                            $weekendPolicySetting = \App\Models\SystemSetting::where('setting_key', 'weekend_policy')->first();
+                                            $weekendPolicy = $weekendPolicySetting ? json_decode($weekendPolicySetting->setting_value, true) : [
+                                                'recurring_days' => [0], // Default: Sunday only
+                                                'specific_pattern' => []
+                                            ];
+                                            
+                                            // Check recurring days
+                                            if (in_array($dayOfWeek, $weekendPolicy['recurring_days'])) {
+                                                $isDefaultWeekend = true;
+                                                $weekendType = $dayOfWeek === 0 ? 'Sunday' : 'Saturday';
+                                            }
+                                            
+                                            // Check specific patterns (e.g., 2nd/4th Saturday)
+                                            if (isset($weekendPolicy['specific_pattern'][$dayOfWeek])) {
+                                                $weekOfMonth = ceil($day['date']->day / 7);
+                                                if (in_array($weekOfMonth, $weekendPolicy['specific_pattern'][$dayOfWeek])) {
+                                                    $isDefaultWeekend = true;
+                                                    $ordinals = ['', 'First', 'Second', 'Third', 'Fourth', 'Fifth'];
+                                                    $weekendType = ($ordinals[$weekOfMonth] ?? $weekOfMonth . 'th') . ' ' . $day['date']->format('l');
+                                                }
+                                            }
+                                        @endphp
+                                        
+                                        @if($isDefaultWeekend)
+                                            <div class="event-pill event-weekend" style="opacity: 0.6;">
+                                                <div class="event-title">{{ $weekendType }}</div>
+                                                <div class="event-creator" style="font-size: 9px; opacity: 0.8;">System</div>
+                                            </div>
+                                        @endif
+                                    @endif
+                                </div>
+
+                                <div class="cell-actions">
+                                    @if($day['exception'])
+                                        <button class="btn-icon-mini text-danger" 
+                                                onclick="event.stopPropagation(); deleteScheduleException('{{ $day['date']->format('Y-m-d') }}')"
+                                                title="Delete">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    @endif
+                                    <button class="btn-icon-mini text-primary" title="Edit/Add">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        @endforeach
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    <div class="calendar-legend">
+        <div class="legend-item"><span class="dot dot-working"></span> Working Day</div>
+        <div class="legend-item"><span class="dot dot-holiday"></span> Holiday</div>
+        <div class="legend-item"><span class="dot dot-weekend"></span> Weekend</div>
+    </div>
+</div>
+
+<div class="container-fluid mt-5" id="exceptions-list">
+    <div class="card border-0 shadow-none">
+        <div class="card-header bg-transparent border-0 ps-0">
+            <h4 class="google-font text-dark">All Exceptions</h4>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table google-list-table">
+                    <thead>
+                        <tr>
+                            <th>DATE</th>
+                            <th>TYPE</th>
+                            <th>DESCRIPTION</th>
+                            <th>CREATED BY</th>
+                            <th class="text-end">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($scheduleExceptions as $exception)
+                            <tr>
+                                <td class="fw-500">{{ Carbon\Carbon::parse($exception->exception_date)->format('D, M d, Y') }}</td>
+                                <td>
+                                    <span class="status-chip chip-{{ $exception->type }}">
+                                        {{ ucfirst(str_replace('_', ' ', $exception->type)) }}
+                                    </span>
+                                </td>
+                                <td class="text-muted">{{ $exception->description ?? 'No description' }}</td>
+                                <td>
+                                    @if($exception->superadmin_id) <span class="creator-badge">Super Admin</span>
+                                    @elseif($exception->admin_id) <span class="creator-badge">Admin</span>
+                                    @else <span class="creator-badge">System</span>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn-icon-row" 
+                                            onclick="showScheduleAlert('{{ $exception->exception_date }}', '{{ $exception->type }}', '{{ addslashes($exception->description) }}')">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <button class="btn-icon-row text-danger" 
+                                            onclick="deleteScheduleException('{{ $exception->exception_date }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="fas fa-calendar-check fa-3x mb-3 text-light-gray"></i>
+                                    <p>No exceptions found for this month</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
-
-
 <style>
-.calendar-table {
-    font-size: 0.9rem;
-}
+    /* --- Google Calendar Variables --- */
+    :root {
+        --gc-border: #dadce0;
+        --gc-text: #3c4043;
+        --gc-text-light: #70757a;
+        --gc-blue: #1a73e8;
+        --gc-blue-bg: #e8f0fe;
+        --gc-green: #188038;
+        --gc-green-bg: #ceead6;
+        --gc-red: #d93025;
+        --gc-red-bg: #fad2cf;
+        --gc-yellow: #f6bf26;
+        --gc-yellow-bg: #ffeecf;
+        --gc-hover: #f1f3f4;
+    }
 
-.calendar-day {
-    height: 100px;
-    vertical-align: top;
-    position: relative;
-    padding: 6px;
-}
+    /* --- Container & Toolbar --- */
+    .calendar-container {
+        background: #fff;
+        border-radius: 8px;
+        border: 1px solid var(--gc-border);
+        overflow: hidden;
+    }
 
-.calendar-day.today {
-    background-color: #e3f2fd !important;
-    border: 2px solid #2196f3;
-}
+    .calendar-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 24px;
+        border-bottom: 1px solid var(--gc-border);
+    }
 
-.calendar-day.exception-holiday {
-    background-color: #ffebee;
-    border-left: 4px solid #f44336;
-}
+    .toolbar-left {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+    }
 
-.calendar-day.exception-working_day {
-    background-color: #e8f5e8;
-    border-left: 4px solid #4caf50;
-}
+    .calendar-title {
+        font-family: 'Google Sans', sans-serif;
+        font-size: 22px;
+        color: #5f6368;
+        font-weight: 400;
+        margin: 0;
+        display: none;
+    }
 
-.calendar-day.exception-weekend {
-    background-color: #fff3cd;
-    border-left: 4px solid #ffc107;
-}
+    @media (min-width: 768px) { .calendar-title { display: block; } }
 
-.legend-square {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 2px;
-    vertical-align: middle;
-}
+    .navigation-group {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
 
-.day-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-}
+    .btn-today {
+        border: 1px solid var(--gc-border);
+        color: var(--gc-text);
+        font-weight: 500;
+        border-radius: 4px;
+        padding: 6px 16px;
+        background: #fff;
+    }
+    .btn-today:hover { 
+        background: var(--gc-hover); 
+        color: rgb(3, 3, 50)
+    }
 
-.day-number {
-    font-weight: bold;
-    font-size: 1.1rem;
-    color: #333;
-}
+    .nav-arrows { display: flex; gap: 8px; }
 
-.day-actions {
-    display: flex;
-    gap: 2px;
-}
+    .btn-icon {
+        background: transparent;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        color: #5f6368;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-icon:hover { background: rgba(95,99,104,0.08); }
 
-.btn-edit, .btn-delete {
-    width: 20px;
-    height: 20px;
-    border: none;
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
+    .current-month {
+        font-family: 'Google Sans', sans-serif;
+        font-size: 22px;
+        color: #3c4043;
+        margin: 0;
+        font-weight: 400;
+        min-width: 180px;
+    }
 
-.btn-edit {
-    background: #007bff;
-    color: white;
-}
+    .view-switcher {
+        display: flex;
+        border: 1px solid var(--gc-border);
+        border-radius: 4px;
+        overflow: hidden;
+    }
 
-.btn-edit:hover {
-    background: #0056b3;
-    transform: scale(1.1);
-}
+    .btn-view {
+        border: none;
+        background: #fff;
+        padding: 6px 16px;
+        font-size: 14px;
+        color: #5f6368;
+        font-weight: 500;
+    }
+    .btn-view.active {
+        background: #e8f0fe;
+        color: var(--gc-blue);
+    }
+    .btn-view:hover:not(.active) { background: var(--gc-hover); }
 
-.btn-delete {
-    background: #dc3545;
-    color: white;
-}
+    /* --- The Calendar Table --- */
+    .calendar-wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
 
-.btn-delete:hover {
-    background: #c82333;
-    transform: scale(1.1);
-}
+    .google-calendar-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
 
-.day-content {
-    margin-top: 4px;
-}
+    .google-calendar-table th {
+        text-align: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: #70757a;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--gc-border);
+        border-right: 1px solid var(--gc-border);
+    }
+    .google-calendar-table th:last-child { border-right: none; }
 
-.exception-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-}
+    .calendar-cell {
+        height: 120px;
+        border-right: 1px solid var(--gc-border);
+        border-bottom: 1px solid var(--gc-border);
+        vertical-align: top;
+        padding: 8px;
+        position: relative;
+        transition: background 0.1s;
+        cursor: pointer;
+    }
+    
+    .calendar-cell:last-child { border-right: none; }
+    .calendar-cell:hover { background-color: #f8f9fa; }
+    .calendar-cell.not-current-month { background-color: #fcfcfc; color: #b3b3b3; }
+    .calendar-cell.not-current-month .day-number { color: #b3b3b3; }
 
-.exception-holiday {
-    background: #dc3545;
-    color: white;
-}
+    /* Date Numbers */
+    .cell-header { text-align: center; margin-bottom: 8px; }
+    
+    .day-number {
+        font-size: 12px;
+        font-weight: 500;
+        color: #3c4043;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
 
-.exception-working_day {
-    background: #28a745;
-    color: white;
-}
+    .calendar-cell.is-today .day-number {
+        background-color: var(--gc-blue);
+        color: #fff;
+    }
 
-.exception-weekend {
-    background: #ffc107;
-    color: #212529;
-}
+    /* Hover Actions (Edit/Delete) */
+    .cell-actions {
+        position: absolute;
+        bottom: 4px;
+        right: 4px;
+        display: none;
+    }
+    .calendar-cell:hover .cell-actions { display: flex; gap: 4px; }
 
-.exception-desc {
-    display: block;
-    color: #666;
-    font-size: 9px;
-    line-height: 1.2;
-    margin-top: 2px;
-}
+    .btn-icon-mini {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: none;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: #5f6368;
+        cursor: pointer;
+    }
+    .btn-icon-mini:hover { transform: scale(1.1); }
 
-/* Filter Form Styling */
-.filter-select {
-    height: 36px;
-    padding: 6px 12px;
-    border: 1px solid rgba(19, 19, 19, 0.3);
-    border-radius: 6px;
-    background: rgba(249, 248, 248, 0.1);
-    color: rgb(0, 0, 0);
-    font-size: 14px;
-    min-width: 120px;
-    margin-top: 10px;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 8px center;
-    background-repeat: no-repeat;
-    background-size: 16px 12px;
-    padding-right: 32px;
-    transition: all 0.2s ease;
-}
+    /* Events (Exceptions) */
+    .cell-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
 
-.filter-select:focus {
-    outline: none;
-    border-color: rgba(255, 255, 255, 0.6);
-    background: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
-}
+    .event-pill {
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        transition: opacity 0.2s;
+    }
+    .event-pill:hover { opacity: 0.8; }
 
-.filter-select option {
-    background: #333;
-    color: white;
-}
+    .event-working_day { background-color: var(--gc-green-bg); color: var(--gc-green); }
+    .event-holiday { background-color: var(--gc-red-bg); color: var(--gc-red); }
+    .event-weekend { background-color: var(--gc-yellow-bg); color: #e37400; }
 
-/* SweetAlert2 Custom Styling */
-.swal2-popup {
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
+    /* Legend */
+    .calendar-legend {
+        display: flex;
+        padding: 12px 24px;
+        gap: 20px;
+        border-top: 1px solid var(--gc-border);
+        font-size: 12px;
+        color: #5f6368;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot-working { background: var(--gc-green); }
+    .dot-holiday { background: var(--gc-red); }
+    .dot-weekend { background: #f6bf26; }
 
-.swal2-title {
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-.swal2-html-container .form-label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #495057;
-    text-align: left;
-}
-
-.swal2-html-container .form-control,
-.swal2-html-container .form-select {
-    width: 100%;
-    height: 42px;
-    padding: 8px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    font-size: 14px;
-    background: #ffffff;
-    transition: all 0.15s ease;
-    box-sizing: border-box;
-}
-
-.swal2-html-container .form-control:focus,
-.swal2-html-container .form-select:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.swal2-html-container .form-control::placeholder {
-    color: #9ca3af;
-    opacity: 1;
-}
-
-.swal2-html-container .form-select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 8px center;
-    background-repeat: no-repeat;
-    background-size: 16px 12px;
-    padding-right: 32px;
-    appearance: none;
-}
-
-.swal2-html-container .mb-3 {
-    margin-bottom: 20px;
-    text-align: left;
-}
-
-.swal2-confirm {
-    background-color: #007bff !important;
-    border-radius: 8px !important;
-    padding: 10px 25px !important;
-    font-weight: 500 !important;
-}
-
-.swal2-cancel {
-    background-color: #6c757d !important;
-    border-radius: 8px !important;
-    padding: 10px 25px !important;
-    font-weight: 500 !important;
-}
+    /* List Table */
+    .google-list-table th {
+        font-size: 11px;
+        color: #5f6368;
+        font-weight: 600;
+        border-bottom: 1px solid var(--gc-border);
+        padding: 12px 16px;
+    }
+    .google-list-table td {
+        vertical-align: middle;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f1f3f4;
+        font-size: 14px;
+        color: #3c4043;
+    }
+    .status-chip {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .chip-working_day { background: #e6f4ea; color: #137333; }
+    .chip-holiday { background: #fce8e6; color: #c5221f; }
+    .chip-weekend { background: #fef7e0; color: #b06000; }
+    
+    .creator-badge {
+        background: #00aaff;
+        color: #ffffff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+    }
+    
+    .btn-icon-row {
+        background: transparent;
+        border: none;
+        color: #5f6368;
+        padding: 4px 8px;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    .btn-icon-row:hover { background: #f1f3f4; color: #1a73e8; }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-function showScheduleAlert(date, type, description) {
-    Swal.fire({
-        title: '<i class="fas fa-calendar-alt"></i> Schedule Exception',
-        html: `
-            <div class="mb-3">
-                <label class="form-label"><i class="fas fa-calendar me-2"></i> Date</label>
-                <input type="text" class="form-control" value="${new Date(date).toLocaleDateString()}" readonly>
-            </div>
-            <div class="mb-3">
-                <label class="form-label"><i class="fas fa-tags me-2"></i> Type</label>
-                <select class="form-select" id="swal-type" required>
-                    <option value="">Select Type</option>
-                    <option value="holiday" ${type === 'holiday' ? 'selected' : ''}>🏖️ Holiday</option>
-                    <option value="working_day" ${type === 'working_day' ? 'selected' : ''}>💼 Working Day</option>
-                    <option value="weekend" ${type === 'weekend' ? 'selected' : ''}>🏠 Weekend</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label"><i class="fas fa-comment me-2"></i> Description</label>
-                <input type="text" class="form-control" id="swal-description" placeholder="Optional description" value="${description || ''}">
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: '<i class="fas fa-save me-2"></i>Save',
-        cancelButtonText: '<i class="fas fa-times me-2"></i>Cancel',
-        buttonsStyling: false,
-        customClass: {
-            confirmButton: 'swal2-confirm',
-            cancelButton: 'swal2-cancel'
-        },
-        width: '450px',
-        preConfirm: () => {
-            const type = document.getElementById('swal-type').value;
-            const description = document.getElementById('swal-description').value;
-            
-            if (!type) {
-                Swal.showValidationMessage('<i class="fas fa-exclamation-triangle"></i> Please select a type');
-                return false;
-            }
-            
-            return { date, type, description };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            saveScheduleException(result.value);
-        }
-    });
-}
+    // Navigation Logic
+    function changeMonth(offset) {
+        let month = parseInt(document.getElementById('f-month').value);
+        let year = parseInt(document.getElementById('f-year').value);
+        
+        month += offset;
+        if (month > 12) { month = 1; year++; }
+        if (month < 1) { month = 12; year--; }
+        
+        updateFormAndSubmit(month, year);
+    }
 
-function saveScheduleException(data) {
-    fetch('{{ route("super-admin.schedule.exception.store") }}', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire('Success!', 'Schedule exception saved successfully.', 'success').then(() => {
-                location.reload();
-            });
-        } else {
-            Swal.fire('Error!', data.error || 'Unknown error', 'error');
-        }
-    })
-    .catch(error => {
-        Swal.fire('Error!', 'Error saving schedule exception', 'error');
-    });
-}
+    function goToToday() {
+        const d = new Date();
+        updateFormAndSubmit(d.getMonth() + 1, d.getFullYear());
+    }
 
-function deleteScheduleException(date) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: 'You want to delete this schedule exception?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch('{{ route("super-admin.schedule.exception.delete") }}', {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ date: date })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Deleted!', 'Schedule exception has been deleted.', 'success').then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire('Error!', 'Error deleting schedule exception', 'error');
+    function updateFormAndSubmit(m, y) {
+        document.getElementById('f-month').value = m;
+        document.getElementById('f-year').value = y;
+        document.getElementById('calendar-form').submit();
+    }
+
+    function showScheduleAlert(date, type, description) {
+        Swal.fire({
+            title: `<span style="font-family:'Google Sans'; color:#3c4043; font-size:20px;">${type ? 'Edit' : 'Add'} Schedule</span>`,
+            html: `
+                <div class="text-start mt-2">
+                    <label class="form-label small text-muted">Date</label>
+                    <input type="text" class="form-control mb-3" value="${new Date(date).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'})}" disabled 
+                           style="background:#f1f3f4; border:none; font-weight:500; color:#3c4043;">
+                    
+                    <label class="form-label small text-muted">Exception Type</label>
+                    <div class="d-flex gap-2 mb-3">
+                        <input type="radio" class="btn-check" name="swal-type" id="type-holiday" value="holiday" ${type === 'holiday' ? 'checked' : ''}>
+                        <label class="btn btn-outline-danger flex-fill" for="type-holiday">Holiday</label>
+
+                        <input type="radio" class="btn-check" name="swal-type" id="type-working" value="working_day" ${type === 'working_day' ? 'checked' : ''}>
+                        <label class="btn btn-outline-success flex-fill" for="type-working">Working</label>
+                        
+                        <input type="radio" class="btn-check" name="swal-type" id="type-weekend" value="weekend" ${type === 'weekend' ? 'checked' : ''}>
+                        <label class="btn btn-outline-warning flex-fill" for="type-weekend">Weekend</label>
+                    </div>
+
+                    <label class="form-label small text-muted">Description (Optional)</label>
+                    <textarea id="swal-description" class="form-control" rows="2" placeholder="e.g., National Holiday">${description || ''}</textarea>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonColor: '#1a73e8',
+            confirmButtonText: 'Save',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                popup: 'rounded-4 border-0',
+                confirmButton: 'px-4 rounded-pill font-weight-bold',
+                cancelButton: 'px-4 rounded-pill'
+            },
+            preConfirm: () => {
+                const selected = document.querySelector('input[name="swal-type"]:checked');
+                if (!selected) {
+                    Swal.showValidationMessage('Please select a type');
+                    return false;
                 }
-            })
-            .catch(error => {
-                Swal.fire('Error!', 'Error deleting schedule exception', 'error');
-            });
-        }
-    });
-}
+                return { date: date, type: selected.value, description: document.getElementById('swal-description').value };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                saveScheduleException(result.value);
+            }
+        });
+    }
+
+    function saveScheduleException(data) {
+        fetch('{{ route("super-admin.schedule.exception.store") }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(d => {
+            if(d.success) location.reload();
+            else Swal.fire('Error', d.error, 'error');
+        });
+    }
+
+    function deleteScheduleException(date) {
+        Swal.fire({
+            title: 'Delete Exception?',
+            text: "This will revert the day to default settings.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d93025',
+            confirmButtonText: 'Delete',
+            customClass: { popup: 'rounded-4' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('{{ route("super-admin.schedule.exception.delete") }}', {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: date })
+                }).then(r => r.json()).then(d => {
+                    if(d.success) location.reload();
+                    else Swal.fire('Error', 'Failed to delete', 'error');
+                });
+            }
+        });
+    }
 </script>
 @endsection

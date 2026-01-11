@@ -3,10 +3,27 @@
 @section('title', 'Admin Management')
 
 @section('content')
+
 <div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">Admin Management</h1>
+            <p class="page-subtitle">Manage administrators and their assigned employees</p>
+        </div>
+        <div>
+            <a href="{{ route('super-admin.admins.create') }}" class="btn btn-primary" >
+                <i class="fas fa-plus"></i> Create Admin
+            </a>
+        </div>
+    </div>
+</div>
+{{-- <div class="page-header" style="position:relative;">
     <h1 class="page-title">Admin Management</h1>
     <p class="page-subtitle">Manage administrators and their assigned employees</p>
-</div>
+    <a href="{{ route('super-admin.admins.create') }}" class="btn btn-primary" >
+            <i class="fas fa-plus"></i> Create Admin
+    </a>
+</div> --}}
 
 <!-- Search & Filter -->
 <div class="card">
@@ -52,6 +69,7 @@
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">Administrators ({{ $admins->total() }} total)</h3>
+        
     </div>
     <div class="card-body" style="padding: 0;">
         @if($admins->count() > 0)

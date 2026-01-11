@@ -27,21 +27,71 @@ class SalaryCalculationService
         ];
     }
 
-    private function loadScheduleExceptions($month, $year, $adminId = null)
-    {
-        $query = ScheduleException::whereMonth('exception_date', $month)
-            ->whereYear('exception_date', $year);
+    // private function loadScheduleExceptions($month, $year, $adminId = null)    {
+    //     $query = ScheduleException::whereMonth('exception_date', $month)
+    //         ->whereYear('exception_date', $year);
             
-        // If adminId is provided, get only admin's exceptions + super admin exceptions (null admin_id)
-        if ($adminId) {
-            $query->where(function($q) use ($adminId) {
-                $q->where('admin_id', $adminId)
-                  ->orWhereNull('admin_id');
-            });
-        }
+    //     // If adminId is provided, get admin's exceptions + super admin exceptions
+    //     if ($adminId) {
+    //         $query->where(function($q) use ($adminId) {
+    //             $q->where('admin_id', $adminId)
+    //               ->orWhereNotNull('superadmin_id');
+    //         });
+    //     }
         
-        $this->scheduleExceptions = $query->get()->keyBy('exception_date');
+    //     $exceptions = $query->get();
+    //     // return "hello";
+        
+    //     // Group by date and prioritize admin exceptions over super admin exceptions
+    //     $this->scheduleExceptions = $exceptions->groupBy('exception_date')
+    //         ->map(function($dateExceptions) use ($adminId) {
+    //             // If admin exception exists for this date, use it; otherwise use super admin exception
+    //             $adminException = $dateExceptions->where('admin_id', $adminId)->first();
+    //             $superAdminException = $dateExceptions->whereNotNull('superadmin_id')->first();
+    //             return $adminException ?: $superAdminException;
+    //         })
+    //         ->filter(function($exception) {
+    //             return $exception !== null;
+    //         });
+    // }
+
+    private function loadScheduleExceptions($month, $year, $adminId = null){
+    // 1. Fetch Raw Data
+    $query = ScheduleException::whereMonth('exception_date', $month)
+        ->whereYear('exception_date', $year);
+        
+    if ($adminId) {
+        $query->where(function($q) use ($adminId) {
+            $q->where('admin_id', $adminId)
+              ->orWhereNotNull('superadmin_id');
+        });
     }
+    
+    $exceptions = $query->get();
+
+    // 2. Process Logic
+    $processedExceptions = $exceptions->groupBy(function($item) {
+            // Safety: Ensure we group by clean Y-m-d string to avoid timestamp mismatches
+            return \Carbon\Carbon::parse($item->exception_date)->format('Y-m-d');
+        })
+        ->map(function($dateExceptions) use ($adminId) {
+            // Logic: Prioritize Admin ID match
+            $adminException = $dateExceptions->where('admin_id', $adminId)->first();
+            
+            // Fallback: Super Admin
+            $superAdminException = $dateExceptions->whereNotNull('superadmin_id')->first();
+            
+            // Return Admin exception if exists, otherwise Super Admin
+            return $adminException ?: $superAdminException;
+        })
+        ->filter(); // Removes nulls
+
+    // 3. Assign to property (if you need it elsewhere)
+    $this->scheduleExceptions = $processedExceptions;
+
+    // 4. CRITICAL: Return the result!
+    return $processedExceptions;
+}
 
     private function isWeekendDay($date)
     {
@@ -72,7 +122,7 @@ class SalaryCalculationService
     {
         return $this->scheduleExceptions->get($date);
     }
-    public function calculatePayableBasicSalary($empId, $month, $year)
+    public function calculatePayableBasicSalary($empId, $month, $year, $adminId = null)
     {
         $employee = Employee::where('emp_id', $empId)->first();
         if (!$employee) {
@@ -86,6 +136,9 @@ class SalaryCalculationService
         if (!$salary) {
             return null;
         }
+
+        // Load schedule exceptions with admin priority
+        $this->loadScheduleExceptions($month, $year, $adminId);
 
         // Step 1: Calculate Total Working Days (Denominator)
         $filteredTotalDays = $this->calculateFilteredTotalDays($empId, $month, $year);
@@ -131,7 +184,9 @@ class SalaryCalculationService
 
     public function calculatePayableDays($empId, $month, $year, $adminId = null)
     {
-        $this->loadScheduleExceptions($month, $year, $adminId);
+        $check = $this->loadScheduleExceptions($month, $year, $adminId);
+
+        
         
         $startDate = Carbon::create($year, $month, 1);
         $endDate = $startDate->copy()->endOfMonth();
@@ -143,8 +198,10 @@ class SalaryCalculationService
         $payableDays = $this->calculatePayableAttendanceDays($empId, $month, $year);
         
         // Calculate attendance breakdown with new logic
-        $attendanceBreakdown = $this->calculateAttendanceBreakdown($empId, $month, $year);
+        $attendanceBreakdown = $this->calculateAttendanceBreakdown($empId, $month, $year, $check);
         
+        return $attendanceBreakdown;
+
         return array_merge($attendanceBreakdown, [
             'total_working_days' => $totalWorkingDays,
             'payable_days' => $payableDays
@@ -240,6 +297,17 @@ class SalaryCalculationService
 
     private function calculateDayAttendance($empId, $date)
     {
+        // First check if there's an approved half-day application for this date
+        $halfDayApplication = \App\Models\Application::where('employee_id', $empId)
+            ->where('req_type', 'half_leave')
+            ->where('status', 'approved')
+            ->whereDate('start_date', $date)
+            ->exists();
+            
+        if ($halfDayApplication) {
+            return 0.5;
+        }
+        
         $entries = TimeEntry::where('employee_id', $empId)
             ->whereDate('entry_time', $date)
             ->get();
@@ -254,7 +322,7 @@ class SalaryCalculationService
             return 1.0;
         }
         
-        // Check for half day
+        // Check for half day in time entries (legacy support)
         if ($entries->where('entry_type', 'half_day')->count() > 0) {
             return 0.5;
         }
@@ -286,8 +354,12 @@ class SalaryCalculationService
         return $totalWorkedHours >= $minWorkingHours ? 1.0 : 0.5;
     }
     
-    private function calculateAttendanceBreakdown($empId, $month, $year)
+    private function calculateAttendanceBreakdown($empId, $month, $year, $check = null)
     {
+
+        
+
+
         $employee = Employee::where('emp_id', $empId)->first();
         if (!$employee) {
             return [
@@ -330,11 +402,25 @@ class SalaryCalculationService
         $currentDate = $startDate->copy();
         while ($currentDate->lessThanOrEqualTo($endDate)) {
             $date = $currentDate->format('Y-m-d');
+            
+            // Check for approved half-day application first
+            $halfDayApplication = \App\Models\Application::where('employee_id', $empId)
+                ->where('req_type', 'half_leave')
+                ->where('status', 'approved')
+                ->whereDate('start_date', $date)
+                ->exists();
+                
+            if ($halfDayApplication) {
+                $halfDays++;
+                $currentDate->addDay();
+                continue;
+            }
+            
             $entries = TimeEntry::where('employee_id', $empId)
                 ->whereDate('entry_time', $date)
                 ->get();
             
-            // Check if day is weekend according to policy
+            // Check if day is weekend according to policy and schedule exceptions
             $isWeekend = $this->isWeekendDay($date);
             $scheduleException = $this->getScheduleException($date);
             
@@ -385,6 +471,22 @@ class SalaryCalculationService
             
             $currentDate->addDay();
         }
+
+
+    //    this was for the debug purpose as exceptions are not worked as desired that time
+        // if($check !== null){
+        //     foreach($check as $row){
+        //         if($row->type == 'holiday'){
+        //             // $holidays++;
+        //         }
+        //         if($row->type == 'working_day'){
+        //             // $holidays--;
+        //         }
+        //     }
+
+        //     // return $get;
+        // }
+        
         
         return [
             'present_days' => $presentDays,
@@ -398,9 +500,9 @@ class SalaryCalculationService
         ];
     }
 
-    public function getDailyAttendanceDetails($empId, $month, $year)
+    public function getDailyAttendanceDetails($empId, $month, $year, $adminId = null)
     {
-        $this->loadScheduleExceptions($month, $year);
+        $this->loadScheduleExceptions($month, $year, $adminId);
         
         $startDate = Carbon::create($year, $month, 1);
         $endDate = $startDate->copy()->endOfMonth();
@@ -409,6 +511,13 @@ class SalaryCalculationService
         for ($day = 1; $day <= $endDate->day; $day++) {
             $date = Carbon::create($year, $month, $day);
             $dateStr = $date->format('Y-m-d');
+            
+            // Check for approved half-day application first
+            $halfDayApplication = \App\Models\Application::where('employee_id', $empId)
+                ->where('req_type', 'half_day')
+                ->where('status', 'approved')
+                ->whereDate('start_date', $dateStr)
+                ->exists();
             
             $entries = TimeEntry::where('employee_id', $empId)
                 ->whereDate('entry_time', $dateStr)
@@ -421,7 +530,11 @@ class SalaryCalculationService
             $status = 'absent';
             $payableValue = 0;
             
-            if ($entries->isEmpty()) {
+            // Check half-day application first
+            if ($halfDayApplication) {
+                $status = 'half_day';
+                $payableValue = 0.5;
+            } elseif ($entries->isEmpty()) {
                 if ($isWeekend) {
                     if ($scheduleException && $scheduleException->type === 'working_day') {
                         $status = 'absent';

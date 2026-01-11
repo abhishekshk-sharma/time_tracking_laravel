@@ -40,7 +40,7 @@
                         </td>
                         <td>{{ $department->description ?: '-' }}</td>
                         <td>
-                            <span class="badge badge-secondary">{{ $department->employees_count ?? 0 }} employees</span>
+                            <span class="badge p-2 text-bg-secondary">{{ $department->employees_count ?? 0 }} employees</span>
                         </td>
                         <td>{{ $department->created_at instanceof \Carbon\Carbon ? $department->created_at->format('M d, Y') : $department->created_at }}</td>
                         <td>

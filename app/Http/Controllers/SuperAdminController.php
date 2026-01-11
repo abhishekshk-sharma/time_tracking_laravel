@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Spatie\Browsershot\Browsershot;
+use Illuminate\Validation\Rule; 
 
 class SuperAdminController extends Controller
 {
@@ -56,23 +57,52 @@ class SuperAdminController extends Controller
             'pending_applications' => Application::where('status', 'pending')->count(),
         ];
 
-        return view('super-admin.dashboard', compact('stats'));
+        // Get recent applications (last 5)
+        $recentApplications = Application::with('employee')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Calculate today's attendance
+        $totalActiveEmployees = Employee::where('role', 'employee')
+            ->where('status', 'active')
+            ->count();
+            
+        $presentToday = Employee::where('role', 'employee')
+            ->where('status', 'active')
+            ->whereHas('timeEntries', function($query) {
+                $query->where('entry_type', 'punch_in')
+                      ->whereDate('entry_time', today());
+            })
+            ->count();
+            
+        $absentToday = $totalActiveEmployees - $presentToday;
+        $attendancePercentage = $totalActiveEmployees > 0 ? round(($presentToday / $totalActiveEmployees) * 100) : 0;
+        
+        $todayAttendance = [
+            'present' => $presentToday,
+            'absent' => $absentToday,
+            'percentage' => $attendancePercentage
+        ];
+
+        return view('super-admin.dashboard', compact('stats', 'recentApplications', 'todayAttendance'));
     }
 
-    // Schedule Management
     public function schedule()
     {
         $currentMonth = request('month', Carbon::now()->month);
         $currentYear = request('year', Carbon::now()->year);
         
-        // Get all schedule exceptions for the current month/year regardless of who created them
-        $scheduleExceptions = ScheduleException::whereMonth('exception_date', $currentMonth)
+        $scheduleExceptions = \App\Models\ScheduleException::whereMonth('exception_date', $currentMonth)
+        ->whereMonth('exception_date', $currentMonth)
             ->whereYear('exception_date', $currentYear)
-            ->get()
-            ->keyBy('exception_date');
-        
-        $calendar = $this->generateCalendar($currentYear, $currentMonth, $scheduleExceptions);
-        
+            ->get();
+
+            
+            $calendar = $this->generateCalendar($currentYear, $currentMonth, $scheduleExceptions);
+            
+            // return $calendar;
+
         return view('super-admin.schedule.index', compact('calendar', 'currentMonth', 'currentYear', 'scheduleExceptions'));
     }
     
@@ -116,20 +146,37 @@ class SuperAdminController extends Controller
     {
         $firstDay = Carbon::create($year, $month, 1);
         $lastDay = $firstDay->copy()->endOfMonth();
-        $startOfWeek = $firstDay->copy()->startOfWeek();
-        $endOfWeek = $lastDay->copy()->endOfWeek();
+        
+        // Start from Monday (1) and end on Sunday (0)
+        $startOfWeek = $firstDay->copy()->startOfWeek(Carbon::MONDAY);
+        $endOfWeek = $lastDay->copy()->endOfWeek(Carbon::SUNDAY);
+
+        $adminEmpId = auth()->user()->emp_id;
         
         $calendar = [];
         $current = $startOfWeek->copy();
         
         while ($current <= $endOfWeek) {
-            $dateStr = $current->format('Y-m-d');
-            $exception = $scheduleExceptions->get($dateStr);
+            // $dateStr = $current->format('d');
+            // $monthStr = $current->format('m');
+            // $yearStr = $current->format('Y');
+
+            
+
+            $exception = \App\Models\ScheduleException::where('exception_date', $current)
+            // ->whereMonth('exception_date', $monthStr)
+            // ->whereYear('exception_date', $yearStr)
+            ->where(function($query) use ($adminEmpId) {
+                $query->whereNotNull('superadmin_id')
+                      ->orWhere('admin_id', $adminEmpId);
+            })
+            ->get();
+            // $exception = $scheduleExceptions->firstWhere('exception_date', $dateStr);
             
             $calendar[] = [
                 'date' => $current->copy(),
                 'is_current_month' => $current->month == $month,
-                'exception' => $exception
+                'exception' => (count($exception) <= 0)?false:$exception
             ];
             
             $current->addDay();
@@ -286,14 +333,71 @@ class SuperAdminController extends Controller
         return redirect()->route('super-admin.regions')->with('success', 'Region updated successfully');
     }
 
-    // Other methods can be added as needed
+    public function createEmployee()
+    {
+        $departments = Department::all();
+        $admins = Employee::where('role', 'admin')->get();
+        return view('super-admin.employees.create', compact('departments', 'admins'));
+    }
+
+    public function storeEmployee(Request $request)
+    {
+        $request->validate([
+            'emp_id' => 'required|unique:employees,emp_id',
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255',
+            'position' => 'required|string|max:255',
+            'hiredate' => [ 
+                'required', 
+                'date', 
+                'beforeOrEqual:' . Carbon::now()->addDays(30)->toDateString(), 
+            ],
+            
+            'dob' => 
+            [ 
+                'required', 
+                'date', 
+                'beforeOrEqual:' . Carbon::now()->subYears(18)->toDateString(), 
+            ],
+            'email' => 'required|email|unique:employees,email',
+            'password' => 'required|min:6',
+            'department_id' => 'required|exists:departments,id',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'referrance' => 'nullable|exists:employees,emp_id'
+        ]);
+        
+        Employee::create([
+            'emp_id' => $request->emp_id,
+            'full_name' => $request->name,
+            'username' => $request->username,
+            'email' => $request->email,
+            'position' => $request->position,
+            'hire_date' => $request->hire_date,
+            'dob' => $request->dob,
+            'password_hash' => Hash::make($request->password),
+            'department_id' => $request->department_id,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'referrance' => $request->referrance,
+            'role' => 'employee',
+            'status' => 'active',
+        ]);
+
+        return redirect()->route('super-admin.employees')->with('success', 'Employee created successfully');
+    }
+
     public function employees()
     {
         $perPage = request('per_page', 10);
         $search = request('search');
         $adminFilter = request('admin_filter');
+        $status = request('status');
         
         $employees = Employee::where('role', 'employee')
+            // ->where(function($q){
+            //     $admin = Employee::where('role', 'admin')->pluck('id')->toArray();
+            // })
             ->when($search, function($query, $search) {
                 $query->where(function($q) use ($search) {
                     $q->where('emp_id', 'like', '%' . $search . '%')
@@ -303,8 +407,13 @@ class SuperAdminController extends Controller
             ->when($adminFilter, function($query, $adminFilter) {
                 $query->where('referrance', $adminFilter);
             })
+            ->when($status, function($query, $status) {
+                $query->where('status', $status);
+            })
             ->with(['department', 'region'])
             ->paginate($perPage);
+
+            // return $employees;
             
         $admins = Employee::where('role', 'admin')->get();
         
@@ -326,36 +435,212 @@ class SuperAdminController extends Controller
         ->get();
         $departments = Department::all();
         $regions = Region::all();
+        $leaveCount = $employee->leaveCount;
 
-        // return dd($departments);
-        return view('super-admin.employees.edit', compact('employee', 'departments', 'regions', 'admins'));
+        // return ($admins);
+        return view('super-admin.employees.edit', compact('employee', 'departments', 'regions', 'admins', 'leaveCount'));
     }
 
     public function updateEmployee(Request $request, $id)
     {
         $request->validate([
+            'full_name' => 'required|string|max:255',
             'username' => 'required|string|max:255',
+            'hire_date' => [ 
+                'required', 
+                'date', 
+                'beforeOrEqual:' . Carbon::now()->addDays(30)->toDateString(), 
+            ],
+            'dob' => 
+            [ 
+                'nullable', 
+                'date', 
+                'beforeOrEqual:' . Carbon::now()->subYears(18)->toDateString(), 
+            ],
+            'end_date' => 
+            [ 
+                'nullable', 
+                'date', 
+                'beforeOrEqual:' . Carbon::now()->addDays(30)->toDateString(),
+                'after:hire_date', 
+            ],
             'email' => 'required|email|unique:employees,email,' . $id,
             'role' => 'required|in:employee,admin',
             'department_id' => 'nullable|exists:departments,id',
             'region_id' => 'nullable|exists:regions,id',
             'position' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
-            'referrance' => 'nullable|string|max:255'
+            'address' => 'nullable|string',
+            'referrance' => 'nullable|string|max:255',
+            'password' => 'nullable|min:6',
+            'casual_leave' => 'nullable|integer|min:0|max:365',
+            'sick_leave' => 'nullable|integer|min:0|max:365',
         ]);
 
         $employee = Employee::findOrFail($id);
-        $employee->update($request->all());
         
-        // return dd($request->all());
+        $updateData = $request->except(['password', 'casual_leave', 'sick_leave']);
+        
+        // If end_date is set, automatically make employee inactive
+        if ($request->end_date) {
+            $updateData['status'] = 'inactive';
+        }
+
+        $employee->update($updateData);
+
+        if ($request->password) {
+            $employee->update(['password_hash' => Hash::make($request->password)]);
+        }
+        
+        // Update or create leave count
+        if ($request->has('casual_leave') || $request->has('sick_leave')) {
+            \App\Models\LeaveCount::updateOrCreate(
+                ['employee_id' => $employee->emp_id],
+                [
+                    'casual_leave' => $request->casual_leave ?? 0,
+                    'sick_leave' => $request->sick_leave ?? 0,
+                ]
+            );
+        }
+        
         return redirect()->route('super-admin.employees.edit', $id)
             ->with('success', 'Employee updated successfully');
     }
 
-    public function applications()
+    public function applications(Request $request)
     {
-        $applications = Application::with('employee')->orderBy('created_at', 'desc')->paginate(15);
+        $query = Application::with('employee');
+
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('type') && $request->type) {
+            $query->where('req_type', $request->type);
+        }
+        
+        if ($request->has('search') && $request->search) {
+            $query->whereHas('employee', function($q) use ($request) {
+                $q->where('username', 'like', '%' . $request->search . '%')
+                  ->orWhere('emp_id', 'like', '%' . $request->search . '%');
+            });
+        }
+        
+        if ($request->has('employee_status') && $request->employee_status !== 'all') {
+            $query->whereHas('employee', function($q) use ($request) {
+                $q->where('status', $request->employee_status);
+            });
+        }
+
+        $applications = $query->orderBy('created_at', 'desc')->paginate(15);
+
         return view('super-admin.applications.index', compact('applications'));
+    }
+
+    public function showApplication(Application $application)
+    {
+        $application->load('employee');
+        return response()->json($application);
+    }
+
+    public function updateApplicationStatus(Request $request, Application $application)
+    {
+        try {
+            $request->validate([
+                'status' => 'required|in:approved,rejected',
+            ]);
+            
+            // Validate before updating status for approved applications
+            if ($request->status === 'approved') {
+                $this->validateApplicationForApproval($application);
+            }
+
+            $application->update([
+                'status' => $request->status,
+                'action_by' => auth('super_admin')->user()->username,
+            ]);
+            
+            // Create time entries for approved applications
+            if ($request->status === 'approved') {
+                $this->createTimeEntryForApplication($application);
+            }
+
+            return response()->json(['success' => true, 'message' => 'Application ' . $request->status . ' successfully']);
+        } catch (\Exception $e) {
+            \Log::error('Super admin application status update error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to update application status: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    private function validateApplicationForApproval(Application $application)
+    {
+        if (in_array($application->req_type, ['casual_leave', 'sick_leave', 'regularization'])) {
+            $startDate = \Carbon\Carbon::parse($application->start_date);
+            $endDate = $application->end_date ? \Carbon\Carbon::parse($application->end_date) : $startDate;
+            
+            $currentDate = $startDate->copy();
+            $conflictDates = [];
+            
+            while ($currentDate <= $endDate) {
+                $existingEntry = TimeEntry::where('employee_id', $application->employee_id)
+                    ->whereDate('entry_time', $currentDate->format('Y-m-d'))
+                    ->first();
+                
+                if ($existingEntry) {
+                    $conflictDates[] = $currentDate->format('Y-m-d') . ' (' . $existingEntry->entry_type . ')';
+                }
+                
+                $currentDate->addDay();
+            }
+            
+            if (!empty($conflictDates)) {
+                throw new \Exception("Cannot approve application. Employee already has entries for dates: " . implode(', ', $conflictDates));
+            }
+        }
+    }
+    
+    private function createTimeEntryForApplication(Application $application)
+    {
+        switch ($application->req_type) {
+            case 'casual_leave':
+            case 'sick_leave':
+            case 'regularization':
+                $startDate = \Carbon\Carbon::parse($application->start_date);
+                $endDate = $application->end_date ? \Carbon\Carbon::parse($application->end_date) : $startDate;
+                
+                $currentDate = $startDate->copy();
+                $totalDays = 0;
+                while ($currentDate <= $endDate) {
+                    TimeEntry::create([
+                        'employee_id' => $application->employee_id,
+                        'entry_type' => $application->req_type,
+                        'entry_time' => $currentDate->format('Y-m-d 09:00:00'),
+                        'notes' => 'Auto-created from approved application #' . $application->id
+                    ]);
+                    $currentDate->addDay();
+                    $totalDays++;
+                }
+                
+                if (in_array($application->req_type, ['casual_leave', 'sick_leave'])) {
+                    $leaveCount = \App\Models\LeaveCount::where('employee_id', $application->employee_id)->first();
+                    if ($leaveCount) {
+                        $currentLeave = $leaveCount->{$application->req_type};
+                        $newLeaveCount = max(0, $currentLeave - $totalDays);
+                        $leaveCount->update([$application->req_type => $newLeaveCount]);
+                    }
+                }
+                break;
+                
+            case 'punch_Out_regularization':
+                $entryTime = request('custom_time') ?? $application->end_date;
+                TimeEntry::create([
+                    'employee_id' => $application->employee_id,
+                    'entry_type' => 'punch_out',
+                    'entry_time' => $entryTime,
+                    'notes' => 'Auto-created from approved application #' . $application->id
+                ]);
+                break;
+        }
     }
 
     public function attendance(Request $request)
@@ -374,9 +659,54 @@ class SuperAdminController extends Controller
             })
             ->with(['timeEntries' => function($query) use ($date) {
                 $query->whereDate('entry_time', $date);
-            }, 'department']);
+            }, 'department', 'entryImages' => function($query) use ($date) {
+                $query->whereDate('entry_time', $date);
+            }]);
             
         $employees = $query->paginate($perPage);
+        
+        // Check for half-day applications and calculate working hours for each employee
+        foreach ($employees as $employee) {
+            $employee->halfDayApplication = \App\Models\Application::where('employee_id', $employee->emp_id)
+                ->whereIn('req_type', ['half_day', 'half_leave'])
+                ->where('status', 'approved')
+                ->whereDate('start_date', $date)
+                ->exists();
+                
+            // Calculate working hours and get first/last punch times
+            $punchIns = $employee->timeEntries->where('entry_type', 'punch_in')->sortBy('entry_time');
+            $punchOuts = $employee->timeEntries->where('entry_type', 'punch_out')->sortBy('entry_time');
+            
+            $employee->firstPunchIn = $punchIns->first();
+            $employee->lastPunchOut = $punchOuts->last();
+            
+            // Calculate total working hours by pairing punch in/out sessions
+            $totalMinutes = 0;
+            $punchInArray = $punchIns->values();
+            $punchOutArray = $punchOuts->values();
+            
+            // Pair each punch-in with the next available punch-out
+            for ($i = 0; $i < $punchInArray->count(); $i++) {
+                if ($i < $punchOutArray->count()) {
+                    $punchInTime = \Carbon\Carbon::parse($punchInArray[$i]->entry_time);
+                    $punchOutTime = \Carbon\Carbon::parse($punchOutArray[$i]->entry_time);
+                    $totalMinutes += $punchInTime->diffInMinutes($punchOutTime);
+                }
+            }
+
+            // return ($totalMinutes/60);
+            
+            $employee->workingHours = $totalMinutes > 0 ? sprintf('%d:%02d', floor($totalMinutes / 60), $totalMinutes % 60) : '0:00';
+            
+            // Determine status
+            if ($employee->halfDayApplication) {
+                $employee->attendanceStatus = 'half_day';
+            } elseif ($employee->firstPunchIn) {
+                $employee->attendanceStatus = 'present';
+            } else {
+                $employee->attendanceStatus = 'absent';
+            }
+        }
 
         return view('super-admin.attendance.index', compact('employees', 'date'));
     }
@@ -472,7 +802,7 @@ class SuperAdminController extends Controller
                 continue;
             }
             
-            $attendanceData = $salaryService->calculatePayableDays($employee->emp_id, $month, $year);
+            $attendanceData = $salaryService->calculatePayableDays($employee->emp_id, $month, $year, $employee->referrance);
             $salary = $employee->salary;
 
             if (!$salary) continue;
@@ -527,7 +857,14 @@ class SuperAdminController extends Controller
                 'has_negative_salary' => $hasNegativeSalary,
                 'has_missing_data' => $hasMissingData,
                 'needs_review' => $needsReview,
-                'status' => 'generated'
+                'status' => 'generated',
+                'bank_name' => $salary->bank_name,
+                'bank_account' => $salary->bank_account,
+                'ifsc_code' => $salary->ifsc_code,
+                'bank_branch' => $salary->bank_branch,
+                'uan' => $salary->uan,
+                'pf_no' => $salary->pf_no,
+                'esic_no' => $salary->esic_no
             ]);
 
             $generatedCount++;
@@ -540,8 +877,9 @@ class SuperAdminController extends Controller
     public function downloadSalaryReport($id)
     {
         $salaryReport = SalaryReport::with(['employee', 'region'])->findOrFail($id);
+        $employee = Employee::where('emp_id', $salaryReport->emp_id)->first();
         
-        $html = view('super-admin.reports.salary-report-pdf', compact('salaryReport'))->render();
+        $html = view('super-admin.reports.salary-report-pdf', compact('salaryReport', 'employee'))->render();
         
         $pdf = Browsershot::html($html)
             ->format('A4')
@@ -558,9 +896,9 @@ class SuperAdminController extends Controller
     {
         $salaryReport = SalaryReport::with(['employee', 'region'])->findOrFail($id);
         
-        // Get detailed daily attendance data
+        // Get detailed daily attendance data with admin priority
         $salaryService = new SalaryCalculationService();
-        $dailyAttendance = $salaryService->getDailyAttendanceDetails($salaryReport->emp_id, $salaryReport->month, $salaryReport->year);
+        $dailyAttendance = $salaryService->getDailyAttendanceDetails($salaryReport->emp_id, $salaryReport->month, $salaryReport->year, $salaryReport->admin_id);
         
         // Calculate per day basic salary
         $perDayBasicSalary = $salaryReport->basic_salary / $salaryReport->total_working_days;
@@ -588,7 +926,14 @@ class SuperAdminController extends Controller
             'hra' => 'required|numeric|min:0',
             'conveyance_allowance' => 'required|numeric|min:0',
             'pf' => 'required|numeric|min:0',
-            'pt' => 'required|numeric|min:0'
+            'pt' => 'required|numeric|min:0',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account' => 'nullable|string|max:255',
+            'ifsc_code' => 'nullable|string|max:11',
+            'bank_branch' => 'nullable|string|max:255',
+            'uan' => 'nullable|string|max:12',
+            'pf_no' => 'nullable|string|max:255',
+            'esic_no' => 'nullable|string|max:17'
         ]);
 
         // Get original salary data for validation
@@ -661,7 +1006,14 @@ class SuperAdminController extends Controller
             'has_negative_salary' => $netSalary < 0,
             'has_missing_data' => !$request->basic_salary || !$request->department,
             'needs_review' => $netSalary < 0 || !$request->basic_salary || !$request->department || $request->payable_days < 10,
-            'status' => 'reviewed'
+            'status' => 'reviewed',
+            'bank_name' => $request->bank_name,
+            'bank_account' => $request->bank_account,
+            'ifsc_code' => $request->ifsc_code,
+            'bank_branch' => $request->bank_branch,
+            'uan' => $request->uan,
+            'pf_no' => $request->pf_no,
+            'esic_no' => $request->esic_no
         ]);
 
         return redirect()->route('super-admin.reports')
@@ -734,6 +1086,52 @@ class SuperAdminController extends Controller
         return $weekendOptions[$policy] ?? $weekendOptions['sunday_only'];
     }
 
+    public function createAdmin()
+    {
+        $departments = Department::all();
+        $regions = Region::all();
+        return view('super-admin.admins.create', compact('departments', 'regions'));
+    }
+
+    public function storeAdmin(Request $request)
+    {
+        $request->validate([
+            'emp_id' => 'required|unique:employees,emp_id',
+            'name' => 'required|string|max:255',
+            'full_name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:employees,username',
+            'email' => 'required|email|unique:employees,email',
+            'phone' => 'required|string|max:20',
+            'department_id' => 'required|exists:departments,id',
+            'region_id' => 'required|exists:regions,id',
+            'position' => 'required|string|max:255',
+            'hire_date' => 'required|date|before_or_equal:today',
+            'dob' => 'required|date|before:' . Carbon::now()->subYears(18)->toDateString(),
+            'address' => 'required|string',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        Employee::create([
+            'emp_id' => $request->emp_id,
+            'name' => $request->name,
+            'full_name' => $request->full_name,
+            'username' => $request->username,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'department_id' => $request->department_id,
+            'region_id' => $request->region_id,
+            'position' => $request->position,
+            'hire_date' => $request->hire_date,
+            'dob' => $request->dob,
+            'address' => $request->address,
+            'password_hash' => Hash::make($request->password),
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+
+        return redirect()->route('super-admin.admins')->with('success', 'Admin created successfully');
+    }
+
     public function admins()
     {
         $perPage = request('per_page', 10);
@@ -802,8 +1200,11 @@ class SuperAdminController extends Controller
                 $query->whereNull('referrance')->orWhere('referrance', '');
             })
             ->get();
+        $assignedEmployees = Employee::where('role', 'employee')
+            ->where('referrance', $admin->emp_id)
+            ->get();
         $allAdmins = Employee::where('role', 'admin')->get();
-        return view('super-admin.admins.edit', compact('admin', 'departments', 'regions', 'unassignedEmployees', 'allAdmins'));
+        return view('super-admin.admins.edit', compact('admin', 'departments', 'regions', 'unassignedEmployees', 'assignedEmployees', 'allAdmins'));
     }
 
     public function updateAdmin(Request $request, $id)
@@ -815,11 +1216,32 @@ class SuperAdminController extends Controller
             'region_id' => 'nullable|exists:regions,id',
             'position' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
-            'referrance' => 'nullable|string|max:255'
+            'address' => 'nullable|string|max:255',
+            'referrance' => 'nullable|string|max:255',
+            'password' => 'nullable|min:6|confirmed',
         ]);
 
         $admin = Employee::where('role', 'admin')->findOrFail($id);
-        $admin->update($request->all());
+        
+        $updateData = $request->except(['password', 'password_confirmation']);
+        
+        if ($request->password) {
+            $updateData['password'] = Hash::make($request->password);
+        }
+        
+        $admin->update($updateData);
+        
+        // Handle employee assignments
+        if ($request->has('assigned_employees')) {
+            Employee::whereIn('emp_id', $request->assigned_employees)
+                ->update(['referrance' => $admin->emp_id]);
+        }
+        
+        // Handle employee unassignments
+        if ($request->has('unassign_employees')) {
+            Employee::whereIn('emp_id', $request->unassign_employees)
+                ->update(['referrance' => null]);
+        }
 
         return redirect()->route('super-admin.admins.edit', $id)
             ->with('success', 'Admin updated successfully');
@@ -843,10 +1265,20 @@ class SuperAdminController extends Controller
             'hra' => 'required|numeric|min:0',
             'conveyance_allowance' => 'required|numeric|min:0',
             'pf' => 'required|numeric|min:0',
-            'pt' => 'required|numeric|min:0'
+            'pt' => 'required|numeric|min:0',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account' => 'nullable|string|max:255',
+            'ifsc_code' => 'nullable|string|max:11',
+            'bank_branch' => 'nullable|string|max:255',
+            'uan' => 'nullable|string|max:12',
+            'pf_no' => 'nullable|string|max:255',
+            'esic_no' => 'nullable|string|max:17'
         ]);
 
-        $salary->update($request->only(['basic_salary', 'hra', 'conveyance_allowance', 'pf', 'pt']));
+        $salary->update($request->only([
+            'basic_salary', 'hra', 'conveyance_allowance', 'pf', 'pt',
+            'bank_name', 'bank_account', 'ifsc_code', 'bank_branch', 'uan', 'pf_no', 'esic_no'
+        ]));
 
         return redirect()->route('super-admin.salaries')->with('success', 'Salary updated successfully');
     }
@@ -896,7 +1328,14 @@ class SuperAdminController extends Controller
             'hra' => 'required|numeric|min:0',
             'conveyance_allowance' => 'required|numeric|min:0',
             'pf' => 'required|numeric|min:0',
-            'pt' => 'required|numeric|min:0'
+            'pt' => 'required|numeric|min:0',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account' => 'nullable|string|max:255',
+            'ifsc_code' => 'nullable|string|max:11',
+            'bank_branch' => 'nullable|string|max:255',
+            'uan' => 'nullable|string|max:12',
+            'pf_no' => 'nullable|string|max:255',
+            'esic_no' => 'nullable|string|max:17'
         ]);
 
         Salary::create($request->all());
@@ -941,11 +1380,24 @@ class SuperAdminController extends Controller
         $employees = $query->with(['timeEntries' => function($q) use ($startDate, $endDate) {
             $q->whereBetween('entry_time', [$startDate, $endDate])
               ->orderBy('entry_time');
-        }, 'department'])->paginate(1);
+        }, 'department', 'entryImages' => function($q) use ($startDate, $endDate) {
+            $q->whereBetween('entry_time', [$startDate, $endDate]);
+        }])->paginate(1);
+        
+        // Check for half-day applications for each employee
+        foreach ($employees as $employee) {
+            $employee->halfDayApplications = \App\Models\Application::where('employee_id', $employee->emp_id)
+                ->whereIn('req_type', ['half_day', 'half_leave'])
+                ->where('status', 'approved')
+                ->whereBetween('start_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->pluck('start_date')
+                ->map(function($date) {
+                    return Carbon::parse($date)->format('Y-m-d');
+                })
+                ->toArray();
+        }
 
         $admin_name = Employee::where('role', 'admin')->get()->keyBy('emp_id');
-         
-        // return dd($admin_name);
         $departments = Department::all();
         
         return view('super-admin.employee-history.index', compact('employees', 'departments', 'admin_name'));
@@ -953,6 +1405,36 @@ class SuperAdminController extends Controller
 
     public function timeEntries(Request $request)
     {
+        if ($request->has('employee') && $request->has('from_date') && $request->has('to_date')) {
+            // Handle AJAX request for specific employee and date range
+            $empId = $request->get('employee');
+            $fromDate = $request->get('from_date');
+            $toDate = $request->get('to_date');
+
+            $query = TimeEntry::where('employee_id', $empId);
+            
+            if ($fromDate) {
+                $query->whereDate('entry_time', '>=', $fromDate);
+            }
+            
+            if ($toDate) {
+                $query->whereDate('entry_time', '<=', $toDate);
+            }
+            
+            $entries = $query->orderBy('entry_time')->get();
+            
+            // Get entry images matched by entry_id
+            $images = \App\Models\EntryImage::whereIn('entry_id', $entries->pluck('id'))
+                ->get()
+                ->keyBy('entry_id');
+            
+            return response()->json([
+                'entries' => $entries,
+                'images' => $images
+            ]);
+        }
+        
+        // Original timeEntries method for the main page
         $query = TimeEntry::with('employee');
         
         if ($request->employee) {
@@ -1073,15 +1555,22 @@ class SuperAdminController extends Controller
                 continue;
             }
             
-            $attendance = $salaryService->calculatePayableDays($employee->emp_id, $month, $year);
+            $attendance = $salaryService->calculatePayableDays($employee->emp_id, $month, $year, $employee->referrance);
+
+            // $getkey = [];
+            // foreach($attendance as $key){
+
+            //     $getkey =  [$key." ->this is the responce"];
+            // }
+
+            // return $getkey;
+            // return [$employee->emp_id, $employee->username,$attendance];
             
             $attendanceData[] = [
                 'Employee ID' => $employee->emp_id,
                 'Employee Name' => $employee->username,
                 'Department' => $employee->department->name ?? 'N/A',
                 'Position' => $employee->position ?? 'N/A',
-                'Month' => date('F', mktime(0, 0, 0, $month, 1)),
-                'Year' => $year,
                 'Total Working Days' => date('t', mktime(0, 0, 0, $month, 1, $year)),
                 'Present Days' => $attendance['present_days'],
                 'Absent Days' => $attendance['absent_days'],
@@ -1101,13 +1590,23 @@ class SuperAdminController extends Controller
         // Generate Excel file
         $filename = 'attendance_report_' . date('F_Y', mktime(0, 0, 0, $month, 1, $year)) . '.xlsx';
         
-        return $this->generateExcelReport($attendanceData, $filename);
+        return $this->generateExcelReport($attendanceData, $filename, $month, $year);
     }
     
-    private function generateExcelReport($data, $filename)
+    private function generateExcelReport($data, $filename, $month = null, $year = null)
     {
         // Generate CSV content
         $csvContent = "";
+        
+        // Add company header if month and year are provided
+        if ($month && $year) {
+            $companyName = "Time Tracking System";
+            $monthName = date('F', mktime(0, 0, 0, $month, 1));
+            $csvContent .= "\"$companyName\"\r\n";
+            $csvContent .= "\"Attendance Report for $monthName $year\"\r\n";
+            $csvContent .= "\"Generated on: " . now()->format('F j, Y') . "\"\r\n";
+            $csvContent .= "\r\n"; // Empty row
+        }
         
         // Header row
         if (!empty($data)) {
@@ -1129,9 +1628,217 @@ class SuperAdminController extends Controller
             ->header('Cache-Control', 'max-age=0');
     }
 
+    public function employeeTimeHistory(Request $request, Employee $employee)
+    {
+        $filter = $request->get('filter', 'this_month');
+        
+        $query = TimeEntry::where('employee_id', $employee->emp_id);
+        
+        switch ($filter) {
+            case 'this_month':
+                $query->whereMonth('entry_time', now()->month)
+                      ->whereYear('entry_time', now()->year);
+                break;
+            case 'last_month':
+                $query->whereMonth('entry_time', now()->subMonth()->month)
+                      ->whereYear('entry_time', now()->subMonth()->year);
+                break;
+            case 'custom':
+                if ($request->start_date && $request->end_date) {
+                    $query->whereBetween('entry_time', [$request->start_date, $request->end_date]);
+                }
+                break;
+        }
+        
+        $allEntries = $query->orderBy('entry_time', 'desc')->get();
+        
+        // Group by date and then by entry type
+        $groupedEntries = $allEntries->groupBy(function($entry) {
+            return $entry->entry_time->format('Y-m-d');
+        })->map(function($dayEntries) {
+            return $dayEntries->keyBy('entry_type');
+        })->sortKeysDesc();
+        
+        // Paginate manually
+        $page = $request->get('page', 1);
+        $perPage = 10;
+        $total = $groupedEntries->count();
+        $items = $groupedEntries->slice(($page - 1) * $perPage, $perPage);
+        
+        $paginatedEntries = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            $total,
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'pageName' => 'page']
+        );
+        
+        return view('super-admin.employees.history', compact('employee', 'paginatedEntries', 'filter'));
+    }
+
+    public function updateTimeEntry(Request $request)
+    {
+        $request->validate([
+            'entry_id' => 'required|exists:time_entries,id',
+            'new_time' => 'required|date_format:Y-m-d H:i:s'
+        ]);
+        
+        $timeEntry = TimeEntry::findOrFail($request->entry_id);
+        
+        $timeEntry->update([
+            'entry_time' => $request->new_time,
+            'notes' => ($timeEntry->notes ? $timeEntry->notes . ' | ' : '') . 'Edited by super admin on ' . now()->format('Y-m-d H:i:s')
+        ]);
+        
+        return response()->json(['success' => true, 'message' => 'Time entry updated successfully']);
+    }
+
+    public function timeEntryImages(Request $request)
+    {
+        $period = $request->get('period', 'current_month');
+        $search = $request->get('search');
+        $fromDate = $request->get('from_date');
+        $toDate = $request->get('to_date');
+        
+        $query = \App\Models\EntryImage::with('employee');
+        
+        // Apply period filter
+        switch ($period) {
+            case 'current_month':
+                $query->whereMonth('entry_time', now()->month)
+                      ->whereYear('entry_time', now()->year);
+                break;
+            case 'last_month':
+                $query->whereMonth('entry_time', now()->subMonth()->month)
+                      ->whereYear('entry_time', now()->subMonth()->year);
+                break;
+            case 'custom':
+                if ($fromDate && $toDate) {
+                    $query->whereBetween('entry_time', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59']);
+                }
+                break;
+        }
+        
+        // Apply search filter
+        if ($search) {
+            $query->whereHas('employee', function($q) use ($search) {
+                $q->where('username', 'like', '%' . $search . '%')
+                  ->orWhere('emp_id', 'like', '%' . $search . '%');
+            });
+        }
+        
+        $images = $query->orderBy('entry_time', 'desc')->paginate(20);
+        
+        return view('super-admin.time-entry-images.index', compact('images'));
+    }
+
+    public function downloadImages(Request $request)
+    {
+        $images = $request->input('images', []);
+        
+        if (empty($images)) {
+            return back()->with('error', 'No images selected for download.');
+        }
+        
+        $zip = new \ZipArchive();
+        $zipFileName = 'time_entry_images_' . date('Y-m-d_H-i-s') . '.zip';
+        $zipPath = storage_path('app/temp/' . $zipFileName);
+        
+        // Create temp directory if it doesn't exist
+        if (!file_exists(storage_path('app/temp'))) {
+            mkdir(storage_path('app/temp'), 0755, true);
+        }
+        
+        if ($zip->open($zipPath, \ZipArchive::CREATE) === TRUE) {
+            foreach ($images as $imageFile) {
+                $imagePath = public_path('entry_images/' . $imageFile);
+                if (file_exists($imagePath)) {
+                    $zip->addFile($imagePath, $imageFile);
+                }
+            }
+            $zip->close();
+            
+            return response()->download($zipPath)->deleteFileAfterSend(true);
+        }
+        
+        return back()->with('error', 'Failed to create zip file.');
+    }
+    
+    public function deleteImages(Request $request)
+    {
+        $imageIds = $request->input('image_ids', []);
+        
+        if (empty($imageIds)) {
+            return back()->with('error', 'No images selected for deletion.');
+        }
+        
+        $deletedCount = 0;
+        
+        foreach ($imageIds as $imageId) {
+            $image = \App\Models\EntryImage::find($imageId);
+            if ($image) {
+                // Delete physical file
+                $imagePath = public_path('entry_images/' . $image->imageFile);
+                if (file_exists($imagePath)) {
+                    unlink($imagePath);
+                }
+                
+                // Delete database record
+                $image->delete();
+                $deletedCount++;
+            }
+        }
+        
+        return back()->with('success', "Successfully deleted {$deletedCount} image(s).");
+    }
+
     public function deleteTimeEntry(TimeEntry $timeEntry)
     {
         $timeEntry->delete();
         return response()->json(['success' => true]);
+    }
+
+    public function getSalarySlipPreview($id)
+    {
+        $salaryReport = SalaryReport::with(['employee', 'region'])->findOrFail($id);
+        return response()->json($salaryReport);
+    }
+
+    public function showSalarySlipPreview($id)
+    {
+
+        $salaryReport = SalaryReport::with(['employee', 'region'])->findOrFail($id);
+        $employee = Employee::with("region")->where('emp_id', $salaryReport->emp_id)->first();
+
+        // return $employee;
+        return view('super-admin.reports.salary-slip-preview', compact('salaryReport', 'employee'));
+    }
+    
+    public function profile()
+    {
+        $superAdmin = auth('super_admin')->user();
+        return view('super-admin.profile.index', compact('superAdmin'));
+    }
+    
+    public function updateProfile(Request $request)
+    {
+        $superAdmin = auth('super_admin')->user();
+        
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:super_admins,username,' . $superAdmin->id,
+            'email' => 'required|email|unique:super_admins,email,' . $superAdmin->id,
+            'password' => 'nullable|min:6|confirmed',
+        ]);
+        
+        $updateData = $request->only(['name', 'username', 'email']);
+        
+        if ($request->password) {
+            $updateData['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
+        }
+        
+        $superAdmin->update($updateData);
+        
+        return redirect()->route('super-admin.profile')->with('success', 'Profile updated successfully!');
     }
 }

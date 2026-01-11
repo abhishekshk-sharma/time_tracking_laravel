@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\TimeEntry;
+use App\Models\Employee;
 use App\Models\SystemSetting;
+use App\Services\LocationAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -12,24 +14,18 @@ class DashboardController extends Controller
 {
     public function index()
     {
+
+        
+
         $employee = Auth::user();
         $today = today();
         
         // Check if today is half day
-        $halfDayApplication = \App\Models\Application::where('employee_id', $employee->emp_id)
-            ->where('req_type', 'half_day')
+        $isHalfDay = \App\Models\Application::where('employee_id', $employee->emp_id)
+            ->where('req_type', 'half_leave')
             ->where('status', 'approved')
-            ->whereDate('start_date', '<=', $today)
-            ->whereDate('end_date', '>=', $today)
-            ->first();
-            
-        $isHalfDay = $halfDayApplication ? true : false;
-        $halfDayTime = null;
-        
-        if ($isHalfDay) {
-            $halfDayTime = \App\Models\SystemSetting::where('setting_key', 'half_day_time')
-                ->value('setting_value') ?? '4:30';
-        }
+            ->whereDate('start_date', $today)
+            ->exists();
         
         // Get today's time entries
         $todayEntries = $employee->getTodayTimeEntries();
@@ -54,8 +50,7 @@ class DashboardController extends Controller
             'buttonStates',
             'workStartTime',
             'workEndTime',
-            'isHalfDay',
-            'halfDayTime'
+            'isHalfDay'
         ));
     }
 
@@ -66,6 +61,20 @@ class DashboardController extends Controller
 
         if ($lastEntry && in_array($lastEntry->entry_type, ['punch_in', 'lunch_end'])) {
             return response()->json(['error' => 'Already punched in'], 400);
+        }
+
+        // Location authentication
+        $locationAuth = app(LocationAuthService::class);
+        $authResult = $locationAuth->authenticateLocation($employee, $request);
+        
+        if (!$authResult['success']) {
+            if (isset($authResult['require_image'])) {
+                return response()->json([
+                    'require_image' => true,
+                    'message' => 'Please capture your image to proceed'
+                ]);
+            }
+            return response()->json(['error' => $authResult['message']], 400);
         }
 
         TimeEntry::create([
@@ -87,6 +96,20 @@ class DashboardController extends Controller
             return response()->json(['error' => 'Must punch in first'], 400);
         }
 
+        // Location authentication
+        $locationAuth = app(LocationAuthService::class);
+        $authResult = $locationAuth->authenticateLocation($employee, $request);
+        
+        if (!$authResult['success']) {
+            if (isset($authResult['require_image'])) {
+                return response()->json([
+                    'require_image' => true,
+                    'message' => 'Please capture your image to proceed'
+                ]);
+            }
+            return response()->json(['error' => $authResult['message']], 400);
+        }
+
         TimeEntry::create([
             'employee_id' => $employee->emp_id,
             'entry_type' => 'punch_out',
@@ -95,6 +118,63 @@ class DashboardController extends Controller
         ]);
 
         return response()->json(['success' => true, 'message' => 'Punch Out Successful!']);
+    }
+
+    public function captureImage(Request $request)
+    {
+        $employee = Auth::user();
+        $imageData = $request->input('image');
+        $entryType = $request->input('entry_type');
+        
+        if (!$imageData || !$entryType) {
+            return response()->json(['error' => 'Image and entry type required'], 400);
+        }
+        
+        // Create time entry first
+        if ($entryType === 'punch_in') {
+            $result = $this->processPunchIn($employee);
+        } elseif ($entryType === 'punch_out') {
+            $result = $this->processPunchOut($employee);
+        } else {
+            return response()->json(['error' => 'Invalid entry type'], 400);
+        }
+        
+        if ($result['success']) {
+            // Store image with entry_id
+            $locationAuth = app(LocationAuthService::class);
+            $imageResult = $locationAuth->storeEntryImage($employee, $imageData, $entryType, $result['entry_id']);
+            
+            return response()->json([
+                'success' => true, 
+                'message' => $result['message']
+            ]);
+        }
+        
+        return response()->json(['error' => 'Failed to create time entry'], 400);
+    }
+    
+    private function processPunchIn($employee)
+    {
+        $timeEntry = TimeEntry::create([
+            'employee_id' => $employee->emp_id,
+            'entry_type' => 'punch_in',
+            'entry_time' => now(),
+            'notes' => 'punch_in'
+        ]);
+        
+        return ['success' => true, 'message' => 'Punch In Successful!', 'entry_id' => $timeEntry->id];
+    }
+    
+    private function processPunchOut($employee)
+    {
+        $timeEntry = TimeEntry::create([
+            'employee_id' => $employee->emp_id,
+            'entry_type' => 'punch_out',
+            'entry_time' => now(),
+            'notes' => 'punch_out'
+        ]);
+        
+        return ['success' => true, 'message' => 'Punch Out Successful!', 'entry_id' => $timeEntry->id];
     }
 
     public function lunchStart(Request $request)
@@ -266,7 +346,19 @@ class DashboardController extends Controller
     
     public function schedule()
     {
-        return view('schedule');
+        $currentMonth = request('month', Carbon::now()->month);
+        $currentYear = request('year', Carbon::now()->year);
+        $userid = Auth::user()->emp_id;
+        
+        // Get schedule exceptions for current month
+        $scheduleExceptions = \App\Models\ScheduleException::whereMonth('exception_date', $currentMonth)
+            ->whereYear('exception_date', $currentYear)
+            ->get();
+        
+        // Generate calendar
+        $calendar = $this->generateUserCalendar($currentYear, $currentMonth, $userid);
+        
+        return view('schedule', compact('calendar', 'currentMonth', 'currentYear', 'scheduleExceptions'));
     }
     
     public function getScheduleData(Request $request)
@@ -275,37 +367,21 @@ class DashboardController extends Controller
         $year = $request->input('year', now()->year);
         $userid = Auth::user()->emp_id;
         
-        \Log::info('getScheduleData called with data:', $request->all());
-        \Log::info('Schedule params:', ['month' => $month, 'year' => $year, 'userid' => $userid]);
+        // Generate calendar using the same approach as admin
+        $calendar = $this->generateUserCalendar($year, $month, $userid);
         
-        // Get time entries for the month
-        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
-        
-        \Log::info('Date range:', ['start' => $startDate->toDateTimeString(), 'end' => $endDate->toDateTimeString()]);
-        
-        $timeEntries = TimeEntry::where('employee_id', $userid)
-            ->whereBetween('entry_time', [$startDate, $endDate])
-            ->orderBy('entry_time')
-            ->get();
-            
-        \Log::info('Found entries count:', $timeEntries->count());
-            
-        // Process entries by date
+        // Convert calendar to the format expected by frontend
         $dateWiseData = [];
-        foreach ($timeEntries as $entry) {
-            $date = $entry->entry_time->format('Y-m-d');
-            if (!isset($dateWiseData[$date])) {
-                $dateWiseData[$date] = ['status' => 'absent', 'entries' => []];
-            }
-            
-            $dateWiseData[$date]['entries'][] = $entry;
-            
-            // Determine status based on entry type
-            if ($entry->entry_type === 'punch_in') {
-                $dateWiseData[$date]['status'] = 'present';
-            } elseif (in_array($entry->entry_type, ['casual_leave', 'sick_leave', 'half_day', 'holiday'])) {
-                $dateWiseData[$date]['status'] = $entry->entry_type;
+        
+        foreach ($calendar as $week) {
+            foreach ($week as $day) {
+                $dateStr = $day['date']->format('Y-m-d');
+                $status = $this->getDayStatus($day, $userid);
+                
+                $dateWiseData[$dateStr] = [
+                    'status' => $status,
+                    'entries' => $day['time_entries'] ?? []
+                ];
             }
         }
         
@@ -321,26 +397,58 @@ class DashboardController extends Controller
             ->whereDate('entry_time', $date)
             ->orderBy('entry_time')
             ->get();
-            
+        
+        // Check for schedule exception
+        $exception = null;
+        if (\Schema::hasTable('schedule_exceptions')) {
+            $exception = \DB::table('schedule_exceptions')
+                ->where('exception_date', $date)
+                ->first();
+        }
+        
+        // Determine status - return exact exception type if exists
         $status = 'absent';
-        if ($entries->count() > 0) {
+        if ($exception) {
+            $status = $exception->type; // Return exact exception type
+        } elseif ($entries->count() > 0) {
             $firstEntry = $entries->first();
-            if ($firstEntry->entry_type === 'punch_in') {
-                $status = 'present';
-            } elseif (in_array($firstEntry->entry_type, ['casual_leave', 'sick_leave', 'half_day', 'holiday'])) {
-                $status = $firstEntry->entry_type;
-            }
+            $status = match($firstEntry->entry_type) {
+                'punch_in' => 'present',
+                'casual_leave' => 'casual_leave',
+                'sick_leave' => 'sick_leave',
+                'half_day' => 'half_day',
+                default => 'absent'
+            };
+        } elseif ($this->isWeekendByPolicy(Carbon::parse($date))) {
+            $status = 'weekend';
+        }
+        
+        $entriesData = $entries->map(function($entry) {
+            return [
+                'entry_type' => $entry->entry_type,
+                'notes' => $entry->notes,
+                'entry_time' => $entry->entry_time->format('H:i:s')
+            ];
+        })->toArray();
+        
+        // Add exception info to entries
+        if ($exception) {
+            $entriesData[] = [
+                'entry_type' => $exception->type,
+                'notes' => $exception->description ?? ucfirst(str_replace('_', ' ', $exception->type)),
+                'entry_time' => $exception->description ?? ucfirst(str_replace('_', ' ', $exception->type))
+            ];
+        } elseif ($status === 'weekend' && empty($entriesData)) {
+            $entriesData[] = [
+                'entry_type' => 'weekend',
+                'notes' => 'Weekend',
+                'entry_time' => 'Weekend'
+            ];
         }
         
         return response()->json([
             'status' => $status,
-            'entries' => $entries->map(function($entry) {
-                return [
-                    'entry_type' => $entry->entry_type,
-                    'notes' => $entry->notes,
-                    'entry_time' => $entry->entry_time->format('H:i:s')
-                ];
-            })
+            'entries' => $entriesData
         ]);
     }
     
@@ -388,5 +496,120 @@ class DashboardController extends Controller
             \Log::error('Late status calculation error: ' . $e->getMessage());
             return '<label style="color:green;">Present</label>';
         }
+    }
+
+    public function employeehistory(){
+        $applications = $history = TimeEntry::with('employee')
+        ->where('employee_id', Auth::user()->emp_id)
+        ->whereBetween('entry_time', ['2025-12-01', '2025-12-30'])
+        ->get();
+
+        // return $history;
+        return view('applications.history', compact('applications'));
+    }
+    
+    private function generateUserCalendar($year, $month, $userid)
+    {
+        $firstDay = Carbon::create($year, $month, 1);
+        $lastDay = $firstDay->copy()->endOfMonth();
+        
+        // Start from Monday (1) and end on Sunday (0)
+        $startOfWeek = $firstDay->copy()->startOfWeek(Carbon::MONDAY);
+        $endOfWeek = $lastDay->copy()->endOfWeek(Carbon::SUNDAY);
+        
+        $calendar = [];
+        $current = $startOfWeek->copy();
+        
+        while ($current <= $endOfWeek) {
+            // Get schedule exceptions for this date
+            $exception = null;
+            if (\Schema::hasTable('schedule_exceptions')) {
+                $exception = \DB::table('schedule_exceptions')
+                    ->where('exception_date', $current->format('Y-m-d'))
+                    ->first();
+            }
+            
+            // Get time entries for this date
+            $timeEntries = TimeEntry::where('employee_id', $userid)
+                ->whereDate('entry_time', $current)
+                ->orderBy('entry_time')
+                ->get()
+                ->toArray();
+            
+            $calendar[] = [
+                'date' => $current->copy(),
+                'is_current_month' => $current->month == $month,
+                'exception' => $exception,
+                'time_entries' => $timeEntries
+            ];
+            
+            $current->addDay();
+        }
+        
+        return array_chunk($calendar, 7);
+    }
+    
+    private function getDayStatus($day, $userid)
+    {
+        $date = $day['date'];
+        $exception = $day['exception'] ?? null;
+        $timeEntries = collect($day['time_entries'] ?? []);
+        
+        // Priority 1: Schedule exceptions
+        if ($exception) {
+            return match($exception->type) {
+                'holiday' => 'holiday',
+                'working_day' => 'present',
+                'weekend' => 'weekend',
+                default => 'weekend'
+            };
+        }
+        
+        // Priority 2: Time entries
+        if ($timeEntries->count() > 0) {
+            $firstEntry = $timeEntries->first();
+            return match($firstEntry['entry_type']) {
+                'punch_in' => 'present',
+                'casual_leave' => 'casual_leave',
+                'sick_leave' => 'sick_leave',
+                'half_day' => 'half_day',
+                default => 'absent'
+            };
+        }
+        
+        // Priority 3: Weekend policy
+        if ($this->isWeekendByPolicy($date)) {
+            return 'weekend';
+        }
+        
+        // Priority 4: Default absent
+        return 'absent';
+    }
+    
+    private function isWeekendByPolicy($date)
+    {
+        // Get weekend policy from system settings
+        $weekendPolicySetting = SystemSetting::where('setting_key', 'weekend_policy')->first();
+        $weekendPolicy = $weekendPolicySetting ? json_decode($weekendPolicySetting->setting_value, true) : [
+            'recurring_days' => [0], // Default: Sunday only
+            'specific_pattern' => []
+        ];
+        
+        $dayOfWeek = $date->dayOfWeek; // 0 = Sunday, 6 = Saturday
+        
+        // Check recurring days
+        if (in_array($dayOfWeek, $weekendPolicy['recurring_days'])) {
+            return true;
+        }
+        
+        // Check specific patterns (e.g., 2nd/4th Saturday)
+        if (isset($weekendPolicy['specific_pattern'][$dayOfWeek])) {
+            $weekOfMonth = ceil($date->day / 7);
+            if (in_array($weekOfMonth, $weekendPolicy['specific_pattern'][$dayOfWeek])) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

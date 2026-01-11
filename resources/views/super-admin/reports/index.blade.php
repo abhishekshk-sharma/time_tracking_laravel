@@ -169,7 +169,9 @@
                         @foreach($salaryReports as $report)
                             <tr>
                                 <td>
-                                    <strong>{{ $report->emp_name }}</strong><br>
+                                    <a href="#" class="employee-name-link" data-report-id="{{ $report->id }}" style="text-decoration: none; color: #007bff;">
+                                        <strong>{{ $report->emp_name }}</strong>
+                                    </a><br>
                                     <small class="text-muted">{{ $report->emp_id }}</small>
                                 </td>
                                 <td>{{ $report->department }}</td>
@@ -180,32 +182,32 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ $report->status == 'generated' ? 'warning' : ($report->status == 'reviewed' ? 'info' : 'success') }}">
+                                    <span class="badge p-2 bg-{{ $report->status == 'generated' ? 'warning' : ($report->status == 'reviewed' ? 'info' : 'success') }}">
                                         {{ ucfirst($report->status) }}
                                     </span>
                                 </td>
                                 <td>
                                     @if($report->has_negative_salary)
-                                        <span class="badge bg-danger me-1">Negative Salary</span>
+                                        <span class="badge p-2 bg-danger me-1">Negative Salary</span>
                                     @endif
                                     @if($report->has_missing_data)
-                                        <span class="badge bg-warning me-1">Missing Data</span>
+                                        <span class="badge p-2 bg-warning me-1">Missing Data</span>
                                     @endif
                                     @if($report->needs_review)
-                                        <span class="badge bg-info me-1">Needs Review</span>
+                                        <span class="badge p-2 bg-info me-1">Needs Review</span>
                                     @endif
                                     @if(!$report->has_negative_salary && !$report->has_missing_data && !$report->needs_review)
-                                        <span class="badge bg-success">Good</span>
+                                        <span class="badge p-2 bg-success">Good</span>
                                     @endif
                                 </td>
                                 <td>
                                     <a href="{{ route('super-admin.salary-reports.edit', $report->id) }}" 
                                        class="btn btn-sm btn-warning me-1">
-                                        <i class="fas fa-edit"></i> Edit
+                                        <i class="fas fa-edit"></i> 
                                     </a>
-                                    <a href="{{ route('super-admin.salary-reports.download', $report->id) }}" 
-                                       class="btn btn-sm btn-primary">
-                                        <i class="fas fa-download"></i> Download PDF
+                                    <a href="{{ route('super-admin.salary-reports.download', $report->id) }}"class="btn btn-sm btn-primary"
+                                        style="margin-top:10px;">
+                                        <i class="fas fa-download"></i> 
                                     </a>
                                 </td>
                             </tr>
@@ -273,6 +275,15 @@ document.getElementById('per-page-select').addEventListener('change', function()
 document.getElementById('employee-search').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         applyFilters();
+    }
+});
+
+// Salary Slip Preview
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.employee-name-link')) {
+        e.preventDefault();
+        const reportId = e.target.closest('.employee-name-link').dataset.reportId;
+        window.location.href = `/super-admin/salary-reports/${reportId}/view`;
     }
 });
 </script>

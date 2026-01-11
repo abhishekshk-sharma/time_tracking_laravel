@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('schedule_exceptions', function (Blueprint $table) {
             $table->id();
             $table->date('date')->unique();
-            $table->enum('type', ['working_day', 'holiday', 'weekend']);
+            $table->enum('type', ['working_day', 'holiday']);
             $table->unsignedBigInteger('region_id');
             $table->timestamp('created_at')->useCurrent();
             

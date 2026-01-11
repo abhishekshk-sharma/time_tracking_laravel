@@ -21,6 +21,13 @@ class Salary extends Model
         'gross_salary',
         'effective_from',
         'is_active',
+        'bank_name',
+        'bank_account',
+        'ifsc_code',
+        'bank_branch',
+        'uan',
+        'pf_no',
+        'esic_no',
     ];
 
     protected $casts = [

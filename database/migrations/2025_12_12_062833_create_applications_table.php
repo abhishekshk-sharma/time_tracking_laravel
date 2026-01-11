@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('file')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->string('action_by', 20)->nullable();
+            $table->text('admin_remarks')->nullable();
+            $table->timestamp('action_date')->nullable();
             $table->timestamp('created_at')->useCurrent();
             
             $table->foreign('employee_id')->references('emp_id')->on('employees')->onDelete('cascade');

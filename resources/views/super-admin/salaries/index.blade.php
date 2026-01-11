@@ -26,7 +26,7 @@
                         <th>HRA</th>
                         <th>PF</th>
                         <th>PT</th>
-                        <th>TA</th>
+                        
                         <th>Conveyance</th>
                         <th>Gross Salary</th>
                         <th>Effective From</th>
@@ -42,7 +42,7 @@
                         <td>₹{{ number_format($salary->hra, 2) }}</td>
                         <td>₹{{ number_format($salary->pf, 2) }}</td>
                         <td>₹{{ number_format($salary->pt, 2) }}</td>
-                        <td>₹{{ number_format($salary->ta, 2) }}</td>
+                        
                         <td>₹{{ number_format($salary->conveyance_allowance, 2) }}</td>
                         <td><strong>₹{{ number_format($salary->gross_salary, 2) }}</strong></td>
                         <td>{{ $salary->effective_from->format('d M Y') }}</td>

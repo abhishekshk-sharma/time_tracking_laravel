@@ -10,7 +10,7 @@
                     <div class="employee-details">{{ $employee->emp_id }}</div>
                     <div class="employee-details">{{ $employee->department->name ?? 'No Department' }}</div>
                     <div class="employee-details">{{ $employee->designation ?? 'No Designation' }}</div>
-                    <span class="badge {{ $employee->status == 'active' ? 'badge-success' : 'badge-danger' }} employee-status">
+                    <span class="badge p-2  {{ $employee->status == 'active' ? 'text-bg-success' : 'text-bg-danger' }} employee-status">
                         {{ ucfirst($employee->status) }}
                     </span>
                 </div>

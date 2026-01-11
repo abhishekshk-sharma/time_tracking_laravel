@@ -95,10 +95,12 @@
                             </td>
                             <td>{{ $employee->email }}</td>
                             <td>
-                                @if($employee->department && is_object($employee->department))
-                                    <span class="badge badge-secondary">{{ $employee->department->name }}</span>
+                                @if($employee->status == 'inactive' && $employee->department && is_object($employee->department))
+                                    <span class="badge text-bg-secondary p-2 " style="font-size: 0.8rem;">{{ $employee->department->name }}</span>
+                                @elseif($employee->department && is_object($employee->department))
+                                    <span class="badge text-bg-primary p-2 " style="font-size: 0.8rem;">{{ $employee->department->name }}</span>
                                 @elseif($employee->department)
-                                    <span class="badge badge-secondary">{{ $employee->department }}</span>
+                                    <span class="badge text-bg-primary" style="font-size: 0.8rem;">{{ $employee->department }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -106,9 +108,9 @@
                             <td>{{ $employee->phone ?: '-' }}</td>
                             <td>
                                 @if($employee->status === 'active')
-                                    <span class="badge badge-success">Active</span>
+                                    <span class="badge text-bg-success" style="font-size: 0.8rem;">Active</span>
                                 @else
-                                    <span class="badge badge-danger">Inactive</span>
+                                    <span class="badge text-bg-danger" style="font-size: 0.8rem;">Inactive</span>
                                 @endif
                             </td>
                             <td>
