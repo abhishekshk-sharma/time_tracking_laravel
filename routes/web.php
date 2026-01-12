@@ -242,7 +242,7 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     })->name('notifications.read');
 });
 
-// Super Admin Auth Routes
+// Super Admin Auth Routes (No Middleware)
 Route::get('/super-admin/login', [SuperAdminController::class, 'showLogin'])->name('super-admin.login');
 Route::post('/super-admin/login', [SuperAdminController::class, 'login'])->name('super-admin.login.post');
 Route::get('/super-admin/register', [SuperAdminController::class, 'showRegister'])->name('super-admin.register');
