@@ -4,16 +4,21 @@
 
 @section('content')
 <div class="page-header">
-    <h1 class="page-title">Salary Management</h1>
-    <p class="page-subtitle">Manage salary details for your assigned employees</p>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">Salary Management</h1>
+            <p class="page-subtitle">Manage salary details for your assigned employees</p>
+        </div>
+        <a href="{{ route('admin.salaries.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Salary
+        </a>
+    </div>
 </div>
 
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">Employee Salaries</h3>
-        <a href="{{ route('admin.salaries.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Add New Salary
-        </a>
+        
     </div>
     <div class="card-body">
         <div class="table-container">

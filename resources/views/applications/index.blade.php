@@ -41,7 +41,18 @@
             background: #94a3b8;
         } */
     }
-    
+    #typeFilter, #statusFilter{
+        padding: 8px;
+    }
+    .filter-group{
+        position: relative;
+    }
+    .btn-primary, .btn-secondary{
+        position: relative;
+        display: flex;
+        align-self: end;
+        margin-top: 15px;
+    }
     .app-card {
         background: white;
         border-radius: 10px;
@@ -411,6 +422,39 @@
         margin-top: 20px;
     }
     
+    .file-upload-area {
+        border: 2px dashed #cbd5e1;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #f8fafc;
+    }
+    
+    .file-upload-area:hover {
+        border-color: var(--primary);
+        background: #f1f5f9;
+    }
+    
+    .file-upload-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        color: #64748b;
+    }
+    
+    .file-upload-content i {
+        font-size: 24px;
+        color: var(--primary);
+    }
+    
+    .file-upload-content span {
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
     @media(max-width: 1378px) {
         #imageModal {
             height: 46vw;
@@ -595,7 +639,13 @@
                         
                         <div class="form-group" id="attachmentGroup">
                             <label for="attachment">Attachment (if any) <p style="color:red;">Limit is 2MB (JPEG & PNG)</p></label>
-                            <input type="file" id="attachment" name="image" accept="image/jpeg,image/jpg,image/png,image/gif">
+                            <div class="file-upload-area" onclick="document.getElementById('attachment').click()">
+                                <input type="file" id="attachment" name="image" accept="image/jpeg,image/jpg,image/png,image/gif" style="display: none;">
+                                <div class="file-upload-content">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span>Choose file or drag here</span>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="form-actions">
@@ -682,6 +732,12 @@
                         <div class="filter-group">
                             <button type="button" class="btn btn-primary" id="checkfilter">
                                 <i class="fas fa-search"></i> Filter
+                            </button>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <button type="button" class="btn btn-secondary" id="resetFilter">
+                                <i class="fas fa-undo"></i> Reset
                             </button>
                         </div>
                         
@@ -1020,6 +1076,23 @@
             function hideNotification() {
                 notification.style.display = 'none';
             }
+            
+            // File upload area functionality
+            document.getElementById('attachment').addEventListener('change', function() {
+                const fileUploadContent = document.querySelector('.file-upload-content');
+                if (this.files && this.files[0]) {
+                    const fileName = this.files[0].name;
+                    fileUploadContent.innerHTML = `
+                        <i class="fas fa-file-image"></i>
+                        <span>${fileName}</span>
+                    `;
+                } else {
+                    fileUploadContent.innerHTML = `
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Choose file or drag here</span>
+                    `;
+                }
+            });
         });
     </script>
 
@@ -1272,6 +1345,23 @@
                     $("#startDateFilter").val('');
                     $("#endDateFilter").val('');
                 }
+            });
+            
+            // Reset filter button handler
+            $(document).on("click", "#resetFilter", function(){
+                // Reset all filter dropdowns to default values
+                $("#statusFilter").val('all');
+                $("#typeFilter").val('all');
+                $("#dateFilter").val('all');
+                $("#startDateFilter").val('');
+                $("#endDateFilter").val('');
+                
+                // Hide custom date inputs
+                $("#customDateGroup").hide();
+                $("#customEndDateGroup").hide();
+                
+                // Reload all applications
+                checkrequests();
             });
 
         });

@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\Employee;
+use App\Models\Region;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -11,7 +12,10 @@ class ProfileController extends Controller
 {
     public function index()
     {
-        return view('profile');
+        $employee = Employee::with("region")->where('emp_id', '=', Auth::user()->emp_id)->first();
+        // $region = $region->first()->region->name;
+        $ff =  $employee->region->name??"N/A";
+        return view('profile', compact('ff'));
     }
 
     public function updateEmail(Request $request)

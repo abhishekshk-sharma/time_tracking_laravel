@@ -14,8 +14,11 @@ class LocationSettingsController extends Controller
         $employees = Employee::where('status', 'active')->get();
         $locations = Location::with('employee')->get()->keyBy('emp_id');
         
-        // return $locations;
-        return view('admin.location-settings.index', compact('employees', 'locations'));
+        // Get admin's region details
+        $admin = auth()->user();
+        $adminRegion = $admin->region;
+        
+        return view('admin.location-settings.index', compact('employees', 'locations', 'adminRegion'));
     }
 
     public function update(Request $request)

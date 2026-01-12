@@ -405,6 +405,7 @@
                     <h2>{{ Auth::user()->full_name }}</h2>
                     <p>{{ Auth::user()->position }}</p>
                     <p>{{ Auth::user()->emp_id }}</p>
+                    <p><strong>Branch:</strong> {{$ff}}</p>
                 </div>
             </div>
 
@@ -419,7 +420,7 @@
                 </div>
                 <div class="detail-card">
                     <h3><i class="fas fa-building"></i> Department</h3>
-                    <p>{{ Auth::user()->department->name }}</p>
+                    <p>{{ Auth::user()->department->name?? "N/A" }}</p>
                 </div>
                 <div class="detail-card">
                     <h3><i class="fas fa-calendar-alt"></i> Join Date</h3>

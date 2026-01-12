@@ -121,7 +121,7 @@
                                 @endif
                             </td>
                             <td>{{ $employee->email }}</td>
-                            <td>{{ $employee->phone ?: '-' }}</td>
+                            <td>{{ $employee->phone ?? '-' }}</td>
                             <td>
                                 
                              
@@ -131,17 +131,17 @@
 
                                             @if ($employee->status !== 'inactive')
                                                 @if (($employee->region->name ?? null) !== null)
-                                                    <span class="badge p-2 text-bg-success">{{ $admin->region->name ?: 'Not Set' }}</span>
+                                                    <span class="badge p-2 text-bg-success">{{ $admin->region->name ?? 'Not Set' }}</span>
                                                 @else
 
-                                                <span class="badge p-2 text-bg-success">{{ $admin->region->name ?: 'Not Set' }}</span>
+                                                <span class="badge p-2 text-bg-success">{{ $admin->region->name ?? 'Not Set' }}</span>
                                                 @endif
                                             @else
                                                 @if (($employee->region->name ?? null) !== null)
-                                                    <span class="badge p-2 text-bg-secondary">{{ $admin->region->name ?: 'Not Set' }}</span>
+                                                    <span class="badge p-2 text-bg-secondary">{{ $admin->region->name ?? 'Not Set' }}</span>
                                                 @else
 
-                                                <span class="badge p-2 text-bg-secondary">{{ $admin->region->name ?: 'Not Set' }}</span>
+                                                <span class="badge p-2 text-bg-secondary">{{ $admin->region->name ?? 'Not Set' }}</span>
                                                 @endif
                                             
                                             @endif
@@ -154,7 +154,7 @@
                                     @endforeach
                                 
 
-                                {{-- <span class="badge p-2 text-bg-info">{{ $employee->region ?: 'Not Set' }}</span> --}}
+                                {{-- <span class="badge p-2 text-bg-info">{{ $employee->region ?? 'Not Set' }}</span> --}}
                             </td>
                             <td>
                                 @if($employee->salary)

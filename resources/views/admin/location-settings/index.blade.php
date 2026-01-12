@@ -90,6 +90,56 @@
         </form>
     </div>
 </div>
+
+@if($adminRegion)
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Branch Information</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label">Branch Name</label>
+                    <div class="form-control-static">{{ $adminRegion->name }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label">PIN Code</label>
+                    <div class="form-control-static">{{ $adminRegion->pin_code }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label">IP Address</label>
+                    <div class="form-control-static">{{ $adminRegion->ip_address ?? 'Not Set' }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label">Latitude</label>
+                    <div class="form-control-static">{{ $adminRegion->latitude ?? 'Not Set' }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label">Longitude</label>
+                    <div class="form-control-static">{{ $adminRegion->longitude ?? 'Not Set' }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label">Range</label>
+                    <div class="form-control-static">{{ $adminRegion->range ?? 'Not Set' }} {{ $adminRegion->range ? 'm' : '' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 
 @push('styles')
@@ -100,6 +150,17 @@
 .mb-4 { margin-bottom: 1.5rem; }
 .mt-4 { margin-top: 1.5rem; }
 .text-center { text-align: center; }
+.form-control-static {
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #495057;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+}
 @media (max-width: 768px) {
     .col-md-3, .col-md-4 { flex: 0 0 100%; max-width: 100%; }
 }
