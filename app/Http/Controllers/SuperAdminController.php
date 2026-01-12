@@ -31,6 +31,30 @@ class SuperAdminController extends Controller
         return view('super-admin.auth.login');
     }
 
+    public function showRegister()
+    {
+        return view('super-admin.auth.register');
+    }
+
+    public function register(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:super_admins,username',
+            'email' => 'required|email|unique:super_admins,email',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        SuperAdmin::create([
+            'name' => $request->name,
+            'username' => $request->username,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        return redirect()->route('super-admin.login')->with('success', 'Super admin account created successfully!');
+    }
+
     public function login(Request $request)
     {
         $credentials = $request->validate([
