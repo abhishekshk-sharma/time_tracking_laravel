@@ -400,6 +400,11 @@
                 </a>
             </div>
             <div class="nav-item">
+                <a href="{{ route('super-admin.notifications') }}" class="nav-link {{ request()->routeIs('super-admin.notifications*') ? 'active' : '' }}">
+                    <div class="nav-link-content"><i class="fas fa-bell nav-icon"></i> Notifications</div>
+                </a>
+            </div>
+            <div class="nav-item">
                 <a href="{{ route('super-admin.settings') }}" class="nav-link {{ request()->routeIs('super-admin.settings*') ? 'active' : '' }}">
                     <div class="nav-link-content"><i class="fas fa-sliders-h nav-icon"></i> Settings</div>
                 </a>
@@ -485,7 +490,7 @@
                         let timeAgo = new Date(notification.created_at).toLocaleDateString();
                         
                         html += `
-                            <div style="padding: 12px 16px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; ${notification.status === 'pending' ? 'background: rgba(11, 87, 208, 0.05); border-left: 3px solid var(--md-primary);' : ''}" data-id="${notification.id}" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='${notification.status === 'pending' ? 'rgba(11, 87, 208, 0.05)' : 'white'}'">
+                            <div style="padding: 12px 16px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; ${notification.status === 'pending' ? 'background: rgba(11, 87, 208, 0.05); border-left: 3px solid var(--md-primary);' : ''}" data-id="${notification.id}" onclick="window.location.href='{{ route('super-admin.notifications') }}'" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='${notification.status === 'pending' ? 'rgba(11, 87, 208, 0.05)' : 'white'}'">
                                 <div style="font-weight: 600; margin-bottom: 4px; text-transform: capitalize;">${appType} Submitted</div>
                                 <div style="font-size: 13px; color: #666; margin-bottom: 4px;">From: ${createdBy}</div>
                                 <div style="font-size: 12px; color: #999;">${timeAgo}</div>

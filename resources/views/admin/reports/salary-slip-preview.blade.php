@@ -67,6 +67,10 @@
                         <small class="text-muted text-uppercase">Date Of joining</small><br>
                         <strong>{{ $employee->hire_date->format("d M,Y") }}</strong>
                     </div>
+                    <div class="col-3">
+                        <small class="text-muted text-uppercase">Payment Mode</small><br>
+                        <strong>{{ ucfirst(str_replace('_', ' ', $salaryReport->payment_mode ?? 'Bank Transfer')) }}</strong>
+                    </div>
                     
                 </div>
             </div>

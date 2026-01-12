@@ -228,18 +228,36 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     
     // Notification routes
     Route::get('/notifications', function() {
-        $notifications = \App\Models\AppNotification::with(['application', 'createdBy'])
+        $superAdminId = auth('super_admin')->user()->id;
+        $notifications = \App\Models\AppNotification::where('notify_to', $superAdminId)
+            ->with(['application', 'createdBy'])
             ->orderBy('created_at', 'desc')
-            ->limit(10)
             ->get();
-        return response()->json($notifications);
+        
+        if (request()->expectsJson()) {
+            return response()->json($notifications);
+        }
+        
+        return view('super-admin.notifications.index');
     })->name('notifications');
     
     Route::post('/notifications/{id}/read', function($id) {
         \App\Models\AppNotification::where('id', $id)
             ->update(['status' => 'checked']);
-        return response()->json(['success' => true]);
+        
+        return redirect()->route('super-admin.applications');
     })->name('notifications.read');
+    
+    Route::delete('/notifications/{id}/read', function($id) {
+        \App\Models\AppNotification::where('id', $id)->delete();
+        return response()->json(['success' => true]);
+    });
+    
+    Route::delete('/notifications/clear-all', function() {
+        $superAdminId = auth('super_admin')->user()->id;
+        \App\Models\AppNotification::where('notify_to', $superAdminId)->delete();
+        return response()->json(['success' => true]);
+    });
 });
 
 // Super Admin Auth Routes (No Middleware)
@@ -324,17 +342,36 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
             })
             ->with(['application', 'createdBy'])
             ->orderBy('created_at', 'desc')
-            ->limit(10)
             ->get();
-        return response()->json($notifications);
+        
+        if (request()->expectsJson()) {
+            return response()->json($notifications);
+        }
+        
+        return view('admin.notifications.index');
     })->name('notifications');
     
     Route::post('/notifications/{id}/read', function($id) {
         \App\Models\AppNotification::where('id', $id)
             ->where('notify_to', Auth::user()->emp_id)
             ->update(['status' => 'checked']);
-        return response()->json(['success' => true]);
+        return redirect()->route('admin.applications');
     })->name('notifications.read');
+    
+    Route::delete('/notifications/{id}/read', function($id) {
+        \App\Models\AppNotification::where('id', $id)->delete();
+        return response()->json(['success' => true]);
+    });
+    
+    Route::delete('/notifications/clear-all', function() {
+        $adminEmpId = Auth::user()->emp_id;
+        \App\Models\AppNotification::where('notify_to', $adminEmpId)
+            ->whereHas('createdBy', function($query) use ($adminEmpId) {
+                $query->where('referrance', $adminEmpId);
+            })
+            ->delete();
+        return response()->json(['success' => true]);
+    });
     
     // Location Settings
     Route::get('/location-settings', [\App\Http\Controllers\Admin\LocationSettingsController::class, 'index'])->name('location-settings.index');

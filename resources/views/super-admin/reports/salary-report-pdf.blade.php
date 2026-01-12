@@ -138,6 +138,12 @@
             <td class="emp-label">Date of Joining</td>
             <td class="emp-value">{{ $employee->hire_date->format("d M, Y") ?? 'N/A' }}</td>
         </tr>
+        <tr>
+            <td class="emp-label">Payment Mode</td>
+            <td class="emp-value">{{ ucfirst(str_replace('_', ' ', $salaryReport->payment_mode ?? 'Bank Transfer')) }}</td>
+            <td class="emp-label"></td>
+            <td class="emp-value"></td>
+        </tr>
     </table>
 
     @if($salaryReport->bank_name || $salaryReport->uan || $salaryReport->pf_no || $salaryReport->esic_no)

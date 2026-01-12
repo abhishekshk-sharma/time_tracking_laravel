@@ -17,7 +17,7 @@ class SalaryReport extends Model
         'conveyance_allowance', 'pf', 'pt', 'payable_basic_salary', 'gross_salary', 
         'total_deductions', 'net_salary', 'has_negative_salary', 'has_missing_data', 
         'needs_review', 'status', 'is_released', 'bank_name', 'bank_account', 'ifsc_code', 
-        'bank_branch', 'uan', 'pf_no', 'esic_no'
+        'bank_branch', 'uan', 'pf_no', 'esic_no', 'payment_mode'
     ];
 
     protected $casts = [

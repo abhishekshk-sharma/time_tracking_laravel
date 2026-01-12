@@ -144,6 +144,17 @@
                                 <div style="color: #ef4444; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
                             @enderror
                         </div>
+
+                        <div class="form-group">
+                            <label for="payment_mode" class="form-label">Payment Mode</label>
+                            <select name="payment_mode" id="payment_mode" class="form-control" required>
+                                <option value="bank_transfer" {{ old('payment_mode', $salary->payment_mode ?? 'bank_transfer') == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                                <option value="cash" {{ old('payment_mode', $salary->payment_mode) == 'cash' ? 'selected' : '' }}>Cash</option>
+                            </select>
+                            @error('payment_mode')
+                                <div style="color: #ef4444; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
                 </div>
             </div>

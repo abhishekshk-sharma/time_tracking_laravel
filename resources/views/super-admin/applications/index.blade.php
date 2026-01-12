@@ -62,6 +62,7 @@
                 <table class="table">
                     <thead>
                         <tr>
+                            <th>ID</th>
                             <th>Employee</th>
                             <th>Type</th>
                             <th>Subject</th>
@@ -74,6 +75,9 @@
                     <tbody>
                         @foreach($applications as $application)
                         <tr>
+                            <td>
+                                <span class="badge bg-primary">#{{ $application->id }}</span>
+                            </td>
                             <td>
                                 <div style="display: flex; align-items: center;">
                                     <div style="width: 32px; height: 32px; background: #ff9900; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; margin-right: 10px;">
@@ -211,7 +215,10 @@ function showApplicationDetails(applicationId, action) {
             confirmButtonText: actionText,
             confirmButtonColor: actionColor,
             cancelButtonText: 'Cancel',
-            cancelButtonColor: '#6c757d'
+            cancelButtonColor: '#6c757d',
+            customClass: {
+                container: 'swal-high-z-index'
+            }
         }).then((result) => {
             if (result.isConfirmed) {
                 if (data.req_type === 'punch_Out_regularization' && action === 'approved') {
@@ -274,7 +281,10 @@ function viewApplication(applicationId) {
             html: html,
             width: 600,
             showCloseButton: true,
-            showConfirmButton: false
+            showConfirmButton: false,
+            customClass: {
+                container: 'swal-high-z-index'
+            }
         });
     }).fail(function() {
         Swal.fire({
@@ -429,4 +439,12 @@ function showPunchOutModal(applicationId, requestedTime) {
     });
 }
 </script>
+@endpush
+
+@push('styles')
+<style>
+.swal-high-z-index {
+    z-index: 99999 !important;
+}
+</style>
 @endpush

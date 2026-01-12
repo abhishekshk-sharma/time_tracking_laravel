@@ -204,13 +204,20 @@
                                             <label class="form-label fw-bold">ESIC Number</label>
                                             <input type="text" class="form-control" name="esic_no" value="{{ old('esic_no', $salaryReport->esic_no) }}" maxlength="17">
                                         </div>
+                                        <div>
+                                            <label class="form-label fw-bold">Payment Mode</label>
+                                            <select class="form-control" name="payment_mode" required>
+                                                <option value="bank_transfer" {{ old('payment_mode', $salaryReport->payment_mode) == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                                                <option value="cash" {{ old('payment_mode', $salaryReport->payment_mode) == 'cash' ? 'selected' : '' }}>Cash</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Calculation Summary Sidebar -->
                             <div class="col-lg-4">
-                                <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+                                <div class="card shadow-sm border-0 sticky-top" style="top: 0px;">
                                     <div class="card-header bg-light border-0">
                                         <h6 class="card-title text-dark fw-bold mb-0">
                                             <i class="fas fa-calculator me-2 text-primary"></i>Salary Calculation

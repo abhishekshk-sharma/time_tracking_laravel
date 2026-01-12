@@ -931,6 +931,7 @@ class AdminController extends Controller
             'conveyance_allowance' => 'required|numeric|min:0',
             'pf' => 'required|numeric|min:0',
             'pt' => 'required|numeric|min:0',
+            'payment_mode' => 'required|in:cash,bank_transfer',
             'bank_name' => 'nullable|string|max:255',
             'bank_account' => 'nullable|string|max:255',
             'ifsc_code' => 'nullable|string|max:11',
@@ -1005,6 +1006,7 @@ class AdminController extends Controller
             'has_missing_data' => !$request->basic_salary || !$request->department,
             'needs_review' => $netSalary < 0 || !$request->basic_salary || !$request->department || $request->payable_days < 10,
             'status' => 'reviewed',
+            'payment_mode' => $request->payment_mode,
             'bank_name' => $request->bank_name,
             'bank_account' => $request->bank_account,
             'ifsc_code' => $request->ifsc_code,
@@ -1800,6 +1802,7 @@ class AdminController extends Controller
             'pf' => 'required|numeric|min:0',
             'pt' => 'required|numeric|min:0',
             'effective_from' => 'required|date',
+            'payment_mode' => 'required|in:cash,bank_transfer',
             'bank_name' => 'nullable|string|max:255',
             'bank_account' => 'nullable|string|max:255',
             'ifsc_code' => 'nullable|string|max:11',
@@ -1853,6 +1856,7 @@ class AdminController extends Controller
             'pf' => 'required|numeric|min:0',
             'pt' => 'required|numeric|min:0',
             'effective_from' => 'required|date',
+            'payment_mode' => 'required|in:cash,bank_transfer',
             'bank_name' => 'nullable|string|max:255',
             'bank_account' => 'nullable|string|max:255',
             'ifsc_code' => 'nullable|string|max:11',
@@ -1863,7 +1867,7 @@ class AdminController extends Controller
         ]);
 
         $salary->update($request->only([
-            'basic_salary', 'hra', 'conveyance_allowance', 'pf', 'pt', 'effective_from',
+            'basic_salary', 'hra', 'conveyance_allowance', 'pf', 'pt', 'effective_from', 'payment_mode',
             'bank_name', 'bank_account', 'ifsc_code', 'bank_branch', 'uan', 'pf_no', 'esic_no'
         ]));
 

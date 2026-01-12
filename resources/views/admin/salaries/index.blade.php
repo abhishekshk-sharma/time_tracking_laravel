@@ -32,6 +32,7 @@
                         <th>PF</th>
                         <th>PT</th>
                         <th>Conveyance</th>
+                        <th>Payment Mode</th>
                         <th>Gross Salary</th>
                         <th>Effective From</th>
                         <th>Actions</th>
@@ -47,6 +48,11 @@
                         <td>₹{{ number_format($salary->pf, 2) }}</td>
                         <td>₹{{ number_format($salary->pt, 2) }}</td>
                         <td>₹{{ number_format($salary->conveyance_allowance, 2) }}</td>
+                        <td>
+                            <span class="badge {{ $salary->payment_mode == 'cash' ? 'badge-warning' : 'badge-success' }}">
+                                {{ $salary->payment_mode == 'cash' ? 'Cash' : 'Bank Transfer' }}
+                            </span>
+                        </td>
                         <td><strong>₹{{ number_format($salary->gross_salary, 2) }}</strong></td>
                         <td>{{ $salary->effective_from->format('d M Y') }}</td>
                         <td>
@@ -57,7 +63,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" style="text-align: center; padding: 40px; color: #86868b;">
+                        <td colspan="11" style="text-align: center; padding: 40px; color: #86868b;">
                             <i class="fas fa-money-bill-wave fa-3x" style="margin-bottom: 16px; opacity: 0.3;"></i>
                             <div>No salary records found for your employees</div>
                             <div style="margin-top: 8px;">

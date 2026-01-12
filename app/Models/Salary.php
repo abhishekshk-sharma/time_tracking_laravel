@@ -28,6 +28,7 @@ class Salary extends Model
         'uan',
         'pf_no',
         'esic_no',
+        'payment_mode',
     ];
 
     protected $casts = [

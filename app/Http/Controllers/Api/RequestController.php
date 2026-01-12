@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Employee;
+use App\Models\SuperAdmin;
 use App\Models\TimeEntry;
 use App\Models\SystemSetting;
 use App\Models\LeaveCount;
@@ -545,7 +546,7 @@ class RequestController extends Controller
     private function createNotificationsForAdmins($applicationId, $createdBy)
     {
         $emp_admin = Employee::where('emp_id', $createdBy)->first();
-        $adminId = $emp_admin->referrance;
+        // $adminId = $emp_admin->referrance;
         // \log::info("applicationid ". $applicationId);
         // \log::info("createdby ".$createdBy);
         // \log::info("emp admin ".$emp_admin->referrance);
@@ -555,6 +556,19 @@ class RequestController extends Controller
             'created_by' => $createdBy,
             'notify_to' => $emp_admin->referrance   
         ]);
+        
+
+        //creating notification for all the super admins
+
+        $super_admin = SuperAdmin::where('is_active', '=', 1)->get();
+
+        foreach($super_admin as $admin){
+            Notification::create([
+                'App_id' => $applicationId,
+                'created_by' => $createdBy,
+                'notify_to' => $admin->id
+            ]);
+        }
 
         
         // foreach ($admins as $admin) {
