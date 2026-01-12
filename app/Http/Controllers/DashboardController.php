@@ -554,6 +554,7 @@ class DashboardController extends Controller
         $date = $day['date'];
         $exception = $day['exception'] ?? null;
         $timeEntries = collect($day['time_entries'] ?? []);
+        $today = Carbon::today();
         
         // Priority 1: Schedule exceptions
         if ($exception) {
@@ -582,7 +583,12 @@ class DashboardController extends Controller
             return 'weekend';
         }
         
-        // Priority 4: Default absent
+        // Priority 4: Future dates - no status
+        if ($date->gt($today)) {
+            return 'future';
+        }
+        
+        // Priority 5: Past dates without entries - absent
         return 'absent';
     }
     

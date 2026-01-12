@@ -112,7 +112,7 @@ class TimeController extends Controller
         if ($lunchStart && $lunchEnd) {
             $lunchMinutes = Carbon::parse($lunchStart->entry_time)->diffInMinutes(Carbon::parse($lunchEnd->entry_time));
             if ($lunchMinutes > $letscheck['lunch_duration']) {
-                $statuses[] = '<span class="badge" style="background:#fd7e14;color:white">Long Lunch</span>';
+                $statuses[] = '<span class="badge " style="background:#fd7e14;color:white">Long Lunch</span>';
             }
         }
         

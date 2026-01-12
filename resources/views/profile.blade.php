@@ -419,7 +419,7 @@
                 </div>
                 <div class="detail-card">
                     <h3><i class="fas fa-building"></i> Department</h3>
-                    <p>{{ Auth::user()->department }}</p>
+                    <p>{{ Auth::user()->department->name }}</p>
                 </div>
                 <div class="detail-card">
                     <h3><i class="fas fa-calendar-alt"></i> Join Date</h3>

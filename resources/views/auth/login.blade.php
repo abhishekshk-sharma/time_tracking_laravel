@@ -180,6 +180,12 @@
             border: 1px solid #fecaca;
         }
         
+        .alert-success {
+            background-color: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+        
         @media (max-width: 480px) {
             .login-card {
                 padding: 1.5rem;
@@ -196,9 +202,16 @@
     <div class="login-container">
         <div class="login-card">
             <div class="logo">
-                <h1>TimeTrack</h1>
-                <p>Employee Time Management System</p>
+                <img src="{{ asset('images/logo.svg') }}" alt="TimeTrack Logo" style="width: 160px; height: 80px; margin-bottom: 1rem;">
+                {{-- <h1>TimeTrack</h1> --}}
+                {{-- <p>Employee Time Management System</p> --}}
             </div>
+            
+            @if (session('status'))
+                <div class="alert alert-success">
+                    {{ session('status') }}
+                </div>
+            @endif
             
             @if ($errors->any())
                 <div class="alert alert-danger">
@@ -232,7 +245,7 @@
                 <button type="submit" class="btn">Sign In</button>
                 
                 <div class="forgot-password">
-                    <a href="#">Forgot your password?</a>
+                    <a href="{{ route('password.request') }}">Forgot your password?</a>
                 </div>
             </form>
         </div>

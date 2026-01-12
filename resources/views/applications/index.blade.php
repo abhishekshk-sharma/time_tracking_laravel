@@ -324,7 +324,9 @@
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         position: relative;
     }
-    
+    .modal-content::-webkit-scrollbar{
+        display:none;
+    }
     .application-details {
         margin-bottom: 20px;
     }
@@ -714,7 +716,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modalTitle">Application Details</h3>
-                <button class="close-btn">&times;</button>
+                <button class="btn btn-close close-btn">&times;</button>
             </div>
             
             <div class="application-details">
@@ -1177,7 +1179,22 @@
                             });
                         }
                     },
-                    
+                    error: function(xhr, status, error) {
+                        let errorMessage = "Something went wrong!";
+                        
+                        if (xhr.responseText) {
+                            errorMessage = xhr.responseText;
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errorMessage = xhr.responseJSON.error;
+                        }
+                        
+                        Swal.fire({
+                            text: errorMessage,
+                            icon: "error"
+                        });
+                    }
                 });
             }
 

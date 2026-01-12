@@ -67,17 +67,17 @@
                                     @if($application->status === 'pending')
                                         <span class="badge p-2 text-bg-warning">Pending</span>
                                     @elseif($application->status === 'approved')
-                                        <span class="badge p-2 text-bg-success">Approved</span>
+                                        <span class="badge p-2 text-bg-success" >Approved</span>
                                     @else
                                         <span class="badge p-2 text-bg-danger">Rejected</span>
                                     @endif
                                 </td>
                                 <td>
                                     @if($application->status === 'pending')
-                                        <button class="btn btn-sm btn-success" onclick="updateApplicationStatus({{ $application->id }}, 'approved')">
+                                        <button class="btn btn-sm btn-success" onclick="updateApplicationStatus({{ $application->id }}, 'approved')" style="margin-bottom: 5px;">
                                             <i class="fas fa-check"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-danger" onclick="updateApplicationStatus({{ $application->id }}, 'rejected')">
+                                        <button class="btn btn-sm btn-danger" onclick="updateApplicationStatus({{ $application->id }}, 'rejected')" style="margin-bottom: 5px;">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     @else

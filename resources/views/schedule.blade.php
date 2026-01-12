@@ -267,27 +267,37 @@ $(document).ready(function() {
         for (let day = 1; day <= daysInMonth; day++) {
             const date = currentYear + '-' + String(currentMonth).padStart(2, '0') + '-' + String(day).padStart(2, '0');
             const dayOfWeek = new Date(currentYear, currentMonth - 1, day).getDay();
-            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
             const isToday = day === today.getDate() && currentMonth === today.getMonth() + 1 && currentYear === today.getFullYear();
             
             let dayClass = 'calendar-day';
             let status = 'No data';
             
-            if (isWeekend) {
-                dayClass += ' weekend';
-                status = 'Weekend';
-            }
-            
             if (data && data[date]) {
-                if (data[date].status === 'present') {
+                if (data[date].status === 'future') {
+                    // Future dates - no status shown
+                    status = '';
+                } else if (data[date].status === 'present') {
                     status = 'Present';
                     dayClass += ' present';
                 } else if (data[date].status === 'absent') {
                     status = 'Absent';
                     dayClass += ' absent';
+                } else if (data[date].status === 'weekend') {
+                    status = 'Weekend';
+                    dayClass += ' weekend';
                 } else {
                     status = data[date].status;
                     dayClass += ' leave';
+                }
+            } else {
+                // Check if it's a future date
+                const currentDate = new Date(currentYear, currentMonth - 1, day);
+                const todayDate = new Date();
+                todayDate.setHours(0, 0, 0, 0);
+                currentDate.setHours(0, 0, 0, 0);
+                
+                if (currentDate > todayDate) {
+                    status = ''; // No status for future dates
                 }
             }
             

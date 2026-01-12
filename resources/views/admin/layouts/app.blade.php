@@ -124,7 +124,7 @@
             text-decoration: none;
             font-size: 14px;
             font-weight: 500;
-            border-radius: var(--radius-btn);
+            border-radius: 7px;
             margin-bottom: 4px;
             transition: all 0.3s var(--ease-calm);
         }

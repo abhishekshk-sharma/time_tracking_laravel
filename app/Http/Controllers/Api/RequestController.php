@@ -44,8 +44,8 @@ class RequestController extends Controller
                                 <td>{$start->format('M d')} - " . ($end ? $end->format('M d') : "") . "</td>
                                 <td><span class='status-badge status-{$row->status}'>{$row->status}</span></td>
                                 <td>
-                                    <button class='action-btn view-btn view_request' data-id='{$row->employee_id}' data-type='{$row->req_type}' data-time='{$time}'>
-                                        <i class='fas fa-eye'></i> View
+                                    <button class='btn btn-sm btn-secondary view_request' data-id='{$row->employee_id}' data-type='{$row->req_type}' data-time='{$time}' style='padding-right: 8px;'>
+                                        <i class='fas fa-eye'></i> 
                                     </button>
                                 </td>
                             </tr>";

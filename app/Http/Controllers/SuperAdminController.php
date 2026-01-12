@@ -16,7 +16,9 @@ use App\Services\SalaryCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Spatie\Browsershot\Browsershot;
 use Illuminate\Validation\Rule; 
@@ -1840,5 +1842,123 @@ class SuperAdminController extends Controller
         $superAdmin->update($updateData);
         
         return redirect()->route('super-admin.profile')->with('success', 'Profile updated successfully!');
+    }
+
+    public function showForgotPassword()
+    {
+        return view('super-admin.auth.forgot-password');
+    }
+
+    public function sendResetLink(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $superAdmin = SuperAdmin::where('email', $request->email)->first();
+
+        if (!$superAdmin) {
+            return back()->withErrors(['email' => 'We can\'t find a super admin with that email address.']);
+        }
+
+        $token = Str::random(64);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->email],
+            [
+                'email' => $request->email,
+                'token' => Hash::make($token),
+                'created_at' => Carbon::now()
+            ]
+        );
+
+        $resetUrl = route('super-admin.password.reset', ['token' => $token]) . '?email=' . urlencode($request->email);
+
+        try {
+            Mail::send('emails.super-admin-password-reset', ['resetUrl' => $resetUrl, 'superAdmin' => $superAdmin], function($message) use($request) {
+                $message->to($request->email);
+                $message->subject('Super Admin Password Reset');
+            });
+
+            return back()->with('status', 'We have emailed your password reset link!');
+        } catch (\Exception $e) {
+            return back()->withErrors(['email' => 'Failed to send reset email. Please try again.']);
+        }
+    }
+
+    public function showResetPassword(Request $request, $token)
+    {
+        return view('super-admin.auth.reset-password', ['token' => $token, 'email' => $request->email]);
+    }
+
+      public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        $passwordReset = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        if (!$passwordReset || !Hash::check($request->token, $passwordReset->token)) {
+            return back()->withErrors(['email' => 'This password reset token is invalid.']);
+        }
+
+        if (Carbon::parse($passwordReset->created_at)->addMinutes(60)->isPast()) {
+            return back()->withErrors(['email' => 'This password reset token has expired.']);
+        }
+
+        $superAdmin = SuperAdmin::where('email', $request->email)->first();
+        $superAdmin->password = Hash::make($request->password);
+        $superAdmin->save();
+
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        return redirect()->route('super-admin.login')->with('status', 'Your password has been reset!');
+    }
+
+    public function checkSalaryReports(Request $request)
+    {
+        $request->validate([
+            'month' => 'required|integer|between:1,12',
+            'year' => 'required|integer|min:2020|max:2030'
+        ]);
+
+        $hasUnreleasedReports = SalaryReport::where('month', $request->month)
+            ->where('year', $request->year)
+            ->where('is_released', 0)
+            ->exists();
+
+        return response()->json(['hasUnreleasedReports' => $hasUnreleasedReports]);
+    }
+
+    public function releaseSalaryReports(Request $request)
+    {
+        $request->validate([
+            'month' => 'required|integer|between:1,12',
+            'year' => 'required|integer|min:2020|max:2030'
+        ]);
+
+        $month = $request->month;
+        $year = $request->year;
+
+        // Check if reports exist for this month/year
+        $reportsCount = SalaryReport::where('month', $month)
+            ->where('year', $year)
+            ->count();
+
+        if ($reportsCount === 0) {
+            return redirect()->route('super-admin.reports')
+                ->with('error', 'No salary reports found for ' . date('F Y', mktime(0, 0, 0, $month, 1, $year)));
+        }
+
+        // Release all reports for this month/year
+        $releasedCount = SalaryReport::where('month', $month)
+            ->where('year', $year)
+            ->update(['is_released' => 1]);
+
+        return redirect()->route('super-admin.reports')
+            ->with('success', "Released {$releasedCount} salary reports for " . date('F Y', mktime(0, 0, 0, $month, 1, $year)));
     }
 }

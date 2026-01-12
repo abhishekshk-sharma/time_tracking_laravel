@@ -16,7 +16,7 @@ class SalaryReport extends Model
         'holidays', 'short_attendance', 'payable_days', 'basic_salary', 'hra', 
         'conveyance_allowance', 'pf', 'pt', 'payable_basic_salary', 'gross_salary', 
         'total_deductions', 'net_salary', 'has_negative_salary', 'has_missing_data', 
-        'needs_review', 'status', 'bank_name', 'bank_account', 'ifsc_code', 
+        'needs_review', 'status', 'is_released', 'bank_name', 'bank_account', 'ifsc_code', 
         'bank_branch', 'uan', 'pf_no', 'esic_no'
     ];
 
@@ -25,6 +25,7 @@ class SalaryReport extends Model
         'has_negative_salary' => 'boolean',
         'has_missing_data' => 'boolean',
         'needs_review' => 'boolean',
+        'is_released' => 'boolean',
     ];
 
     public function employee()

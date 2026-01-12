@@ -22,11 +22,11 @@
         <div class="card-body">
             <p style="color: #565959; margin-bottom: 20px;">Generate detailed salary reports for all employees.</p>
             
-            <form action="{{ route('super-admin.salary-reports.generate') }}" method="POST">
+            <form action="{{ route('super-admin.salary-reports.generate') }}" method="POST" id="generateForm">
                 @csrf
                 <div class="form-group">
                     <label class="form-label">Month</label>
-                    <select name="month" class="form-control" required>
+                    <select name="month" id="salaryMonth" class="form-control" required>
                         @for($m = 1; $m <= 12; $m++)
                             <option value="{{ $m }}" {{ $m == date('n') ? 'selected' : '' }}>
                                 {{ date('F', mktime(0, 0, 0, $m, 1)) }}
@@ -37,16 +37,22 @@
                 
                 <div class="form-group">
                     <label class="form-label">Year</label>
-                    <select name="year" class="form-control" required>
+                    <select name="year" id="salaryYear" class="form-control" required>
                         @for($y = date('Y') - 1; $y <= date('Y') + 1; $y++)
                             <option value="{{ $y }}" {{ $y == date('Y') ? 'selected' : '' }}>{{ $y }}</option>
                         @endfor
                     </select>
                 </div>
                 
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-cogs"></i> Generate All Salary Reports
-                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-cogs"></i> Generate All Salary Reports
+                    </button>
+                    
+                    <button type="button" id="releaseBtn" class="btn btn-success" style="display: none;" onclick="releaseSalaryReports()">
+                        <i class="fas fa-unlock"></i> Release Reports
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -161,8 +167,9 @@
                             <th>Month/Year</th>
                             <th>Net Salary</th>
                             <th>Status</th>
+                            <th>Release Status</th>
                             <th>Report Quality</th>
-                            <th>Actions</th>
+                            <th class="sticky-actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -187,6 +194,11 @@
                                     </span>
                                 </td>
                                 <td>
+                                    <span class="badge p-2 bg-{{ $report->is_released ? 'success' : 'secondary' }}">
+                                        {{ $report->is_released ? 'Released' : 'Pending' }}
+                                    </span>
+                                </td>
+                                <td>
                                     @if($report->has_negative_salary)
                                         <span class="badge p-2 bg-danger me-1">Negative Salary</span>
                                     @endif
@@ -200,7 +212,7 @@
                                         <span class="badge p-2 bg-success">Good</span>
                                     @endif
                                 </td>
-                                <td>
+                                <td class="sticky-actions">
                                     <a href="{{ route('super-admin.salary-reports.edit', $report->id) }}" 
                                        class="btn btn-sm btn-warning me-1">
                                         <i class="fas fa-edit"></i> 
@@ -228,6 +240,29 @@
 @endsection
 
 @push('scripts')
+<style>
+.sticky-actions {
+    position: sticky;
+    right: 0;
+    background: white;
+    z-index: 10;
+    box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+    min-width: 120px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table th.sticky-actions {
+    background: #f4f4f9 !important;
+    color: rgb(0, 0, 0);
+}
+
+.table td.sticky-actions {
+    border-left: 1px solid #dee2e6;
+}
+</style>
 <script>
 function toggleEmployeeSearch() {
     const type = $('#salaryEmployeeType').val();
@@ -241,6 +276,79 @@ function toggleEmployeeSearch() {
         $('#salaryEmployeeSearch').val('');
     }
 }
+
+// Check for existing reports when month/year changes
+function checkExistingReports() {
+    const month = document.getElementById('salaryMonth').value;
+    const year = document.getElementById('salaryYear').value;
+    
+    if (month && year) {
+        fetch('/super-admin/salary-reports/check', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ month: month, year: year })
+        })
+        .then(response => response.json())
+        .then(data => {
+            const releaseBtn = document.getElementById('releaseBtn');
+            if (data.hasUnreleasedReports) {
+                releaseBtn.style.display = 'inline-block';
+            } else {
+                releaseBtn.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking reports:', error);
+        });
+    }
+}
+
+// Release salary reports
+function releaseSalaryReports() {
+    const month = document.getElementById('salaryMonth').value;
+    const year = document.getElementById('salaryYear').value;
+    const monthName = document.getElementById('salaryMonth').options[document.getElementById('salaryMonth').selectedIndex].text;
+    
+    if (confirm(`Are you sure you want to release all salary reports for ${monthName} ${year}? This will make them visible to employees.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ route("super-admin.salary-reports.release") }}';
+        
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = '_token';
+        csrfToken.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        const monthInput = document.createElement('input');
+        monthInput.type = 'hidden';
+        monthInput.name = 'month';
+        monthInput.value = month;
+        
+        const yearInput = document.createElement('input');
+        yearInput.type = 'hidden';
+        yearInput.name = 'year';
+        yearInput.value = year;
+        
+        form.appendChild(csrfToken);
+        form.appendChild(monthInput);
+        form.appendChild(yearInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Add event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('salaryMonth').addEventListener('change', checkExistingReports);
+    document.getElementById('salaryYear').addEventListener('change', checkExistingReports);
+    
+    // Check on page load
+    checkExistingReports();
+});
 
 // Salary Reports Search Functions
 function applyFilters() {

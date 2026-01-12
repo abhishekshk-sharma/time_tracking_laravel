@@ -23,9 +23,11 @@ class PayslipController extends Controller
             ->pluck('year')
             ->toArray();
             
-        // Get payslips for selected year only
+        // Get payslips for selected year only (only released reports for employees)
         $payslips = SalaryReport::where('emp_id', $empId)
             ->where('year', $selectedYear)
+            
+            ->where('is_released', '=', 1)
             ->orderBy('month', 'ASC')
             ->get()
             ->map(function($payslip) {
@@ -41,6 +43,7 @@ class PayslipController extends Controller
     {
         $payslip = SalaryReport::where('id', $id)
             ->where('emp_id', Auth::user()->emp_id)
+            ->where('is_released', '=', 1)
             ->firstOrFail();
             
         $employee = Employee::where('emp_id', $payslip->emp_id)->first();

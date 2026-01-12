@@ -24,6 +24,12 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Password Reset Routes
+Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+
 // API Routes for AJAX calls
 Route::middleware(['auth'])->prefix('api')->name('api.')->group(function () {
     // Request/Application API routes
@@ -147,6 +153,8 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     
     // Salary Reports
     Route::post('/salary-reports/generate', [SuperAdminController::class, 'generateSalaryReports'])->name('salary-reports.generate');
+    Route::post('/salary-reports/check', [SuperAdminController::class, 'checkSalaryReports'])->name('salary-reports.check');
+    Route::post('/salary-reports/release', [SuperAdminController::class, 'releaseSalaryReports'])->name('salary-reports.release');
     Route::get('/salary-reports/{id}/download', [SuperAdminController::class, 'downloadSalaryReport'])->name('salary-reports.download');
     Route::get('/salary-reports/{id}/edit', [SuperAdminController::class, 'editSalaryReport'])->name('salary-reports.edit');
     Route::put('/salary-reports/{id}', [SuperAdminController::class, 'updateSalaryReport'])->name('salary-reports.update');
@@ -208,6 +216,12 @@ Route::post('/super-admin/login', [SuperAdminController::class, 'login'])->name(
 Route::get('/super-admin/register', [SuperAdminController::class, 'showRegister'])->name('super-admin.register');
 Route::post('/super-admin/register', [SuperAdminController::class, 'register'])->name('super-admin.register.post');
 Route::post('/super-admin/logout', [SuperAdminController::class, 'logout'])->name('super-admin.logout');
+
+// Super Admin Password Reset Routes
+Route::get('/super-admin/forgot-password', [SuperAdminController::class, 'showForgotPassword'])->name('super-admin.password.request');
+Route::post('/super-admin/forgot-password', [SuperAdminController::class, 'sendResetLink'])->name('super-admin.password.email');
+Route::get('/super-admin/reset-password/{token}', [SuperAdminController::class, 'showResetPassword'])->name('super-admin.password.reset');
+Route::post('/super-admin/reset-password', [SuperAdminController::class, 'resetPassword'])->name('super-admin.password.update');
 
 // Admin Routes (Protected)
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {

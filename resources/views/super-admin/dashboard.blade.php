@@ -65,10 +65,10 @@
                                 </td>
                                 <td>
                                     @if($application->status === 'pending')
-                                        <button class="btn btn-sm btn-success" onclick="updateApplicationStatus({{ $application->id }}, 'approved')">
+                                        <button class="btn btn-sm btn-success" onclick="updateApplicationStatus({{ $application->id }}, 'approved')" style="margin-bottom: 5px;">
                                             <i class="fas fa-check"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-danger" onclick="updateApplicationStatus({{ $application->id }}, 'rejected')">
+                                        <button class="btn btn-sm btn-danger" onclick="updateApplicationStatus({{ $application->id }}, 'rejected')" style="margin-bottom: 5px;">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     @else
