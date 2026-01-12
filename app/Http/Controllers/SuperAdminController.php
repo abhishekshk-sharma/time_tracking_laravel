@@ -8,6 +8,7 @@ use App\Models\Salary;
 use App\Models\SalaryReport;
 use App\Models\Department;
 use App\Models\Application;
+use App\Models\AppNotification;
 use App\Models\TimeEntry;
 use App\Models\Region;
 use App\Models\SystemSetting;
@@ -566,6 +567,13 @@ class SuperAdminController extends Controller
             if ($request->status === 'approved') {
                 $this->createTimeEntryForApplication($application);
             }
+
+            // Create notification for employee
+            AppNotification::create([
+                'App_id' => $application->id,
+                'created_by' => auth('super_admin')->user()->username,
+                'notify_to' => $application->employee_id
+            ]);
 
             return response()->json(['success' => true, 'message' => 'Application ' . $request->status . ' successfully']);
         } catch (\Exception $e) {

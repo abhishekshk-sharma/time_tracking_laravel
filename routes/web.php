@@ -70,6 +70,23 @@ Route::middleware(['auth', 'employee'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/applications-history', [DashboardController::class, 'employeehistory'])->name('applications.history');
+    
+    // Notification routes
+    Route::get('/notifications', function() {
+        $notifications = \App\Models\AppNotification::where('notify_to', Auth::user()->emp_id)
+            ->with(['application', 'createdBy'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+        return response()->json($notifications);
+    })->name('notifications');
+    
+    Route::post('/notifications/{id}/read', function($id) {
+        \App\Models\AppNotification::where('id', $id)
+            ->where('notify_to', Auth::user()->emp_id)
+            ->update(['status' => 'checked']);
+        return response()->json(['success' => true]);
+    })->name('notifications.read');
     // Route::get('/employeehistory', [DashboardController::class, 'employeehistory'])->name('employeehistory');
     // Time Tracking AJAX Routes
     Route::post('/punch-in', [DashboardController::class, 'punchIn'])->name('punch.in');
@@ -208,6 +225,21 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     // Profile Management
     Route::get('/profile', [SuperAdminController::class, 'profile'])->name('profile');
     Route::put('/profile', [SuperAdminController::class, 'updateProfile'])->name('profile.update');
+    
+    // Notification routes
+    Route::get('/notifications', function() {
+        $notifications = \App\Models\AppNotification::with(['application', 'createdBy'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+        return response()->json($notifications);
+    })->name('notifications');
+    
+    Route::post('/notifications/{id}/read', function($id) {
+        \App\Models\AppNotification::where('id', $id)
+            ->update(['status' => 'checked']);
+        return response()->json(['success' => true]);
+    })->name('notifications.read');
 });
 
 // Super Admin Auth Routes
@@ -253,10 +285,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     // Time Entries
     Route::post('/time-entries/update', [AdminController::class, 'updateTimeEntry'])->name('time-entries.update');
-    // Route::get('/time-entries', [AdminController::class, 'timeEntries'])->name('time-entries');
-    // Route::delete('/time-entries/{timeEntry}', [AdminController::class, 'deleteTimeEntry'])->name('time-entries.delete');
-    
-
     
     // Reports
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
@@ -286,6 +314,27 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Profile Management
     Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
     Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
+    
+    // Notification routes
+    Route::get('/notifications', function() {
+        $adminEmpId = Auth::user()->emp_id;
+        $notifications = \App\Models\AppNotification::where('notify_to', $adminEmpId)
+            ->whereHas('createdBy', function($query) use ($adminEmpId) {
+                $query->where('referrance', $adminEmpId);
+            })
+            ->with(['application', 'createdBy'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+        return response()->json($notifications);
+    })->name('notifications');
+    
+    Route::post('/notifications/{id}/read', function($id) {
+        \App\Models\AppNotification::where('id', $id)
+            ->where('notify_to', Auth::user()->emp_id)
+            ->update(['status' => 'checked']);
+        return response()->json(['success' => true]);
+    })->name('notifications.read');
     
     // Location Settings
     Route::get('/location-settings', [\App\Http\Controllers\Admin\LocationSettingsController::class, 'index'])->name('location-settings.index');

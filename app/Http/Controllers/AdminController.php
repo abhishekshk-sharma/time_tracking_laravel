@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\LeaveCount;
 use App\Models\TimeEntry;
 use App\Models\Application;
+use App\Models\AppNotification;
 use App\Models\Department;
 use App\Models\SystemSetting;
 use App\Models\Wfh;
@@ -359,7 +360,14 @@ class AdminController extends Controller
             }
 
             \Log::info('Application status updated successfully', ['application_id' => $application->id]);
-            return response()->json(['success' => true, 'message' => 'Application ' . $request->status . ' successfully']);
+            // Create notification for employee
+        AppNotification::create([
+            'App_id' => $application->id,
+            'created_by' => Auth::user()->emp_id,
+            'notify_to' => $application->employee_id
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Application ' . $request->status . ' successfully']);
         } catch (\Exception $e) {
             \Log::error('Application status update error: ' . $e->getMessage(), [
                 'application_id' => $application->id ?? 'unknown',

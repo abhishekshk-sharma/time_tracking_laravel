@@ -544,14 +544,25 @@ class RequestController extends Controller
 
     private function createNotificationsForAdmins($applicationId, $createdBy)
     {
-        $admins = Employee::where('role', 'admin')->get();
+        $emp_admin = Employee::where('emp_id', $createdBy)->first();
+        $adminId = $emp_admin->referrance;
+        // \log::info("applicationid ". $applicationId);
+        // \log::info("createdby ".$createdBy);
+        // \log::info("emp admin ".$emp_admin->referrance);
+
+        Notification::create([
+            'App_id' => $applicationId,
+            'created_by' => $createdBy,
+            'notify_to' => $emp_admin->referrance   
+        ]);
+
         
-        foreach ($admins as $admin) {
-            Notification::create([
-                'App_id' => $applicationId,
-                'created_by' => $createdBy,
-                'notify_to' => $admin->emp_id
-            ]);
-        }
+        // foreach ($admins as $admin) {
+        //     Notification::create([
+        //         'App_id' => $applicationId,
+        //         'created_by' => $createdBy,
+        //         'notify_to' => $admin->emp_id
+        //     ]);
+        // }
     }
 }

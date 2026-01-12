@@ -304,6 +304,13 @@
         </a>
 
         <div class="admin-user">
+            <div class="notification-bell" id="notificationBell" style="margin-right: 16px; position: relative; cursor: pointer;">
+                <i class="fas fa-bell" style="font-size: 18px; color: var(--md-text-sub);"></i>
+                <span class="notification-badge" id="notificationCount" style="position: absolute; top: -8px; right: -8px; background: #dc2626; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: none; align-items: center; justify-content: center; font-weight: 600;">0</span>
+                <div class="notification-dropdown" id="notificationDropdown" style="position: absolute; top: 100%; right: 0; background: white; border: 1px solid var(--md-outline-variant); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); width: 320px; max-height: 400px; overflow-y: auto; z-index: 1000; display: none; margin-top: 8px;">
+                    <div id="notificationList" style="padding: 8px;">Loading...</div>
+                </div>
+            </div>
             <span style="font-size: 14px; font-weight: 500; color: #444;">Hi, 
                 {{ auth('super_admin')->check() ? auth('super_admin')->user()->username : 'Super Admin' }}
             </span>
@@ -439,6 +446,78 @@
             const isExpanded = menu.classList.contains('open');
             parentLink.setAttribute('aria-expanded', isExpanded);
         }
+        
+        // Notification functionality
+        let notificationDropdownOpen = false;
+        
+        $('#notificationBell').click(function(e) {
+            e.stopPropagation();
+            if (!notificationDropdownOpen) {
+                loadNotifications();
+                $('#notificationDropdown').show();
+                notificationDropdownOpen = true;
+            } else {
+                $('#notificationDropdown').hide();
+                notificationDropdownOpen = false;
+            }
+        });
+        
+        $(document).click(function() {
+            if (notificationDropdownOpen) {
+                $('#notificationDropdown').hide();
+                notificationDropdownOpen = false;
+            }
+        });
+        
+        function loadNotifications() {
+            $.get('{{ route("super-admin.notifications") }}', function(notifications) {
+                let html = '';
+                let unreadCount = 0;
+                
+                if (notifications.length === 0) {
+                    html = '<div style="padding: 16px; text-align: center; color: #666;">No notifications</div>';
+                } else {
+                    notifications.forEach(function(notification) {
+                        if (notification.status === 'pending') unreadCount++;
+                        
+                        let appType = notification.application ? notification.application.req_type.replace('_', ' ') : 'Application';
+                        let createdBy = notification.created_by ? notification.created_by.username : 'Employee';
+                        let timeAgo = new Date(notification.created_at).toLocaleDateString();
+                        
+                        html += `
+                            <div style="padding: 12px 16px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; ${notification.status === 'pending' ? 'background: rgba(11, 87, 208, 0.05); border-left: 3px solid var(--md-primary);' : ''}" data-id="${notification.id}" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='${notification.status === 'pending' ? 'rgba(11, 87, 208, 0.05)' : 'white'}'">
+                                <div style="font-weight: 600; margin-bottom: 4px; text-transform: capitalize;">${appType} Submitted</div>
+                                <div style="font-size: 13px; color: #666; margin-bottom: 4px;">From: ${createdBy}</div>
+                                <div style="font-size: 12px; color: #999;">${timeAgo}</div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                $('#notificationList').html(html);
+                
+                if (unreadCount > 0) {
+                    $('#notificationCount').text(unreadCount).show();
+                } else {
+                    $('#notificationCount').hide();
+                }
+            });
+        }
+        
+        $(document).on('click', '[data-id]', function() {
+            let notificationId = $(this).data('id');
+            $(this).css('background', 'white').css('border-left', 'none');
+            
+            $.post(`/super-admin/notifications/${notificationId}/read`, {
+                _token: '{{ csrf_token() }}'
+            });
+        });
+        
+        // Load notifications on page load
+        loadNotifications();
+        
+        // Refresh notifications every 30 seconds
+        setInterval(loadNotifications, 30000);
     </script>
     @stack('scripts')
 </body>

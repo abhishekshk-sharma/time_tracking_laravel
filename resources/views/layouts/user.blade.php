@@ -219,7 +219,15 @@
                 <div class="user-avatar">
                     <i class="fas fa-user-circle"></i>
                 </div>
-                <h3>{{ Auth::user()->full_name }}</h3>
+                <h3>{{ Auth::user()->full_name }}
+                    <div class="notification-bell" id="notificationBell">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationCount" style="display: none;">0</span>
+                        <div class="notification-dropdown" id="notificationDropdown">
+                            <div id="notificationList">Loading...</div>
+                        </div>
+                    </div>
+                </h3>
                 <p>ID: {{ Auth::user()->emp_id }}</p>
                 <div class="status-indicator online">
                     <span class="status-dot"></span>
@@ -335,6 +343,78 @@ $(document).ready(function() {
             $('body').css('overflow', 'auto');
         }
     });
+    
+    // Notification functionality
+    let notificationDropdownOpen = false;
+    
+    $('#notificationBell').click(function(e) {
+        e.stopPropagation();
+        if (!notificationDropdownOpen) {
+            loadNotifications();
+            $('#notificationDropdown').addClass('show');
+            notificationDropdownOpen = true;
+        } else {
+            $('#notificationDropdown').removeClass('show');
+            notificationDropdownOpen = false;
+        }
+    });
+    
+    $(document).click(function() {
+        if (notificationDropdownOpen) {
+            $('#notificationDropdown').removeClass('show');
+            notificationDropdownOpen = false;
+        }
+    });
+    
+    function loadNotifications() {
+        $.get('{{ route("notifications") }}', function(notifications) {
+            let html = '';
+            let unreadCount = 0;
+            
+            if (notifications.length === 0) {
+                html = '<div class="notification-item">No notifications</div>';
+            } else {
+                notifications.forEach(function(notification) {
+                    if (notification.status === 'pending') unreadCount++;
+                    
+                    let appType = notification.application ? notification.application.req_type.replace('_', ' ') : 'Application';
+                    let createdBy = notification.created_by ? notification.created_by.username : 'Admin';
+                    let timeAgo = new Date(notification.created_at).toLocaleDateString();
+                    
+                    html += `
+                        <div class="notification-item ${notification.status === 'pending' ? 'unread' : ''}" data-id="${notification.id}">
+                            <div style="font-weight: 600; margin-bottom: 4px;">${appType} Update</div>
+                            <div style="font-size: 0.875rem; color: #666; margin-bottom: 4px;">From: ${createdBy}</div>
+                            <div style="font-size: 0.75rem; color: #999;">${timeAgo}</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            $('#notificationList').html(html);
+            
+            if (unreadCount > 0) {
+                $('#notificationCount').text(unreadCount).show();
+            } else {
+                $('#notificationCount').hide();
+            }
+        });
+    }
+    
+    $(document).on('click', '.notification-item[data-id]', function() {
+        let notificationId = $(this).data('id');
+        $(this).removeClass('unread');
+        
+        $.post(`/notifications/${notificationId}/read`, {
+            _token: '{{ csrf_token() }}'
+        });
+    });
+    
+    // Load notifications on page load
+    loadNotifications();
+    
+    // Refresh notifications every 30 seconds
+    setInterval(loadNotifications, 30000);
 });
 </script>
 @stack('page-scripts')

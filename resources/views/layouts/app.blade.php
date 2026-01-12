@@ -150,6 +150,74 @@
             font-weight: 500;
         }
         
+        .notification-bell {
+            position: relative;
+            display: inline-block;
+            margin-left: 1rem;
+            cursor: pointer;
+        }
+        
+        .notification-bell i {
+            font-size: 1.25rem;
+            color: var(--gray-600);
+            transition: var(--transition);
+        }
+        
+        .notification-bell:hover i {
+            color: var(--primary);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .notification-dropdown.show {
+            display: block;
+        }
+        
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .notification-item:hover {
+            background: var(--gray-50);
+        }
+        
+        .notification-item.unread {
+            background: rgba(79, 70, 229, 0.05);
+            border-left: 3px solid var(--primary);
+        }
+        
         .nav-menu {
             list-style: none;
         }

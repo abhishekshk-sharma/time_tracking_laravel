@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Application;
+use App\Models\AppNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -39,7 +40,17 @@ class ApplicationController extends Controller
             $data['file'] = $request->file('attachment')->store('attachments', 'public');
         }
 
-        Application::create($data);
+        $application = Application::create($data);
+        
+        // Create notification for admin
+        $employee = Auth::user();
+        if ($employee->referrance) {
+            AppNotification::create([
+                'App_id' => $application->id,
+                'created_by' => $employee->emp_id,
+                'notify_to' => $employee->referrance
+            ]);
+        }
 
         return response()->json([
             'success' => true,
