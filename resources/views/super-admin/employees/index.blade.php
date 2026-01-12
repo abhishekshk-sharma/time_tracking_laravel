@@ -84,7 +84,7 @@
                             <th>Department</th>
                             <th>Email</th>
                             <th>Phone</th>
-                            <th>Region</th>
+                            <th>Branch</th>
                             <th>Current Salary</th>
                             <th>Status</th>
                             <th>Actions</th>

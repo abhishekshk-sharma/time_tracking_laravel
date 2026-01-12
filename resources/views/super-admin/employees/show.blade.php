@@ -95,7 +95,7 @@
                             </div>
                         </div>
                         <div class="info-item">
-                            <label>Region</label>
+                            <label>Branch</label>
                             <div class="value">
                                 <span class="region-chip">{{ $employee->region->name ?? 'Global' }}</span>
                             </div>

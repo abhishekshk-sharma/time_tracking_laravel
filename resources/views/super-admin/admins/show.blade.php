@@ -10,7 +10,7 @@
             <p class="page-subtitle">{{ $admin->username }} ({{ $admin->emp_id }})</p>
         </div>
         <div>
-            <a href="{{ route('super-admin.admins.edit', $admin) }}" class="btn btn-primary" style="margin-top: 10px;">
+            <a href="{{ route('super-admin.admins.edit', $admin) }}" class="btn btn-primary" >
                 <i class="fas fa-edit"></i> Edit Admin
             </a>
             <a href="{{ route('super-admin.admins') }}" class="btn btn-secondary">
@@ -67,7 +67,7 @@
                 <span>{{ $admin->position ?? 'Not Specified' }}</span>
             </div>
             <div class="info-row">
-                <label>Region:</label>
+                <label>Branch:</label>
                 <span>{{ $admin->region->name ?? 'Not Assigned' }}</span>
             </div>
             @if($admin->region)

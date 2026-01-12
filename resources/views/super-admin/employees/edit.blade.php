@@ -133,9 +133,9 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Region</label>
+                    <label class="form-label">Branch</label>
                     <select class="form-control" name="region_id" @error('region_id') is-invalid @enderror">
-                        <option value="">Select Region</option>
+                        <option value="">Select Branch</option>
                         @foreach($regions as $region)
                             <option value="{{ $region->id }}" {{ $employee->region_id == $region->id ? 'selected' : '' }}>
                                 {{ $region->name }}

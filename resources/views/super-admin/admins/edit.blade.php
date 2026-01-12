@@ -72,9 +72,9 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Region</label>
+                    <label class="form-label">Branch</label>
                     <select class="form-control" name="region_id">
-                        <option value="">Select Region</option>
+                        <option value="">Select Branch</option>
                         @foreach($regions as $region)
                             <option value="{{ $region->id }}" {{ $admin->region_id == $region->id ? 'selected' : '' }}>
                                 {{ $region->name }}
