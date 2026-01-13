@@ -2010,4 +2010,29 @@ class SuperAdminController extends Controller
         return redirect()->route('super-admin.reports')
             ->with('success', "Released {$releasedCount} salary reports for " . date('F Y', mktime(0, 0, 0, $month, 1, $year)));
     }
+    
+    public function leaveDays()
+    {
+        $currentSettings = \App\Models\LeaveCount::selectRaw('MAX(casual_leave) as casual_leave, MAX(sick_leave) as sick_leave')
+            ->first()
+            ->toArray();
+        
+        return view('super-admin.leave-days.index', compact('currentSettings'));
+    }
+    
+    public function updateLeaveDays(Request $request)
+    {
+        $request->validate([
+            'casual_leave' => 'required|integer|min:0|max:365',
+            'sick_leave' => 'required|integer|min:0|max:365'
+        ]);
+        
+        \App\Models\LeaveCount::query()->update([
+            'casual_leave' => $request->casual_leave,
+            'sick_leave' => $request->sick_leave
+        ]);
+        
+        return redirect()->route('super-admin.leave-days')
+            ->with('success', 'Leave days updated successfully for all employees');
+    }
 }

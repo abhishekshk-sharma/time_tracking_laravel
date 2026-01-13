@@ -226,6 +226,10 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     Route::get('/profile', [SuperAdminController::class, 'profile'])->name('profile');
     Route::put('/profile', [SuperAdminController::class, 'updateProfile'])->name('profile.update');
     
+    // Leave Days Management
+    Route::get('/leave-days', [SuperAdminController::class, 'leaveDays'])->name('leave-days');
+    Route::post('/leave-days', [SuperAdminController::class, 'updateLeaveDays'])->name('leave-days.update');
+    
     // Notification routes
     Route::get('/notifications', function() {
         $superAdminId = auth('super_admin')->user()->id;

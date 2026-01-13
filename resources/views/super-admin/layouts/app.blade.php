@@ -372,7 +372,7 @@
             </div>
 
             @php
-                $isOrgActive = request()->routeIs('super-admin.departments*') || request()->routeIs('super-admin.regions*') || request()->routeIs('super-admin.location-settings*');
+                $isOrgActive = request()->routeIs('super-admin.departments*') || request()->routeIs('super-admin.regions*') || request()->routeIs('super-admin.location-settings*') || request()->routeIs('super-admin.leave-days*');
             @endphp
             <div class="nav-item">
                 <div class="nav-link {{ $isOrgActive ? 'active' : '' }}" onclick="toggleMenu('menu-org')" aria-expanded="{{ $isOrgActive ? 'true' : 'false' }}">
@@ -383,6 +383,7 @@
                     <li><a href="{{ route('super-admin.departments') }}" class="sub-nav-link {{ request()->routeIs('super-admin.departments*') ? 'active' : '' }}">Departments</a></li>
                     <li><a href="{{ route('super-admin.regions') }}" class="sub-nav-link {{ request()->routeIs('super-admin.regions*') ? 'active' : '' }}">Branch</a></li>
                     <li><a href="{{ route('super-admin.location-settings.index') }}" class="sub-nav-link {{ request()->routeIs('super-admin.location-settings*') ? 'active' : '' }}">Location Settings</a></li>
+                    <li><a href="{{ route('super-admin.leave-days') }}" class="sub-nav-link {{ request()->routeIs('super-admin.leave-days*') ? 'active' : '' }}">Leave Days</a></li>
                 </ul>
             </div>
 
