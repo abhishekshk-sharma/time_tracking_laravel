@@ -5,6 +5,79 @@
 
 @push('page-styles')
 <style>
+    /* Full-screen loading modal */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        backdrop-filter: blur(5px);
+    }
+    
+    .loading-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 300px;
+        width: 90%;
+    }
+    
+    .loading-spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+    
+    .loading-text {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .loading-subtext {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Mobile responsive loading modal */
+    @media (max-width: 768px) {
+        .loading-content {
+            padding: 1.5rem;
+            max-width: 280px;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .loading-text {
+            font-size: 1rem;
+        }
+        
+        .loading-subtext {
+            font-size: 0.8rem;
+        }
+    }
+    
     .header-content {
         display: flex;
         justify-content: space-between;
@@ -653,6 +726,15 @@
 
 @endsection
 
+<!-- Full-screen loading modal -->
+<div id="loadingModal" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Processing...</div>
+        <div class="loading-subtext" id="loadingSubtext">Please wait</div>
+    </div>
+</div>
+
 @push('page-scripts')
 <script>
 $(document).ready(function() {
@@ -739,6 +821,9 @@ $(document).ready(function() {
         
         isProcessing = true;
         
+        // Show loading modal
+        showLoadingModal(action);
+        
         // Disable the clicked button immediately
         const clickedBtn = $('#' + action.replace('_', '') + 'Btn');
         clickedBtn.prop('disabled', true).addClass('processing');
@@ -778,6 +863,7 @@ $(document).ready(function() {
             },
             timeout: 30000,
             success: function(response) {
+                hideLoadingModal();
                 if (response.require_image) {
                     showImageCaptureModal(action);
                 } else if (response.success) {
@@ -794,6 +880,7 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
+                hideLoadingModal();
                 const response = xhr.responseJSON;
                 if (response && response.require_image) {
                     showImageCaptureModal(action);
@@ -825,6 +912,8 @@ $(document).ready(function() {
                     <br>
                     <button id="captureBtn" class="btn btn-primary" style="margin: 10px;">Capture Image</button>
                     <button id="retakeBtn" class="btn btn-secondary" style="margin: 10px; display: none;">Retake</button>
+                    <br>
+                    <button id="bypassBtn" class="btn btn-warning" style="margin: 10px;">Punch ${action.replace('_', ' ')} without Image</button>
                 </div>
             `,
             showCancelButton: true,
@@ -850,6 +939,11 @@ $(document).ready(function() {
             $('#captureBtn').show().text('Capture Image');
             $('#retakeBtn').hide();
             startCamera();
+        });
+        
+        // Handle bypass button
+        $(document).on('click', '#bypassBtn', function() {
+            bypassImageCapture(action);
         });
     }
     
@@ -934,6 +1028,51 @@ $(document).ready(function() {
                     icon: 'error',
                     title: 'Error!',
                     text: response?.error || 'Failed to submit image. Please try again.'
+                });
+            }
+        });
+    }
+    
+    function bypassImageCapture(action) {
+        // Show loading modal for bypass action
+        showLoadingModal(action);
+        
+        const route = action === 'punch_in' ? '{{ route("punch.in") }}' : 
+                     action === 'punch_out' ? '{{ route("punch.out") }}' : 
+                     action === 'lunch_start' ? '{{ route("lunch.start") }}' : 
+                     '{{ route("lunch.end") }}';
+        
+        $.ajax({
+            url: route,
+            method: 'POST',
+            data: {
+                bypass_image: true,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                hideLoadingModal();
+                Swal.close();
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: response.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    loadTimeData();
+                    loadActivityData();
+                    updateButtonStates();
+                }
+            },
+            error: function(xhr) {
+                hideLoadingModal();
+                Swal.close();
+                const response = xhr.responseJSON;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: response?.error || 'Failed to process request. Please try again.'
                 });
             }
         });
@@ -1095,6 +1234,24 @@ $(document).ready(function() {
         loadTimeData();
         updateButtonStates();
     }, 300000);
+    
+    // Loading modal functions
+    function showLoadingModal(action) {
+        const actionText = {
+            'punch_in': 'Punching In',
+            'punch_out': 'Punching Out', 
+            'lunch_start': 'Starting Lunch',
+            'lunch_end': 'Ending Lunch'
+        };
+        
+        $('#loadingText').text(actionText[action] || 'Processing');
+        $('#loadingSubtext').text('Please wait...');
+        $('#loadingModal').fadeIn(200);
+    }
+    
+    function hideLoadingModal() {
+        $('#loadingModal').fadeOut(200);
+    }
 });
 </script>
 @endpush

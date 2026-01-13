@@ -63,6 +63,18 @@ class DashboardController extends Controller
             return response()->json(['error' => 'Already punched in'], 400);
         }
 
+        // Check if bypassing image authentication
+        if ($request->input('bypass_image')) {
+            TimeEntry::create([
+                'employee_id' => $employee->emp_id,
+                'entry_type' => 'punch_in',
+                'entry_time' => now(),
+                'notes' => 'punch_in'
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Punch In Successful!']);
+        }
+
         // Location authentication
         $locationAuth = app(LocationAuthService::class);
         $authResult = $locationAuth->authenticateLocation($employee, $request);
@@ -94,6 +106,18 @@ class DashboardController extends Controller
 
         if (!$lastEntry || !in_array($lastEntry->entry_type, ['punch_in', 'lunch_end'])) {
             return response()->json(['error' => 'Must punch in first'], 400);
+        }
+
+        // Check if bypassing image authentication
+        if ($request->input('bypass_image')) {
+            TimeEntry::create([
+                'employee_id' => $employee->emp_id,
+                'entry_type' => 'punch_out',
+                'entry_time' => now(),
+                'notes' => 'punch_out'
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Punch Out Successful!']);
         }
 
         // Location authentication
@@ -186,6 +210,18 @@ class DashboardController extends Controller
             return response()->json(['error' => 'Must punch in first'], 400);
         }
 
+        // Check if bypassing image authentication
+        if ($request->input('bypass_image')) {
+            TimeEntry::create([
+                'employee_id' => $employee->emp_id,
+                'entry_type' => 'lunch_start',
+                'entry_time' => now(),
+                'notes' => 'lunch_start'
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Lunch Start Successful!']);
+        }
+
         TimeEntry::create([
             'employee_id' => $employee->emp_id,
             'entry_type' => 'lunch_start',
@@ -203,6 +239,18 @@ class DashboardController extends Controller
 
         if (!$lastEntry || $lastEntry->entry_type !== 'lunch_start') {
             return response()->json(['error' => 'Must start lunch first'], 400);
+        }
+
+        // Check if bypassing image authentication
+        if ($request->input('bypass_image')) {
+            TimeEntry::create([
+                'employee_id' => $employee->emp_id,
+                'entry_type' => 'lunch_end',
+                'entry_time' => now(),
+                'notes' => 'lunch_end'
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Lunch End Successful!']);
         }
 
         TimeEntry::create([

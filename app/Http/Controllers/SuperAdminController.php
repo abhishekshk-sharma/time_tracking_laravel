@@ -1552,6 +1552,18 @@ class SuperAdminController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+    
+    public function deleteTimeEntry($id)
+    {
+        try {
+            $timeEntry = TimeEntry::findOrFail($id);
+            $timeEntry->delete();
+            
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 
     public function generateAttendanceReports(Request $request)
     {
@@ -1829,12 +1841,6 @@ class SuperAdminController extends Controller
         }
         
         return back()->with('success', "Successfully deleted {$deletedCount} image(s).");
-    }
-
-    public function deleteTimeEntry(TimeEntry $timeEntry)
-    {
-        $timeEntry->delete();
-        return response()->json(['success' => true]);
     }
 
     public function getSalarySlipPreview($id)
