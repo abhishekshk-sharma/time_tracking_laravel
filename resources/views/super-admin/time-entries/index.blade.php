@@ -143,8 +143,9 @@ $('#filterBtn').click(function() {
     const fromDate = $('#fromDate').val();
     const toDate = $('#toDate').val();
     
-    if (employee && fromDate && toDate) {
-        // AJAX request for specific employee and date range
+    // Check if any filter is applied
+    if (employee || fromDate || toDate) {
+        // AJAX request for filtered data
         $.ajax({
             url: '{{ route("super-admin.time-entries") }}',
             method: 'GET',
@@ -161,13 +162,13 @@ $('#filterBtn').click(function() {
             }
         });
     } else {
-        // Regular form submission
-        $('#filterForm').submit();
+        // No filters applied, reload page to show default view
+        window.location.href = '{{ route("super-admin.time-entries") }}';
     }
 });
 
 function displayFilteredEntries(entries, employeeId) {
-    const employeeName = $('#employeeSelect option:selected').text();
+    const employeeName = employeeId ? $('#employeeSelect option:selected').text() : 'All Employees';
     let html = '';
     
     if (entries.length > 0) {
@@ -195,16 +196,21 @@ function displayFilteredEntries(entries, employeeId) {
                 hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' 
             });
             
+            // Get employee name from entry data or use selected employee name
+            const empName = entry.employee ? entry.employee.username : (employeeId ? employeeName.split(' (')[0] : 'Unknown');
+            const empId = entry.employee ? entry.employee.emp_id : entry.employee_id;
+            const empInitial = empName.charAt(0).toUpperCase();
+            
             html += `
                 <tr>
                     <td>
                         <div style="display: flex; align-items: center;">
                             <div style="width: 32px; height: 32px; background: #ff6b35; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; margin-right: 10px; font-size: 12px;">
-                                ${employeeName.charAt(0).toUpperCase()}
+                                ${empInitial}
                             </div>
                             <div>
-                                <div style="font-weight: 500;">${employeeName.split(' (')[0]}</div>
-                                <div style="font-size: 12px; color: #6b7280;">${entry.employee_id}</div>
+                                <div style="font-weight: 500;">${empName}</div>
+                                <div style="font-size: 12px; color: #6b7280;">${empId}</div>
                             </div>
                         </div>
                     </td>
@@ -278,7 +284,7 @@ function deleteEntry(entryId) {
                 const fromDate = $('#fromDate').val();
                 const toDate = $('#toDate').val();
                 
-                if (employee && fromDate && toDate) {
+                if (employee || fromDate || toDate) {
                     // Refresh filtered results
                     $.ajax({
                         url: '{{ route("super-admin.time-entries") }}',

@@ -1444,50 +1444,56 @@ class SuperAdminController extends Controller
 
     public function timeEntries(Request $request)
     {
-        if ($request->has('employee') && $request->has('from_date') && $request->has('to_date')) {
-            // Handle AJAX request for specific employee and date range
-            $empId = $request->get('employee');
-            $fromDate = $request->get('from_date');
-            $toDate = $request->get('to_date');
-
-            $query = TimeEntry::where('employee_id', $empId);
+        // Handle AJAX requests for filtered data
+        if ($request->ajax() || ($request->has('employee') || $request->has('from_date') || $request->has('to_date'))) {
+            $query = TimeEntry::with('employee');
             
-            if ($fromDate) {
-                $query->whereDate('entry_time', '>=', $fromDate);
+            // Filter by employee
+            if ($request->employee) {
+                $query->where('employee_id', $request->employee);
             }
             
-            if ($toDate) {
-                $query->whereDate('entry_time', '<=', $toDate);
+            // Filter by date range
+            if ($request->from_date && $request->to_date) {
+                $query->whereBetween('entry_time', [$request->from_date . ' 00:00:00', $request->to_date . ' 23:59:59']);
+            } elseif ($request->from_date) {
+                $query->whereDate('entry_time', $request->from_date);
+            } elseif ($request->to_date) {
+                $query->whereDate('entry_time', '<=', $request->to_date);
+            } elseif ($request->employee && !$request->from_date && !$request->to_date) {
+                // If only employee is selected, show today's entries
+                $query->whereDate('entry_time', today());
             }
             
-            $entries = $query->orderBy('entry_time')->get();
+            $entries = $query->orderBy('entry_time', 'desc')->get();
             
-            // Get entry images matched by entry_id
+            // Get entry images
             $images = \App\Models\EntryImage::whereIn('entry_id', $entries->pluck('id'))
                 ->get()
                 ->keyBy('entry_id');
             
-            return response()->json([
-                'entries' => $entries,
-                'images' => $images
-            ]);
+            if ($request->ajax()) {
+                return response()->json([
+                    'entries' => $entries,
+                    'images' => $images
+                ]);
+            }
+            
+            // For non-AJAX requests, return view with filtered data
+            $timeEntries = new \Illuminate\Pagination\LengthAwarePaginator(
+                $entries,
+                $entries->count(),
+                20,
+                1,
+                ['path' => request()->url()]
+            );
+            
+            $employees = Employee::where('role', 'employee')->get();
+            return view('super-admin.time-entries.index', compact('timeEntries', 'employees'));
         }
         
-        // Original timeEntries method for the main page
+        // Default view - show recent entries
         $query = TimeEntry::with('employee');
-        
-        if ($request->employee) {
-            $query->where('employee_id', $request->employee);
-        }
-        
-        if ($request->from_date) {
-            $query->whereDate('entry_time', '>=', $request->from_date);
-        }
-        
-        if ($request->to_date) {
-            $query->whereDate('entry_time', '<=', $request->to_date);
-        }
-        
         $timeEntries = $query->orderBy('entry_time', 'desc')->paginate(20);
         $employees = Employee::where('role', 'employee')->get();
         

@@ -159,6 +159,10 @@ class DashboardController extends Controller
             $result = $this->processPunchIn($employee);
         } elseif ($entryType === 'punch_out') {
             $result = $this->processPunchOut($employee);
+        } elseif ($entryType === 'lunch_start') {
+            $result = $this->processLunchStart($employee);
+        } elseif ($entryType === 'lunch_end') {
+            $result = $this->processLunchEnd($employee);
         } else {
             return response()->json(['error' => 'Invalid entry type'], 400);
         }
@@ -174,11 +178,17 @@ class DashboardController extends Controller
             ]);
         }
         
-        return response()->json(['error' => 'Failed to create time entry'], 400);
+        return response()->json(['error' => $result['message']], 400);
     }
     
     private function processPunchIn($employee)
     {
+        $lastEntry = TimeEntry::getLastEntryForEmployee($employee->emp_id);
+        
+        if ($lastEntry && in_array($lastEntry->entry_type, ['punch_in', 'lunch_end'])) {
+            return ['success' => false, 'message' => 'Already punched in'];
+        }
+        
         $timeEntry = TimeEntry::create([
             'employee_id' => $employee->emp_id,
             'entry_type' => 'punch_in',
@@ -191,6 +201,12 @@ class DashboardController extends Controller
     
     private function processPunchOut($employee)
     {
+        $lastEntry = TimeEntry::getLastEntryForEmployee($employee->emp_id);
+        
+        if (!$lastEntry || !in_array($lastEntry->entry_type, ['punch_in', 'lunch_end'])) {
+            return ['success' => false, 'message' => 'Must punch in first'];
+        }
+        
         $timeEntry = TimeEntry::create([
             'employee_id' => $employee->emp_id,
             'entry_type' => 'punch_out',
@@ -199,6 +215,42 @@ class DashboardController extends Controller
         ]);
         
         return ['success' => true, 'message' => 'Punch Out Successful!', 'entry_id' => $timeEntry->id];
+    }
+    
+    private function processLunchStart($employee)
+    {
+        $lastEntry = TimeEntry::getLastEntryForEmployee($employee->emp_id);
+        
+        if (!$lastEntry || $lastEntry->entry_type !== 'punch_in') {
+            return ['success' => false, 'message' => 'Must punch in first'];
+        }
+        
+        $timeEntry = TimeEntry::create([
+            'employee_id' => $employee->emp_id,
+            'entry_type' => 'lunch_start',
+            'entry_time' => now(),
+            'notes' => 'lunch_start'
+        ]);
+        
+        return ['success' => true, 'message' => 'Lunch Start Successful!', 'entry_id' => $timeEntry->id];
+    }
+    
+    private function processLunchEnd($employee)
+    {
+        $lastEntry = TimeEntry::getLastEntryForEmployee($employee->emp_id);
+        
+        if (!$lastEntry || $lastEntry->entry_type !== 'lunch_start') {
+            return ['success' => false, 'message' => 'Must start lunch first'];
+        }
+        
+        $timeEntry = TimeEntry::create([
+            'employee_id' => $employee->emp_id,
+            'entry_type' => 'lunch_end',
+            'entry_time' => now(),
+            'notes' => 'lunch_end'
+        ]);
+        
+        return ['success' => true, 'message' => 'Lunch End Successful!', 'entry_id' => $timeEntry->id];
     }
 
     public function lunchStart(Request $request)
