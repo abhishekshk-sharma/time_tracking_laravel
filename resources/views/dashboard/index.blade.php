@@ -5,6 +5,69 @@
 
 @push('page-styles')
 <style>
+    /* Full-screen loading modal */
+    .loading-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: rgba(0, 0, 0, 0.8) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        z-index: 999999 !important;
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+    
+    .loading-content {
+        background: white !important;
+        padding: 2rem !important;
+        border-radius: 16px !important;
+        text-align: center !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+        max-width: 300px !important;
+        width: 90% !important;
+        position: relative !important;
+    }
+    
+    .loading-spinner {
+        width: 60px !important;
+        height: 60px !important;
+        border: 4px solid #f3f4f6 !important;
+        border-top: 4px solid #3b82f6 !important;
+        border-radius: 50% !important;
+        animation: spin 1s linear infinite !important;
+        margin: 0 auto 1rem !important;
+    }
+    
+    .loading-text {
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        color: #374151 !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .loading-subtext {
+        font-size: 0.875rem !important;
+        color: #6b7280 !important;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* SweetAlert above loading modal */
+    .swal2-container {
+        z-index: 9999999 !important;
+    }
+    
+    .swal2-popup {
+        z-index: 9999999 !important;
+    }
+    
     .header-content {
         display: flex;
         justify-content: space-between;
@@ -653,6 +716,15 @@
 
 @endsection
 
+<!-- Full-screen loading modal -->
+<div id="loadingModal" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Processing...</div>
+        <div class="loading-subtext" id="loadingSubtext">Please wait</div>
+    </div>
+</div>
+
 @push('page-scripts')
 <script>
 $(document).ready(function() {
@@ -739,6 +811,9 @@ $(document).ready(function() {
         
         isProcessing = true;
         
+        // Show loading modal
+        showLoadingModal(action);
+        
         // Disable the clicked button immediately
         const clickedBtn = $('#' + action.replace('_', '') + 'Btn');
         clickedBtn.prop('disabled', true).addClass('processing');
@@ -778,6 +853,7 @@ $(document).ready(function() {
             },
             timeout: 30000,
             success: function(response) {
+                hideLoadingModal();
                 if (response.require_image) {
                     showImageCaptureModal(action);
                 } else if (response.success) {
@@ -786,7 +862,8 @@ $(document).ready(function() {
                         title: 'Success!',
                         text: response.message,
                         timer: 2000,
-                        showConfirmButton: false
+                        showConfirmButton: false,
+                        zIndex: 9999999
                     });
                     loadTimeData();
                     loadActivityData();
@@ -794,6 +871,7 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
+                hideLoadingModal();
                 const response = xhr.responseJSON;
                 if (response && response.require_image) {
                     showImageCaptureModal(action);
@@ -802,6 +880,7 @@ $(document).ready(function() {
                         icon: 'error',
                         title: 'Error!',
                         text: response?.error || 'Unable to process request. Please try again.',
+                        zIndex: 9999999
                     });
                 }
             },
@@ -867,7 +946,8 @@ $(document).ready(function() {
                 Swal.fire({
                     icon: 'error',
                     title: 'Camera Error',
-                    text: 'Unable to access camera. Please check permissions.'
+                    text: 'Unable to access camera. Please check permissions.',
+                    zIndex: 9999999
                 });
             });
     }
@@ -920,7 +1000,8 @@ $(document).ready(function() {
                         title: 'Success!',
                         text: response.message,
                         timer: 2000,
-                        showConfirmButton: false
+                        showConfirmButton: false,
+                        zIndex: 9999999
                     });
                     loadTimeData();
                     loadActivityData();
@@ -933,7 +1014,8 @@ $(document).ready(function() {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error!',
-                    text: response?.error || 'Failed to submit image. Please try again.'
+                    text: response?.error || 'Failed to submit image. Please try again.',
+                    zIndex: 9999999
                 });
             }
         });
@@ -1095,6 +1177,24 @@ $(document).ready(function() {
         loadTimeData();
         updateButtonStates();
     }, 300000);
+    
+    // Loading modal functions
+    function showLoadingModal(action) {
+        const actionText = {
+            'punch_in': 'Punching In',
+            'punch_out': 'Punching Out', 
+            'lunch_start': 'Starting Lunch',
+            'lunch_end': 'Ending Lunch'
+        };
+        
+        $('#loadingText').text(actionText[action] || 'Processing');
+        $('#loadingSubtext').text('Please wait...');
+        $('#loadingModal').show();
+    }
+    
+    function hideLoadingModal() {
+        $('#loadingModal').hide();
+    }
 });
 </script>
 @endpush
