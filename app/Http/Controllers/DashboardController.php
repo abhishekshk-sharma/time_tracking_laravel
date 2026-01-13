@@ -63,31 +63,19 @@ class DashboardController extends Controller
             return response()->json(['error' => 'Already punched in'], 400);
         }
 
-        // Check if bypassing image authentication
-        if ($request->input('bypass_image')) {
-            TimeEntry::create([
-                'employee_id' => $employee->emp_id,
-                'entry_type' => 'punch_in',
-                'entry_time' => now(),
-                'notes' => 'punch_in'
-            ]);
-
-            return response()->json(['success' => true, 'message' => 'Punch In Successful!']);
-        }
-
         // Location authentication
-        $locationAuth = app(LocationAuthService::class);
-        $authResult = $locationAuth->authenticateLocation($employee, $request);
+        // $locationAuth = app(LocationAuthService::class);
+        // $authResult = $locationAuth->authenticateLocation($employee, $request);
         
-        if (!$authResult['success']) {
-            if (isset($authResult['require_image'])) {
-                return response()->json([
-                    'require_image' => true,
-                    'message' => 'Please capture your image to proceed'
-                ]);
-            }
-            return response()->json(['error' => $authResult['message']], 400);
-        }
+        // if (!$authResult['success']) {
+        //     if (isset($authResult['require_image'])) {
+        //         return response()->json([
+        //             'require_image' => true,
+        //             'message' => 'Please capture your image to proceed'
+        //         ]);
+        //     }
+        //     return response()->json(['error' => $authResult['message']], 400);
+        // }
 
         TimeEntry::create([
             'employee_id' => $employee->emp_id,
@@ -108,31 +96,19 @@ class DashboardController extends Controller
             return response()->json(['error' => 'Must punch in first'], 400);
         }
 
-        // Check if bypassing image authentication
-        if ($request->input('bypass_image')) {
-            TimeEntry::create([
-                'employee_id' => $employee->emp_id,
-                'entry_type' => 'punch_out',
-                'entry_time' => now(),
-                'notes' => 'punch_out'
-            ]);
-
-            return response()->json(['success' => true, 'message' => 'Punch Out Successful!']);
-        }
-
         // Location authentication
-        $locationAuth = app(LocationAuthService::class);
-        $authResult = $locationAuth->authenticateLocation($employee, $request);
+        // $locationAuth = app(LocationAuthService::class);
+        // $authResult = $locationAuth->authenticateLocation($employee, $request);
         
-        if (!$authResult['success']) {
-            if (isset($authResult['require_image'])) {
-                return response()->json([
-                    'require_image' => true,
-                    'message' => 'Please capture your image to proceed'
-                ]);
-            }
-            return response()->json(['error' => $authResult['message']], 400);
-        }
+        // if (!$authResult['success']) {
+        //     if (isset($authResult['require_image'])) {
+        //         return response()->json([
+        //             'require_image' => true,
+        //             'message' => 'Please capture your image to proceed'
+        //         ]);
+        //     }
+        //     return response()->json(['error' => $authResult['message']], 400);
+        // }
 
         TimeEntry::create([
             'employee_id' => $employee->emp_id,
@@ -159,10 +135,6 @@ class DashboardController extends Controller
             $result = $this->processPunchIn($employee);
         } elseif ($entryType === 'punch_out') {
             $result = $this->processPunchOut($employee);
-        } elseif ($entryType === 'lunch_start') {
-            $result = $this->processLunchStart($employee);
-        } elseif ($entryType === 'lunch_end') {
-            $result = $this->processLunchEnd($employee);
         } else {
             return response()->json(['error' => 'Invalid entry type'], 400);
         }
@@ -178,17 +150,11 @@ class DashboardController extends Controller
             ]);
         }
         
-        return response()->json(['error' => $result['message']], 400);
+        return response()->json(['error' => 'Failed to create time entry'], 400);
     }
     
     private function processPunchIn($employee)
     {
-        $lastEntry = TimeEntry::getLastEntryForEmployee($employee->emp_id);
-        
-        if ($lastEntry && in_array($lastEntry->entry_type, ['punch_in', 'lunch_end'])) {
-            return ['success' => false, 'message' => 'Already punched in'];
-        }
-        
         $timeEntry = TimeEntry::create([
             'employee_id' => $employee->emp_id,
             'entry_type' => 'punch_in',
@@ -201,12 +167,6 @@ class DashboardController extends Controller
     
     private function processPunchOut($employee)
     {
-        $lastEntry = TimeEntry::getLastEntryForEmployee($employee->emp_id);
-        
-        if (!$lastEntry || !in_array($lastEntry->entry_type, ['punch_in', 'lunch_end'])) {
-            return ['success' => false, 'message' => 'Must punch in first'];
-        }
-        
         $timeEntry = TimeEntry::create([
             'employee_id' => $employee->emp_id,
             'entry_type' => 'punch_out',
@@ -216,42 +176,6 @@ class DashboardController extends Controller
         
         return ['success' => true, 'message' => 'Punch Out Successful!', 'entry_id' => $timeEntry->id];
     }
-    
-    private function processLunchStart($employee)
-    {
-        $lastEntry = TimeEntry::getLastEntryForEmployee($employee->emp_id);
-        
-        if (!$lastEntry || $lastEntry->entry_type !== 'punch_in') {
-            return ['success' => false, 'message' => 'Must punch in first'];
-        }
-        
-        $timeEntry = TimeEntry::create([
-            'employee_id' => $employee->emp_id,
-            'entry_type' => 'lunch_start',
-            'entry_time' => now(),
-            'notes' => 'lunch_start'
-        ]);
-        
-        return ['success' => true, 'message' => 'Lunch Start Successful!', 'entry_id' => $timeEntry->id];
-    }
-    
-    private function processLunchEnd($employee)
-    {
-        $lastEntry = TimeEntry::getLastEntryForEmployee($employee->emp_id);
-        
-        if (!$lastEntry || $lastEntry->entry_type !== 'lunch_start') {
-            return ['success' => false, 'message' => 'Must start lunch first'];
-        }
-        
-        $timeEntry = TimeEntry::create([
-            'employee_id' => $employee->emp_id,
-            'entry_type' => 'lunch_end',
-            'entry_time' => now(),
-            'notes' => 'lunch_end'
-        ]);
-        
-        return ['success' => true, 'message' => 'Lunch End Successful!', 'entry_id' => $timeEntry->id];
-    }
 
     public function lunchStart(Request $request)
     {
@@ -260,18 +184,6 @@ class DashboardController extends Controller
 
         if (!$lastEntry || $lastEntry->entry_type !== 'punch_in') {
             return response()->json(['error' => 'Must punch in first'], 400);
-        }
-
-        // Check if bypassing image authentication
-        if ($request->input('bypass_image')) {
-            TimeEntry::create([
-                'employee_id' => $employee->emp_id,
-                'entry_type' => 'lunch_start',
-                'entry_time' => now(),
-                'notes' => 'lunch_start'
-            ]);
-
-            return response()->json(['success' => true, 'message' => 'Lunch Start Successful!']);
         }
 
         TimeEntry::create([
@@ -291,18 +203,6 @@ class DashboardController extends Controller
 
         if (!$lastEntry || $lastEntry->entry_type !== 'lunch_start') {
             return response()->json(['error' => 'Must start lunch first'], 400);
-        }
-
-        // Check if bypassing image authentication
-        if ($request->input('bypass_image')) {
-            TimeEntry::create([
-                'employee_id' => $employee->emp_id,
-                'entry_type' => 'lunch_end',
-                'entry_time' => now(),
-                'notes' => 'lunch_end'
-            ]);
-
-            return response()->json(['success' => true, 'message' => 'Lunch End Successful!']);
         }
 
         TimeEntry::create([

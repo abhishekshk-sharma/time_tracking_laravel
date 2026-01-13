@@ -5,109 +5,6 @@
 
 @push('page-styles')
 <style>
-    /* Full-screen loading modal */
-    .loading-overlay {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        background: rgba(0, 0, 0, 0.8) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        z-index: 999999 !important;
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
-    }
-    
-    .loading-content {
-        background: white !important;
-        padding: 2rem !important;
-        border-radius: 16px !important;
-        text-align: center !important;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
-        max-width: 300px !important;
-        width: 90% !important;
-        position: relative !important;
-    }
-    
-    .loading-spinner {
-        width: 60px !important;
-        height: 60px !important;
-        border: 4px solid #f3f4f6 !important;
-        border-top: 4px solid #3b82f6 !important;
-        border-radius: 50% !important;
-        animation: spin 1s linear infinite !important;
-        margin: 0 auto 1rem !important;
-    }
-    
-    .loading-text {
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-        color: #374151 !important;
-        margin-bottom: 0.5rem !important;
-    }
-    
-    .loading-subtext {
-        font-size: 0.875rem !important;
-        color: #6b7280 !important;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    /* Mobile responsive loading modal */
-    @media screen and (max-width: 768px) {
-        .loading-overlay {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            min-height: 100vh !important;
-            min-width: 100vw !important;
-        }
-        
-        .loading-content {
-            padding: 1.5rem !important;
-            max-width: 280px !important;
-            width: 85% !important;
-        }
-        
-        .loading-spinner {
-            width: 50px !important;
-            height: 50px !important;
-        }
-        
-        .loading-text {
-            font-size: 1rem !important;
-        }
-        
-        .loading-subtext {
-            font-size: 0.8rem !important;
-        }
-    }
-    
-    @media screen and (max-width: 480px) {
-        .loading-overlay {
-            position: fixed !important;
-            inset: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-        }
-        
-        .loading-content {
-            padding: 1.25rem !important;
-            max-width: 260px !important;
-            width: 80% !important;
-        }
-    }
-    
     .header-content {
         display: flex;
         justify-content: space-between;
@@ -756,15 +653,6 @@
 
 @endsection
 
-<!-- Full-screen loading modal -->
-<div id="loadingModal" class="loading-overlay" style="display: none;">
-    <div class="loading-content">
-        <div class="loading-spinner"></div>
-        <div class="loading-text" id="loadingText">Processing...</div>
-        <div class="loading-subtext" id="loadingSubtext">Please wait</div>
-    </div>
-</div>
-
 @push('page-scripts')
 <script>
 $(document).ready(function() {
@@ -851,9 +739,6 @@ $(document).ready(function() {
         
         isProcessing = true;
         
-        // Show loading modal
-        showLoadingModal(action);
-        
         // Disable the clicked button immediately
         const clickedBtn = $('#' + action.replace('_', '') + 'Btn');
         clickedBtn.prop('disabled', true).addClass('processing');
@@ -893,7 +778,6 @@ $(document).ready(function() {
             },
             timeout: 30000,
             success: function(response) {
-                hideLoadingModal();
                 if (response.require_image) {
                     showImageCaptureModal(action);
                 } else if (response.success) {
@@ -910,7 +794,6 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
-                hideLoadingModal();
                 const response = xhr.responseJSON;
                 if (response && response.require_image) {
                     showImageCaptureModal(action);
@@ -942,8 +825,6 @@ $(document).ready(function() {
                     <br>
                     <button id="captureBtn" class="btn btn-primary" style="margin: 10px;">Capture Image</button>
                     <button id="retakeBtn" class="btn btn-secondary" style="margin: 10px; display: none;">Retake</button>
-                    <br>
-                    <button id="bypassBtn" class="btn btn-warning" style="margin: 10px;">Punch ${action.replace('_', ' ')} without Image</button>
                 </div>
             `,
             showCancelButton: true,
@@ -969,11 +850,6 @@ $(document).ready(function() {
             $('#captureBtn').show().text('Capture Image');
             $('#retakeBtn').hide();
             startCamera();
-        });
-        
-        // Handle bypass button
-        $(document).on('click', '#bypassBtn', function() {
-            bypassImageCapture(action);
         });
     }
     
@@ -1058,51 +934,6 @@ $(document).ready(function() {
                     icon: 'error',
                     title: 'Error!',
                     text: response?.error || 'Failed to submit image. Please try again.'
-                });
-            }
-        });
-    }
-    
-    function bypassImageCapture(action) {
-        // Show loading modal for bypass action
-        showLoadingModal(action);
-        
-        const route = action === 'punch_in' ? '{{ route("punch.in") }}' : 
-                     action === 'punch_out' ? '{{ route("punch.out") }}' : 
-                     action === 'lunch_start' ? '{{ route("lunch.start") }}' : 
-                     '{{ route("lunch.end") }}';
-        
-        $.ajax({
-            url: route,
-            method: 'POST',
-            data: {
-                bypass_image: true,
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(response) {
-                hideLoadingModal();
-                Swal.close();
-                if (response.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: response.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    loadTimeData();
-                    loadActivityData();
-                    updateButtonStates();
-                }
-            },
-            error: function(xhr) {
-                hideLoadingModal();
-                Swal.close();
-                const response = xhr.responseJSON;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: response?.error || 'Failed to process request. Please try again.'
                 });
             }
         });
@@ -1264,42 +1095,6 @@ $(document).ready(function() {
         loadTimeData();
         updateButtonStates();
     }, 300000);
-    
-    // Loading modal functions
-    function showLoadingModal(action) {
-        const actionText = {
-            'punch_in': 'Punching In',
-            'punch_out': 'Punching Out', 
-            'lunch_start': 'Starting Lunch',
-            'lunch_end': 'Ending Lunch'
-        };
-        
-        $('#loadingText').text(actionText[action] || 'Processing');
-        $('#loadingSubtext').text('Please wait...');
-        
-        // Force display with multiple methods for mobile compatibility
-        const modal = $('#loadingModal');
-        modal.css({
-            'display': 'flex',
-            'position': 'fixed',
-            'top': '0',
-            'left': '0',
-            'width': '100vw',
-            'height': '100vh',
-            'z-index': '999999'
-        }).show().fadeIn(200);
-        
-        // Prevent body scroll on mobile
-        $('body').css('overflow', 'hidden');
-    }
-    
-    function hideLoadingModal() {
-        $('#loadingModal').fadeOut(200, function() {
-            $(this).hide();
-            // Restore body scroll
-            $('body').css('overflow', '');
-        });
-    }
 });
 </script>
 @endpush
