@@ -629,7 +629,7 @@ class TimeController extends Controller
                 <td>' . ($lunchStart ? Carbon::parse($lunchStart->entry_time)->format('H:i A') : '-') . '</td>
                 <td>' . ($lunchEnd ? Carbon::parse($lunchEnd->entry_time)->format('H:i A') : '-') . '</td>
                 <td>' . ($punchOut ? Carbon::parse($punchOut->entry_time)->format('H:i A') : '-') . '</td>
-                <td>' . $totalHours . '</td>
+                <td>' . ($totalHours < 0 ? '0:00' : $totalHours) . '</td>
                 <td>' . $statusBadges . '</td>
             </tr>';
         }
@@ -698,7 +698,7 @@ class TimeController extends Controller
                 <td>' . ($lunchStart ? Carbon::parse($lunchStart->entry_time)->format('H:i A') : '-') . '</td>
                 <td>' . ($lunchEnd ? Carbon::parse($lunchEnd->entry_time)->format('H:i A') : '-') . '</td>
                 <td>' . ($punchOut ? Carbon::parse($punchOut->entry_time)->format('H:i A') : '-') . '</td>
-                <td>' . $totalHours . '</td>
+                <td>' . ($totalHours < 0 ? '0:00' : $totalHours) . '</td>
                 <td>' . $statusBadges . '</td>
             </tr>';
         }
