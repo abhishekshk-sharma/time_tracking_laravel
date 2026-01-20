@@ -81,12 +81,32 @@ Route::middleware(['auth', 'employee'])->group(function () {
         return response()->json($notifications);
     })->name('notifications');
     
+    Route::get('/notifications/list', function() {
+        $notifications = \App\Models\AppNotification::where('notify_to', Auth::user()->emp_id)
+            ->with(['application', 'createdBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return view('notifications.index', compact('notifications'));
+    })->name('notifications.index');
+    
     Route::post('/notifications/{id}/read', function($id) {
         \App\Models\AppNotification::where('id', $id)
             ->where('notify_to', Auth::user()->emp_id)
             ->update(['status' => 'checked']);
         return response()->json(['success' => true]);
     })->name('notifications.read');
+    
+    Route::delete('/notifications/{id}', function($id) {
+        \App\Models\AppNotification::where('id', $id)
+            ->where('notify_to', Auth::user()->emp_id)
+            ->delete();
+        return response()->json(['success' => true]);
+    })->name('notifications.delete');
+    
+    Route::post('/notifications/clear-all', function() {
+        \App\Models\AppNotification::where('notify_to', Auth::user()->emp_id)->delete();
+        return response()->json(['success' => true]);
+    })->name('notifications.clear-all');
     // Route::get('/employeehistory', [DashboardController::class, 'employeehistory'])->name('employeehistory');
     // Time Tracking AJAX Routes
     Route::post('/punch-in', [DashboardController::class, 'punchIn'])->name('punch.in');
@@ -135,6 +155,7 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     Route::get('/salaries/{salary}/edit', [SuperAdminController::class, 'editSalary'])->name('salaries.edit');
     Route::put('/salaries/{salary}', [SuperAdminController::class, 'updateSalary'])->name('salaries.update');
     Route::get('/salaries/pending-employees', [SuperAdminController::class, 'getPendingEmployees'])->name('salaries.pending-employees');
+    Route::post('/calculate-salary-components', [SuperAdminController::class, 'calculateSalaryComponents'])->name('calculate-salary-components');
     
     // Employee Management (Copy from Admin)
     Route::get('/employees', [SuperAdminController::class, 'employees'])->name('employees');
@@ -229,6 +250,14 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     // Leave Days Management
     Route::get('/leave-days', [SuperAdminController::class, 'leaveDays'])->name('leave-days');
     Route::post('/leave-days', [SuperAdminController::class, 'updateLeaveDays'])->name('leave-days.update');
+    
+    // Tax Slabs Management
+    Route::get('/tax-slabs', [SuperAdminController::class, 'taxSlabs'])->name('tax-slabs');
+    Route::post('/tax-slabs', [SuperAdminController::class, 'storeTaxSlab'])->name('tax-slabs.store');
+    Route::get('/tax-slabs/{id}/edit', [SuperAdminController::class, 'editTaxSlab'])->name('tax-slabs.edit');
+    Route::put('/tax-slabs/{id}', [SuperAdminController::class, 'updateTaxSlab'])->name('tax-slabs.update');
+    Route::delete('/tax-slabs/{id}', [SuperAdminController::class, 'deleteTaxSlab'])->name('tax-slabs.delete');
+    Route::post('/payroll-settings', [SuperAdminController::class, 'updatePayrollSettings'])->name('payroll-settings.update');
     
     // Notification routes
     Route::get('/notifications', function() {
@@ -332,6 +361,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/salaries/{salary}/edit', [AdminController::class, 'editSalary'])->name('salaries.edit');
     Route::put('/salaries/{salary}', [AdminController::class, 'updateSalary'])->name('salaries.update');
     Route::get('/salaries/pending-employees', [AdminController::class, 'getPendingEmployees'])->name('salaries.pending-employees');
+    Route::post('/calculate-salary-components', [AdminController::class, 'calculateSalaryComponents'])->name('calculate-salary-components');
     
     // Profile Management
     Route::get('/profile', [AdminController::class, 'profile'])->name('profile');

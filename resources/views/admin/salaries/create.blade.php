@@ -60,6 +60,33 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="special_allowance" class="form-label">Special Allowance</label>
+                    <input type="number" name="special_allowance" id="special_allowance" class="form-control" 
+                           value="{{ old('special_allowance', 0) }}" step="0.01" min="0">
+                    @error('special_allowance')
+                        <div style="color: #ef4444; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
+                    <label for="tds" class="form-label">TDS (Tax Deducted at Source)</label>
+                    <input type="number" name="tds" id="tds" class="form-control" 
+                           value="{{ old('tds', 0) }}" step="0.01" min="0">
+                    @error('tds')
+                        <div style="color: #ef4444; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
+                    <label for="healthcare_cess" class="form-label">Healthcare Cess</label>
+                    <input type="number" name="healthcare_cess" id="healthcare_cess" class="form-control" 
+                           value="{{ old('healthcare_cess', 0) }}" step="0.01" min="0">
+                    @error('healthcare_cess')
+                        <div style="color: #ef4444; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
                     <label for="pt" class="form-label">PT (Professional Tax)</label>
                     <input type="number" name="pt" id="pt" class="form-control" 
                            value="{{ old('pt', 0) }}" step="0.01" min="0">
@@ -208,6 +235,113 @@ function selectEmployee(empId, empName) {
     document.getElementById('emp_id').value = empId;
     document.getElementById('employee_display').value = empId + ' - ' + empName;
     closeEmployeeModal();
+    showCTCModal(empId);
+}
+
+function showCTCModal(empId) {
+    Swal.fire({
+        title: 'CTC Calculation',
+        html: `
+            <div style="text-align: left;">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label class="form-label">Monthly CTC</label>
+                    <input type="number" id="monthly_ctc" class="form-control" placeholder="Enter monthly CTC" step="0.01" min="0">
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="pf_checkbox" style="transform: scale(1.2);">
+                        <span>Include PF Deduction</span>
+                    </label>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Calculate & Fill',
+        cancelButtonText: 'Cancel',
+        buttonsStyling: false,
+        customClass: {
+            confirmButton: 'btn btn-primary',
+            cancelButton: 'btn btn-secondary'
+        },
+        preConfirm: () => {
+            const ctc = parseFloat(document.getElementById('monthly_ctc').value);
+            if (!ctc || ctc <= 0) {
+                Swal.showValidationMessage('Please enter a valid monthly CTC');
+                return false;
+            }
+            return {
+                monthly_ctc: ctc,
+                include_pf: document.getElementById('pf_checkbox').checked
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            calculateSalaryComponents(empId, result.value.monthly_ctc, result.value.include_pf);
+        }
+    });
+}
+
+function calculateSalaryComponents(empId, monthlyCTC, includePF) {
+    fetch('/admin/calculate-salary-components', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            emp_id: empId,
+            monthly_ctc: monthlyCTC,
+            include_pf: includePF
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fillSalaryForm(data.components);
+            Swal.fire('Success!', 'Salary components calculated successfully!', 'success');
+        } else {
+            Swal.fire('Error!', data.message || 'Failed to calculate salary components.', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error!', 'Failed to calculate salary components.', 'error');
+    });
+}
+
+    function calculateGrossSalary() {
+        const basic = parseFloat($('#basic_salary').val()) || 0;
+        const hra = parseFloat($('#hra').val()) || 0;
+        const conveyance = parseFloat($('#conveyance_allowance').val()) || 0;
+        const specialAllowance = parseFloat($('#special_allowance').val()) || 0;
+        const pf = parseFloat($('#pf').val()) || 0;
+        const pt = parseFloat($('#pt').val()) || 0;
+        const tds = parseFloat($('#tds').val()) || 0;
+        const healthcareCess = parseFloat($('#healthcare_cess').val()) || 0;
+        
+        const gross = basic + hra + conveyance + specialAllowance - pf - pt - tds - healthcareCess;
+        
+        $("#gross_display").remove();
+
+        if ($('#gross_display').length == 0) {
+            $('form').append('<div id="gross_display" style="background: #f0fdf4; padding: 16px; border-radius: 8px; margin-top: 20px; text-align: center;"><strong>Gross Salary: ₹<span id="gross_amount">'+gross+'</span></strong></div>');
+        }
+        
+        $('#gross_amount').text(gross.toFixed(2));
+    }
+
+function fillSalaryForm(components) {
+    document.getElementById('basic_salary').value = components.basic_salary;
+    document.getElementById('hra').value = components.hra;
+    document.getElementById('conveyance_allowance').value = components.conveyance_allowance;
+    document.getElementById('special_allowance').value = components.special_allowance;
+    document.getElementById('pf').value = components.pf;
+    document.getElementById('pt').value = components.pt;
+    document.getElementById('tds').value = components.tds;
+    document.getElementById('healthcare_cess').value = components.healthcare_cess;
+    
+    document.getElementById('basic_salary').dispatchEvent(new Event('input'));
+    calculateGrossSalary();
 }
 
 function loadEmployees(page = 1) {
@@ -337,10 +471,13 @@ $(document).ready(function() {
         const basic = parseFloat($('#basic_salary').val()) || 0;
         const hra = parseFloat($('#hra').val()) || 0;
         const conveyance = parseFloat($('#conveyance_allowance').val()) || 0;
+        const specialAllowance = parseFloat($('#special_allowance').val()) || 0;
         const pf = parseFloat($('#pf').val()) || 0;
         const pt = parseFloat($('#pt').val()) || 0;
+        const tds = parseFloat($('#tds').val()) || 0;
+        const healthcareCess = parseFloat($('#healthcare_cess').val()) || 0;
         
-        const gross = basic + hra + conveyance - pf - pt;
+        const gross = basic + hra + conveyance + specialAllowance - pf - pt - tds - healthcareCess;
         
         if ($('#gross_display').length === 0) {
             $('form').append('<div id="gross_display" style="background: #f0fdf4; padding: 16px; border-radius: 8px; margin-top: 20px; text-align: center;"><strong>Gross Salary: ₹<span id="gross_amount">'+gross+'</span></strong></div>');
@@ -363,7 +500,7 @@ $(document).ready(function() {
         calculateGrossSalary();
     });
     
-    $('#hra, #conveyance_allowance, #pf, #pt').on('input', calculateGrossSalary);
+    $('#hra, #conveyance_allowance, #special_allowance, #pf, #pt, #tds, #healthcare_cess').on('input', calculateGrossSalary);
     calculateGrossSalary();
 });
 </script>

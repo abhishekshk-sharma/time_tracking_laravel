@@ -14,6 +14,7 @@ use App\Models\Salary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule; 
 
@@ -68,6 +69,10 @@ class AdminController extends Controller
         if ($request->has('department') && $request->department) {
             $query->where('department_id', $request->department);
         }
+        if ($request->has('grade_filter') && $request->grade_filter) {
+            $query->where('senior_junior', $request->grade_filter);
+        }
+        // return $request->grade_filter;
         
         // Status filter - default to active employees only
         $status = $request->get('status', 'active');
@@ -76,7 +81,9 @@ class AdminController extends Controller
         }
 
         $employees = $query->with('department')->paginate(15);
-        $departments = Department::all();
+        $departments = Department::where(function($q){
+            $q->whereNotIn('name', ['admin']);
+        })->get();
 
         // return $employees->first()->department->name;
         return view('admin.employees.index', compact('employees', 'departments'));
@@ -165,6 +172,8 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255',
             'position' => 'required|string|max:255',
+            'senior_junior' => 'nullable|in:senior,junior',
+            'metro_city' => 'nullable|boolean',
             'hiredate' => [ 
                 'required', 
                 'date', 
@@ -198,6 +207,8 @@ class AdminController extends Controller
             'address' => $request->address,
             'referrance' => auth()->user()->emp_id,
             'position' => $request->position,
+            'senior_junior' => $request->senior_junior,
+            'metro_city' => $request->metro_city ? 1 : 0,
             'role' => 'employee',
             'status' => 'active',
         ]);
@@ -236,6 +247,8 @@ class AdminController extends Controller
             'username' => 'required|string|max:255',
             'full_name' => 'required|string|max:255',
             'position' => 'required|string|max:255',
+            'senior_junior' => 'nullable|in:senior,junior',
+            'metro_city' => 'nullable|boolean',
             'hire_date' => [ 
                 'required', 
                 'date', 
@@ -258,7 +271,10 @@ class AdminController extends Controller
             'sick_leave' => 'nullable|integer|min:0|max:365',
         ]);
 
-        $updateData = $request->only(['username', 'email', 'full_name', 'hire_date', 'dob', 'position', 'department_id', 'phone', 'address', 'status', 'end_date']);
+        $updateData = $request->only(['username', 'email', 'full_name', 'hire_date', 'dob', 'position', 'department_id', 'phone', 'address', 'status', 'end_date', 'senior_junior']);
+        
+        // Handle metro_city boolean conversion
+        $updateData['metro_city'] = $request->metro_city ? 1 : 0;
         
         // If end_date is set, automatically make employee inactive
         if ($request->end_date) {
@@ -929,8 +945,11 @@ class AdminController extends Controller
             'basic_salary' => 'required|numeric|min:0',
             'hra' => 'required|numeric|min:0',
             'conveyance_allowance' => 'required|numeric|min:0',
+            'special_allowance' => 'nullable|numeric|min:0',
             'pf' => 'required|numeric|min:0',
             'pt' => 'required|numeric|min:0',
+            'tds' => 'nullable|numeric|min:0',
+            'healthcare_cess' => 'nullable|numeric|min:0',
             'payment_mode' => 'required|in:cash,bank_transfer',
             'bank_name' => 'nullable|string|max:255',
             'bank_account' => 'nullable|string|max:255',
@@ -975,8 +994,8 @@ class AdminController extends Controller
         }
         
         $payableBasicSalary = ($request->basic_salary / $request->total_working_days) * $request->payable_days;
-        $grossSalary = $payableBasicSalary + $request->hra + $request->conveyance_allowance;
-        $totalDeductions = $request->pf + $request->pt;
+        $grossSalary = $payableBasicSalary + $request->hra + $request->conveyance_allowance + ($request->special_allowance ?? 0);
+        $totalDeductions = $request->pf + $request->pt + ($request->tds ?? 0) + ($request->healthcare_cess ?? 0);
         $netSalary = $grossSalary - $totalDeductions;
 
         $salaryReport->update([
@@ -996,8 +1015,11 @@ class AdminController extends Controller
             'basic_salary' => $request->basic_salary,
             'hra' => $request->hra,
             'conveyance_allowance' => $request->conveyance_allowance,
+            'special_allowance' => $request->special_allowance ?? 0,
             'pf' => $request->pf,
             'pt' => $request->pt,
+            'tds' => $request->tds ?? 0,
+            'healthcare_cess' => $request->healthcare_cess ?? 0,
             'payable_basic_salary' => $payableBasicSalary,
             'gross_salary' => $grossSalary,
             'total_deductions' => $totalDeductions,
@@ -1799,6 +1821,9 @@ class AdminController extends Controller
             'basic_salary' => 'required|numeric|min:0',
             'hra' => 'required|numeric|min:0',
             'conveyance_allowance' => 'required|numeric|min:0',
+            'special_allowance' => 'required|numeric|min:0',
+            'tds' => 'required|numeric|min:0',
+            'healthcare_cess' => 'required|numeric|min:0',
             'pf' => 'required|numeric|min:0',
             'pt' => 'required|numeric|min:0',
             'effective_from' => 'required|date',
@@ -1821,7 +1846,16 @@ class AdminController extends Controller
             return back()->withErrors(['emp_id' => 'Employee not found or not assigned to you.']);
         }
 
-        Salary::create($request->all());
+        // Calculate gross salary
+        $grossSalary = $request->basic_salary + $request->hra + $request->conveyance_allowance + $request->special_allowance;
+        
+        // Determine if PF is auto-calculated
+        $isPf = $request->has('auto_pf') ? 1 : 0;
+
+        Salary::create(array_merge($request->all(), [
+            'gross_salary' => $grossSalary,
+            'is_pf' => $isPf
+        ]));
 
         return redirect()->route('admin.salaries')->with('success', 'Salary created successfully');
     }
@@ -1853,6 +1887,9 @@ class AdminController extends Controller
             'basic_salary' => 'required|numeric|min:0',
             'hra' => 'required|numeric|min:0',
             'conveyance_allowance' => 'required|numeric|min:0',
+            'special_allowance' => 'required|numeric|min:0',
+            'tds' => 'required|numeric|min:0',
+            'healthcare_cess' => 'required|numeric|min:0',
             'pf' => 'required|numeric|min:0',
             'pt' => 'required|numeric|min:0',
             'effective_from' => 'required|date',
@@ -1866,11 +1903,120 @@ class AdminController extends Controller
             'esic_no' => 'nullable|string|max:17'
         ]);
 
-        $salary->update($request->only([
-            'basic_salary', 'hra', 'conveyance_allowance', 'pf', 'pt', 'effective_from', 'payment_mode',
-            'bank_name', 'bank_account', 'ifsc_code', 'bank_branch', 'uan', 'pf_no', 'esic_no'
+        // Calculate gross salary
+        $grossSalary = $request->basic_salary + $request->hra + $request->conveyance_allowance + $request->special_allowance;
+        
+        // Determine if PF is auto-calculated
+        $isPf = $request->has('auto_pf') ? 1 : 0;
+
+        $salary->update(array_merge($request->only([
+            'basic_salary', 'hra', 'conveyance_allowance', 'special_allowance', 'tds', 'healthcare_cess',
+            'pf', 'pt', 'effective_from', 'payment_mode', 'bank_name', 'bank_account', 'ifsc_code', 
+            'bank_branch', 'uan', 'pf_no', 'esic_no'
+        ]), [
+            'gross_salary' => $grossSalary,
+            'is_pf' => $isPf
         ]));
 
         return redirect()->route('admin.salaries')->with('success', 'Salary updated successfully');
+    }
+
+    public function calculateSalaryComponents(Request $request)
+    {
+        $request->validate([
+            'emp_id' => 'required|exists:employees,emp_id',
+            'monthly_ctc' => 'required|numeric|min:0',
+            'include_pf' => 'nullable|boolean'
+        ]);
+
+        $employee = Employee::where('emp_id', $request->emp_id)->first();
+        $monthlyCTC = $request->monthly_ctc;
+        
+        // Get system settings
+        $settings = SystemSetting::pluck('setting_value', 'setting_key');
+        
+        // Determine if employee is in metro city and senior/junior level
+        $isMetro = $employee->metro_city ?? false;
+        $isSenior = $employee->senior_junior === 'senior';
+        
+        // Calculate basic salary percentage based on employee profile
+        $basicPercentage = $isMetro ? 
+            ($isSenior ? (float)($settings['metro_basic'] ?? 50) : (float)($settings['default_basic'] ?? 50)) :
+            (float)($settings['default_basic'] ?? 50);
+        
+        $basicSalary = ($monthlyCTC * $basicPercentage) / 100;
+        
+        // Calculate HRA percentage
+        $hraPercentage = $isMetro ? 
+            (float)($settings['metro_hra'] ?? 50) : 
+            (float)($settings['default_hra'] ?? 40);
+        $hra = ($basicSalary * $hraPercentage) / 100;
+        
+        // Calculate conveyance allowance
+        $conveyanceAllowance = $isSenior ? 
+            (float)($settings['senior_ca'] ?? 1600) : 
+            (float)($settings['junior_ca'] ?? 1200);
+        
+        // Calculate special allowance (remaining amount)
+        $specialAllowance = $monthlyCTC - $basicSalary - $hra - $conveyanceAllowance;
+        
+        // Calculate TDS
+        $annualCTC = $monthlyCTC * 12;
+        $standardDeduction = (float)($settings['standard_deduction'] ?? 75000);
+        $refinedIncome = $annualCTC - $standardDeduction;
+        
+        $taxRate = 0;
+        if ($refinedIncome > 0) {
+            $taxSlab = \App\Models\Tax::where(function($query) use ($refinedIncome) {
+                $query->where(function($q) use ($refinedIncome) {
+                    $q->whereNotNull('income_to')
+                      ->where('income_from', '<=', $refinedIncome)
+                      ->where('income_to', '>=', $refinedIncome);
+                })->orWhere(function($q) use ($refinedIncome) {
+                    $q->whereNull('income_to')
+                      ->where('income_from', '<=', $refinedIncome);
+                });
+            })->orderBy('income_from', 'desc')->first();
+            
+            if ($taxSlab) {
+                $taxRate = $taxSlab->tax_rate;
+            }
+        }
+        
+        $annualTax = $refinedIncome * ($taxRate / 100);
+        $monthlyTDS = $annualTax / 12;
+        
+        // Calculate Healthcare Cess
+        $cessPercentage = 4;
+        if (isset($settings['health_&_education_cess'])) {
+            $cessValue = str_replace('%', '', $settings['health_&_education_cess']);
+            $cessPercentage = (float)$cessValue;
+        }
+        $healthcareCess = $monthlyTDS * ($cessPercentage / 100);
+        
+        // Calculate PF (12% of basic salary)
+
+        if (!$request->has('include_pf') || !$request->include_pf) {
+            $pf = 0;
+        } else {
+            $pf = $basicSalary * 0.12;
+        }
+
+        // Get PT from settings
+        $pt = (float)($settings['pt'] ?? 200);
+        
+        return response()->json([
+            'success' => true,
+            'components' => [
+                'basic_salary' => round($basicSalary, 2),
+                'hra' => round($hra, 2),
+                'conveyance_allowance' => round($conveyanceAllowance, 2),
+                'special_allowance' => round($specialAllowance, 2),
+                'pf' => round($pf, 2),
+                'pt' => round($pt, 2),
+                'tds' => round($monthlyTDS, 2),
+                'healthcare_cess' => round($healthcareCess, 2)
+            ]
+        ]);
     }
 }

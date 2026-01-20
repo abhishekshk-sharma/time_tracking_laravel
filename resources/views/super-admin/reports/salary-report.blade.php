@@ -289,6 +289,10 @@
                         <label class="form-label">Conveyance Allowance</label>
                         <input type="number" name="conveyance" id="conveyance" class="form-control" value="{{ $salary->conveyance_allowance }}" step="0.01">
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Special Allowance</label>
+                        <input type="number" name="special_allowance" id="special_allowance" class="form-control" value="{{ $salary->special_allowance }}" step="0.01">
+                    </div>
                 </div>
 
                 <!-- Deductions -->
@@ -305,6 +309,14 @@
                         </div>
                         <label class="form-label">Provident Fund (PF)</label>
                         <input type="number" name="pf" id="pf" class="form-control" value="{{ (($salary->pf)* 2 ) }}" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">TDS</label>
+                        <input type="number" name="tds" id="tds" class="form-control" value="{{ $salary->tds }}" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Healthcare Cess</label>
+                        <input type="number" name="healthcare_cess" id="healthcare_cess" class="form-control" value="{{ $salary->healthcare_cess }}" step="0.01">
                     </div>
                 </div>
 
@@ -347,11 +359,14 @@ $(document).ready(function() {
         const basic = parseFloat($('#basic_salary').val()) || 0;
         const hra = parseFloat($('#hra').val()) || 0;
         const conveyance = parseFloat($('#conveyance').val()) || 0;
+        const specialAllowance = parseFloat($('#special_allowance').val()) || 0;
         const pt = parseFloat($('#pt').val()) || 0;
         const pf = parseFloat($('#pf').val()) || 0;
+        const tds = parseFloat($('#tds').val()) || 0;
+        const healthcareCess = parseFloat($('#healthcare_cess').val()) || 0;
         
-        const grossEarnings = basic + hra + conveyance;
-        const totalDeductions = pt + pf;
+        const grossEarnings = basic + hra + conveyance + specialAllowance;
+        const totalDeductions = pt + pf + tds + healthcareCess;
         const netSalary = grossEarnings - totalDeductions;
         
         $('#gross_earnings').val(grossEarnings.toFixed(2));
@@ -385,7 +400,7 @@ $(document).ready(function() {
         }
     });
     
-    $('#hra, #conveyance, #pt, #pf').on('input', calculateTotals);
+    $('#hra, #conveyance, #special_allowance, #pt, #pf, #tds, #healthcare_cess').on('input', calculateTotals);
     
     // Recalculate basic salary when total working days change
     $('input[name="total_working_days"]').on('input', function() {

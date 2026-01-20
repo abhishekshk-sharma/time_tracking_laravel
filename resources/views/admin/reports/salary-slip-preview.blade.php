@@ -61,7 +61,13 @@
                     </div>
                     <div class="col-3">
                         <small class="text-muted text-uppercase">DOB</small><br>
-                        <strong>{{ $employee->dob->format("d M, Y")??"N/A"  }}</strong>
+                        <strong>
+                            @if ($employee->dob !== null)
+                                {{ ($employee->dob->format("d M, Y"))??"N/A"  }}
+                            @else
+                                N/A
+                            @endif
+                        </strong>
                     </div>
                     <div class="col-3">
                         <small class="text-muted text-uppercase">Date Of joining</small><br>
@@ -156,25 +162,81 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Basic Salary</td>
-                            <td class="text-end">{{ number_format($salaryReport->payable_basic_salary, 2) }}</td>
+                            @if ($salaryReport->payable_basic_salary > 0)
+                                <td>Basic Salary</td>
+                                <td class="text-end">{{ number_format($salaryReport->payable_basic_salary, 2) }}</td>
+                            @else
+                                <td></td>
+                                <td></td>
+                            @endif
                             <td></td>
-                            <td>Professional Tax</td>
-                            <td class="text-end">{{ number_format($salaryReport->pt, 2) }}</td>
+
+                            @if ($salaryReport->pt > 0)
+                                <td>Professional Tax</td>
+                                <td class="text-end">{{ number_format($salaryReport->pt, 2) }}</td>
+                            @else
+                                <td></td>
+                                <td class="text-end"></td>
+                            @endif
                         </tr>
                         <tr>
-                            <td>House Rent Allowance</td>
-                            <td class="text-end">{{ number_format($salaryReport->hra, 2) }}</td>
+                            @if ($salaryReport->hra > 0)
+                                <td>House Rent Allowance</td>
+                                <td class="text-end">{{ number_format($salaryReport->hra, 2) }}</td>
+                            @else
+                                <td></td>
+                                <td></td>
+                            @endif
                             <td></td>
-                            <td>Provident Fund</td>
-                            <td class="text-end">{{ number_format($salaryReport->pf, 2) }}</td>
+
+                            @if ($salaryReport->pf > 0)
+                                <td>Provident Fund</td>
+                                <td class="text-end">{{ number_format($salaryReport->pf, 2) }}</td>
+                            @else
+                                <td></td>
+                                <td class="text-end"></td>
+                                
+                            @endif
+                            
                         </tr>
                         <tr>
-                            <td>Conveyance Allowance</td>
-                            <td class="text-end">{{ number_format($salaryReport->conveyance_allowance, 2) }}</td>
+                            @if ($salaryReport->conveyance_allowance > 0)
+                                <td>Conveyance Allowance</td>
+                                <td class="text-end">{{ number_format($salaryReport->conveyance_allowance, 2) }}</td>
+                            @else
+                                <td></td>
+                                <td></td>
+                            @endif
                             <td></td>
+
+                            @if ($salaryReport->tds > 0)
+                                <td>TDS</td>
+                                <td class="text-end">{{ number_format($salaryReport->tds, 2) }}</td>
+                            @else
+                                <td></td>
+                                <td class="text-end"></td>
+                            @endif
+                        
+                        </tr>
+                        <tr>
+                            @if ($salaryReport->special_allowance > 0)
+                                <td>Special Allowance</td>
+                                <td class="text-end">{{ number_format($salaryReport->special_allowance, 2) }}</td>
+                            @else
+                                <td></td>
+                                <td></td>
+                            @endif
                             <td></td>
-                            <td></td>
+
+                            @if ($salaryReport->healthcare_cess > 0)
+                                <td>Health-Care Cess</td>
+                                <td class="text-end">{{ number_format($salaryReport->healthcare_cess, 2) }}</td>   
+                                
+                            @else
+                                <td></td>
+                                <td class="text-end"></td>
+                            @endif
+                            
                         </tr>
                         <tr class="table-secondary">
                             <td><strong>TOTAL EARNINGS</strong></td>

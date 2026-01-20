@@ -19,6 +19,7 @@
                 </div>
             </div>
         </div>
+        
 
         <div class="d-flex gap-2">
             <a href="{{ route('super-admin.employees.history', $employee) }}" class="btn btn-outline-google">
@@ -27,8 +28,19 @@
             <a href="{{ route('super-admin.employees.edit', $employee) }}" class="btn btn-primary-google">
                 <i class="fas fa-pen me-2"></i> Edit Profile
             </a>
+
+            <a href="{{ route('super-admin.employees') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+            
         </div>
+        
     </div>
+    {{-- <div class="mt-4">
+        <a href="{{ route('super-admin.employees') }}" class="btn-back">
+            <i class="fas fa-arrow-left me-2"></i> Back to Directory
+        </a>
+    </div> --}}
 
     <div class="row g-4">
         <div class="col-lg-6">
@@ -92,6 +104,24 @@
                                 @else
                                     <span class="status-pill status-inactive"><i class="fas fa-ban"></i> Inactive</span>
                                 @endif
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Employee Grade</label>
+                            <div class="value">
+                                @if($employee->senior_junior === 'senior')
+                                    <span class="status-pill status-active"><i class="fa-solid fa-user-tie"></i> Senior</span>
+                                @else
+                                    <span class="status-pill status-junior  ">
+                                        <i class="fa-solid fa-code-fork"></i> Junior
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>City Category</label>
+                            <div class="value">
+                                <span class="region-chip">{{ $employee->metro_city == 1 ? 'Metro City' : 'Non-Metro City' }}</span>
                             </div>
                         </div>
                         <div class="info-item">
@@ -177,11 +207,7 @@
         </div>
     </div>
 
-    <div class="mt-4">
-        <a href="{{ route('super-admin.employees') }}" class="btn-back">
-            <i class="fas fa-arrow-left me-2"></i> Back to Directory
-        </a>
-    </div>
+    
 </div>
 
 <style>
@@ -250,6 +276,9 @@
     .btn-link-google:hover { text-decoration: underline; }
 
     .btn-back {
+        position:relative;
+        right: 10px;
+        margin-bottom: 10px;
         color: var(--g-text-gray);
         text-decoration: none;
         font-weight: 500;
@@ -319,6 +348,7 @@
     }
     .status-active { background-color: #e6f4ea; color: #137333; }
     .status-inactive { background-color: #fce8e6; color: #c5221f; }
+    .status-junior { background-color: #fff5d3; color: #024703; }
 
     .region-chip {
         background: #f1f3f4;

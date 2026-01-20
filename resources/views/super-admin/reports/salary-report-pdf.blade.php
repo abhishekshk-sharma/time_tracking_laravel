@@ -134,7 +134,13 @@
         </tr>
         <tr>
             <td class="emp-label">DOB</td>
-            <td class="emp-value">{{ $employee->dob->format("d M, Y") ?? 'N/A' }}</td>
+            <td class="emp-value">
+                @if ($employee->dob !== null)
+                    {{ ($employee->dob->format("d M, Y"))??"N/A"  }}
+                @else
+                    N/A
+                @endif
+            </td>
             <td class="emp-label">Date of Joining</td>
             <td class="emp-value">{{ $employee->hire_date->format("d M, Y") ?? 'N/A' }}</td>
         </tr>
@@ -249,25 +255,74 @@
         </thead>
         <tbody>
             <tr>
-                <td>Basic Salary</td>
-                <td class="text-right">{{ number_format($salaryReport->payable_basic_salary, 2) }}</td>
+                @if ($salaryReport->payable_basic_salary > 0)
+                    <td>Basic Salary</td>
+                    <td class="text-right">{{ number_format($salaryReport->payable_basic_salary, 2) }}</td>
+                @else
+                    <td></td>
+                    <td></td>
+                @endif
                 <td></td>
-                <td>Professional Tax</td>
-                <td class="text-right">{{ number_format($salaryReport->pt, 2) }}</td>
+
+                @if ($salaryReport->pt > 0)
+                    <td>Professional Tax</td>
+                    <td class="text-right">{{ number_format($salaryReport->pt, 2) }}</td>
+
+                @else
+                    <td></td>
+                    <td></td>
+                @endif
             </tr>
             <tr>
-                <td>House Rent Allowance</td>
-                <td class="text-right">{{ number_format($salaryReport->hra, 2) }}</td>
+                @if ($salaryReport->hra > 0)
+                    <td>House Rent Allowance</td>
+                    <td class="text-right">{{ number_format($salaryReport->hra, 2) }}</td>
+                @else
+                    <td></td>
+                    <td></td>
+                @endif
                 <td></td>
-                <td>Provident Fund</td>
+                @if ($salaryReport->pf > 0)
+                    <td>Provident Fund</td>
                 <td class="text-right">{{ number_format($salaryReport->pf, 2) }}</td>
+                @else
+                    <td></td>
+                    <td></td>
+                @endif
             </tr>
             <tr>
-                <td>Conveyance Allowance</td>
-                <td class="text-right">{{ number_format($salaryReport->conveyance_allowance, 2) }}</td>
+                @if ($salaryReport->conveyance_allowance > 0)
+                    <td>Conveyance Allowance</td>
+                    <td class="text-right">{{ number_format($salaryReport->conveyance_allowance, 2) }}</td>
+                @else
+                    <td></td>
+                    <td></td>
+                @endif
                 <td></td>
+                @if ($salaryReport->tds > 0)
+                    <td>TDS</td>
+                <td class="text-right">{{ number_format($salaryReport->tds, 2) }}</td>
+                @else
+                    <td></td>
+                    <td></td>
+                @endif
+            </tr>
+            <tr>
+                @if ($salaryReport->special_allowance > 0)
+                    <td>Special Allowance</td>
+                    <td class="text-right">{{ number_format($salaryReport->special_allowance, 2) }}</td>
+                @else
+                    <td></td>
+                    <td></td>
+                @endif
                 <td></td>
-                <td></td>
+                @if ($salaryReport->healthcare_cess > 0)
+                    <td>Healthcare Cess</td>
+                <td class="text-right">{{ number_format($salaryReport->healthcare_cess, 2) }}</td>
+                @else
+                    <td></td>
+                    <td></td>
+                @endif
             </tr>
             <tr class="last-row">
                 <td style="height: 20px;"></td><td></td><td></td><td></td><td></td>

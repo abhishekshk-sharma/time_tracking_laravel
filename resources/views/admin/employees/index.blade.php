@@ -18,7 +18,7 @@
 <!-- Filters -->
 <div class="card">
     <div class="card-body">
-        <form method="GET" action="{{ route('admin.employees') }}" style="display: grid; grid-template-columns: 1fr 200px 200px 120px; gap: 15px; align-items: end;">
+        <form method="GET" action="{{ route('admin.employees') }}" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: end;">
             <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Search</label>
                 <input type="text" name="search" class="form-control" placeholder="Search by name, ID, or email" value="{{ request('search') }}">
@@ -42,6 +42,15 @@
                     <option value="all" {{ request('status') == 'all' ? 'selected' : '' }}>All</option>
                 </select>
             </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Employee Grade</label>
+                <select id="grade-filter" name="grade_filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%;">
+                    <option value="" {{ request('grade_filter') == '' ? 'selected' : '' }}>All Grades</option>
+                    <option value="senior" {{ request('grade_filter') == 'senior' ? 'selected' : '' }}>Senior</option>
+                    <option value="junior" {{ request('grade_filter') == 'junior' ? 'selected' : '' }}>Junior</option>
+                </select>
+            </div>
+            
             <button type="submit" class="btn btn-secondary">
                 <i class="fas fa-search"></i> Filter
             </button>

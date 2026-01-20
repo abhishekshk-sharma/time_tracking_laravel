@@ -31,7 +31,7 @@
         </div>
     </div>
     <div class="card-body">
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: end;">
             <div class="form-group" style="margin: 0;">
                 <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Search Employee</label>
                 <input type="text" id="employee-search" placeholder="Employee ID or Username" 
@@ -50,11 +50,30 @@
                 </select>
             </div>
             <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Filter by Department</label>
+                <select id="department-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%;">
+                    <option value="">All Departments</option>
+                    @foreach($departments as $department)
+                        <option value="{{ $department->id }}" {{ request('department') == $department->id ? 'selected' : '' }}>
+                            {{ $department->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
                 <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Status</label>
                 <select id="status-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%;">
                     <option value="" {{ request('status') == '' ? 'selected' : '' }}>All Status</option>
                     <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
                     <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 12px; margin-bottom: 5px;">Employee Grade</label>
+                <select id="grade-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%;">
+                    <option value="" {{ request('grade') == '' ? 'selected' : '' }}>All Grades</option>
+                    <option value="senior" {{ request('grade') == 'senior' ? 'selected' : '' }}>Senior</option>
+                    <option value="junior" {{ request('grade') == 'junior' ? 'selected' : '' }}>Junior</option>
                 </select>
             </div>
             <div style="display: flex; gap: 8px;">
@@ -211,6 +230,8 @@ function applyFilters() {
     const search = document.getElementById('employee-search').value;
     const adminFilter = document.getElementById('admin-filter').value;
     const statusFilter = document.getElementById('status-filter').value;
+    const gradeFilter = document.getElementById('grade-filter').value;
+    const departmentFilter = document.getElementById('department-filter').value;
 
     // alert(statusFilter);
     const perPage = document.getElementById('per-page-select').value;
@@ -219,6 +240,8 @@ function applyFilters() {
     if (search) params.append('search', search);
     if (adminFilter) params.append('admin_filter', adminFilter);
     if (statusFilter) params.append('status', statusFilter);
+    if (gradeFilter) params.append('grade', gradeFilter);
+    if (departmentFilter) params.append('department', departmentFilter);
     if (perPage) params.append('per_page', perPage);
     
     window.location.href = '{{ route("super-admin.employees") }}?' + params.toString();

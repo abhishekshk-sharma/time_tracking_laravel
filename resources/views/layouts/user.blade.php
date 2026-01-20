@@ -219,15 +219,14 @@
                 <div class="user-avatar">
                     <i class="fas fa-user-circle"></i>
                 </div>
-                <h3>{{ Auth::user()->full_name }}
-                    <div class="notification-bell" id="notificationBell">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge" id="notificationCount" style="display: none;">0</span>
-                        <div class="notification-dropdown" id="notificationDropdown">
-                            <div id="notificationList">Loading...</div>
-                        </div>
+                <h3>{{ Auth::user()->full_name }}</h3>
+                <div class="notification-bell" id="notificationBell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationCount" style="display: none;">0</span>
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div id="notificationList">Loading...</div>
                     </div>
-                </h3>
+                </div>
                 <p>ID: {{ Auth::user()->emp_id }}</p>
                 <div class="status-indicator online">
                     <span class="status-dot"></span>
@@ -271,6 +270,13 @@
                         <a href="{{ route('profile') }}" class="nav-link {{ request()->routeIs('profile') ? 'active' : '' }}">
                             <i class="fas fa-user-cog"></i>
                             <span>Profile</span>
+                            <div class="nav-indicator"></div>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('notifications.index') }}" class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
                             <div class="nav-indicator"></div>
                         </a>
                     </li>
@@ -372,20 +378,23 @@ $(document).ready(function() {
             let unreadCount = 0;
             
             if (notifications.length === 0) {
-                html = '<div class="notification-item">No notifications</div>';
+                html = '<div style="padding: 16px; text-align: center; color: #666;">No notifications</div>';
             } else {
                 notifications.forEach(function(notification) {
                     if (notification.status === 'pending') unreadCount++;
                     
                     let appType = notification.application ? notification.application.req_type.replace('_', ' ') : 'Application';
-                    let createdBy = notification.created_by ? notification.created_by.username : 'Admin';
+                    let actionBy = notification.action_by || 'Admin';
                     let timeAgo = new Date(notification.created_at).toLocaleDateString();
+                    let statusText = notification.application ? notification.application.status : 'pending';
+                    let statusColor = statusText === 'approved' ? '#10b981' : statusText === 'rejected' ? '#ef4444' : '#f59e0b';
                     
                     html += `
-                        <div class="notification-item ${notification.status === 'pending' ? 'unread' : ''}" data-id="${notification.id}">
-                            <div style="font-weight: 600; margin-bottom: 4px;">${appType} Update</div>
-                            <div style="font-size: 0.875rem; color: #666; margin-bottom: 4px;">From: ${createdBy}</div>
-                            <div style="font-size: 0.75rem; color: #999;">${timeAgo}</div>
+                        <div style="padding: 12px 16px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; ${notification.status === 'pending' ? 'background: rgba(11, 87, 208, 0.05); border-left: 3px solid var(--primary);' : ''}" data-id="${notification.id}" onclick="window.location.href='{{ route('notifications.index') }}'" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='${notification.status === 'pending' ? 'rgba(11, 87, 208, 0.05)' : 'white'}'">
+                            <div style="font-weight: 600; margin-bottom: 4px; text-transform: capitalize; color: #1f2937;">${appType} Request #${notification.App_id}</div>
+                            <div style="font-size: 13px; color: ${statusColor}; margin-bottom: 4px; font-weight: 600; text-transform: uppercase;">Status: ${statusText}</div>
+                            <div style="font-size: 12px; color: #4b5563; margin-bottom: 4px;">Action by: ${actionBy}</div>
+                            <div style="font-size: 12px; color: #6b7280;">${timeAgo}</div>
                         </div>
                     `;
                 });
@@ -394,16 +403,20 @@ $(document).ready(function() {
             $('#notificationList').html(html);
             
             if (unreadCount > 0) {
-                $('#notificationCount').text(unreadCount).show();
+                if(unreadCount > 9){
+                    $('#notificationCount').text('9+').show();
+                }else{
+                    $('#notificationCount').text(unreadCount).show();
+                }
             } else {
                 $('#notificationCount').hide();
             }
         });
     }
     
-    $(document).on('click', '.notification-item[data-id]', function() {
+    $(document).on('click', '[data-id]', function() {
         let notificationId = $(this).data('id');
-        $(this).removeClass('unread');
+        $(this).css('background', 'white').css('border-left', 'none');
         
         $.post(`/notifications/${notificationId}/read`, {
             _token: '{{ csrf_token() }}'

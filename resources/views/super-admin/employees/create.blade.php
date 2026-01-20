@@ -3,6 +3,18 @@
 @section('title', 'Add Employee')
 
 @section('content')
+
+@error($errors->any())
+
+    <div class="alert alert-danger">
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    
+@enderror
 <div class="page-header">
     <h1 class="page-title">Add Employee</h1>
     <p class="page-subtitle">Create a new employee account</p>
@@ -81,6 +93,18 @@
                     @enderror
                 </div>
                 
+                {{-- <div class="form-group">
+                    <label class="form-label">Level *</label>
+                    <select name="senior_junior" class="form-control @error('senior_junior') is-invalid @enderror" required>
+                        <option value="">Select Level</option>
+                        <option value="junior" {{ old('senior_junior') == 'junior' ? 'selected' : '' }}>Junior</option>
+                        <option value="senior" {{ old('senior_junior') == 'senior' ? 'selected' : '' }}>Senior</option>
+                    </select>
+                    @error('senior_junior')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div> --}}
+                
                 <div class="form-group">
                     <label class="form-label">Phone Number</label>
                     <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" 
@@ -117,6 +141,28 @@
                         @endforeach
                     </select>
                     @error('referrance')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Employee Grade *</label>
+                    <select name="senior_junior" class="form-control @error('senior_junior') is-invalid @enderror">
+                        <option value="">Select Grade</option>
+                        <option value="senior" {{ old('senior_junior') == 'senior' ? 'selected' : '' }}>Senior</option>
+                        <option value="junior" {{ old('senior_junior') == 'junior' ? 'selected' : '' }}>Junior</option>
+                    </select>
+                    @error('senior_junior')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Is Metro City*</label>
+                    <select name="metro_city" class="form-control @error('metro_city') is-invalid @enderror">
+                        <option value="">Select Metro Status</option>
+                        <option value="1" {{ old('metro_city') == '1' ? 'selected' : '' }}>Yes</option>
+                        <option value="0" {{ old('metro_city') == '0' ? 'selected' : '' }}>No</option>
+                    </select>
+                    @error('metro_city')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>

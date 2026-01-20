@@ -22,6 +22,8 @@ class Employee extends Authenticatable
         'department_id',
         'region_id',
         'position',
+        'senior_junior',
+        'metro_city',
         'hire_date',
         'end_date',
         'dob',

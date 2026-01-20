@@ -152,8 +152,10 @@
         
         .notification-bell {
             position: relative;
-            display: inline-block;
-            margin-left: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 0.5rem;
             cursor: pointer;
         }
         
@@ -186,7 +188,8 @@
         .notification-dropdown {
             position: absolute;
             top: 100%;
-            right: 0;
+            left: 50%;
+            transform: translateX(-50%);
             background: white;
             border: 1px solid var(--gray-200);
             border-radius: var(--radius-lg);
@@ -196,6 +199,8 @@
             overflow-y: auto;
             z-index: 1000;
             display: none;
+            color: var(--gray-900);
+            margin-top: 0.5rem;
         }
         
         .notification-dropdown.show {
@@ -207,6 +212,7 @@
             border-bottom: 1px solid var(--gray-100);
             cursor: pointer;
             transition: var(--transition);
+            color: var(--gray-700);
         }
         
         .notification-item:hover {
@@ -216,6 +222,10 @@
         .notification-item.unread {
             background: rgba(79, 70, 229, 0.05);
             border-left: 3px solid var(--primary);
+        }
+        
+        .notification-item div {
+            color: var(--gray-700);
         }
         
         .nav-menu {

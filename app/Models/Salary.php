@@ -29,6 +29,9 @@ class Salary extends Model
         'pf_no',
         'esic_no',
         'payment_mode',
+        'healthcare_cess',
+        'special_allowance',
+        'tds',
     ];
 
     protected $casts = [
@@ -39,6 +42,9 @@ class Salary extends Model
         'ta' => 'decimal:2',
         'conveyance_allowance' => 'decimal:2',
         'gross_salary' => 'decimal:2',
+        'healthcare_cess' => 'decimal:2',
+        'special_allowance' => 'integer',
+        'tds' => 'decimal:2',
         'effective_from' => 'date',
         'is_pf' => 'boolean',
         'is_active' => 'boolean',

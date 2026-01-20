@@ -178,7 +178,7 @@
         }
 
         .card-header {
-            background: linear-gradient(135deg, #eeedfa, #f8eaf0);;
+            background: linear-gradient(135deg, #eeedfa, #f8eaf0);
             padding: 24px 28px 8px;
             border-bottom: none;
             display: flex;
@@ -362,8 +362,8 @@
         <div class="admin-user">
             <div class="notification-bell" id="notificationBell" style="margin-right: 16px; position: relative; cursor: pointer;">
                 <i class="fas fa-bell" style="font-size: 18px; color: var(--md-text-sub);"></i>
-                <span class="notification-badge" id="notificationCount" style="position: absolute; top: -8px; right: -8px; background: #dc2626; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: none; align-items: center; justify-content: center; font-weight: 600; padding-left: 5px;">0</span>
-                <div class="notification-dropdown" id="notificationDropdown" style="position: absolute; top: 100%; right: 0; background: white; border: 1px solid var(--md-outline-variant); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); width: 320px; max-height: 400px; overflow-y: auto; z-index: 1000; display: none; margin-top: 8px;">
+                <span class="notification-badge" id="notificationCount" style="position: absolute; top: -8px; right: -8px; background: #dc2626; color: black; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: none; align-items: center; justify-content: center; font-weight: 600; padding-left: 5px;">0</span>
+                <div class="notification-dropdown" id="notificationDropdown" style="position: absolute; top: 100%; right: 0; background: black; border: 1px solid var(--md-outline-variant); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); width: 320px; max-height: 400px; overflow-y: auto; z-index: 1000; display: none; margin-top: 8px;">
                     <div id="notificationList" style="padding: 8px;">Loading...</div>
                 </div>
             </div>
@@ -531,9 +531,9 @@
                         
                         html += `
                             <div style="padding: 12px 16px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; ${notification.status === 'pending' ? 'background: rgba(11, 87, 208, 0.05); border-left: 3px solid var(--md-primary);' : ''}" data-id="${notification.id}" onclick="window.location.href='{{ route('admin.notifications') }}'" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='${notification.status === 'pending' ? 'rgba(11, 87, 208, 0.05)' : 'white'}'">
-                                <div style="font-weight: 600; margin-bottom: 4px; text-transform: capitalize;">${appType} Request #${notification.App_id}</div>
-                                <div style="font-size: 13px; color: #666; margin-bottom: 4px;">From: ${createdBy}</div>
-                                <div style="font-size: 12px; color: #999;">${timeAgo}</div>
+                                <div style="font-weight: 600; margin-bottom: 4px; text-transform: capitalize; color: #1f2937;">${appType} Request #${notification.App_id}</div>
+                                <div style="font-size: 13px; color: #4b5563; margin-bottom: 4px;">From: ${createdBy}</div>
+                                <div style="font-size: 12px; color: #6b7280;">${timeAgo}</div>
                             </div>
                         `;
                     });

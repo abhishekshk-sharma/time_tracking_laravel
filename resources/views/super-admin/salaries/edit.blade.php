@@ -3,10 +3,30 @@
 @section('title', 'Edit Salary')
 
 @section('content')
+
 <div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+        <div>
+            <h1 class="page-title">Edit Salary</h1>
+            <p class="page-subtitle">Update salary structure for {{ $salary->employee->full_name ?? $salary->emp_id }}</p>
+        </div>
+        <div>
+            
+            <a href="#" class="btn btn-primary" onclick="openCTCModal()">
+            <i class="fas fa-calculator"></i> Auto Edit Salary
+        </a>
+        </div>
+    </div>
+</div>
+{{-- <div class="page-header">
     <h1 class="page-title">Edit Salary</h1>
     <p class="page-subtitle">Update salary structure for {{ $salary->employee->name ?? $salary->emp_id }}</p>
-</div>
+    <div>
+        <a href="#" type="button" class="btn btn-outline-primary" onclick="openCTCModal()">
+            <i class="fas fa-calculator"></i> Auto Edit Salary
+        </a>
+    </div>
+</div> --}}
 
 <div class="card">
     <div class="card-header">
@@ -48,6 +68,33 @@
                     <input type="number" name="conveyance_allowance" id="conveyance_allowance" class="form-control" 
                            value="{{ old('conveyance_allowance', $salary->conveyance_allowance) }}" step="0.01" min="0">
                     @error('conveyance_allowance')
+                        <div style="color: #ef4444; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
+                    <label for="special_allowance" class="form-label">Special Allowance</label>
+                    <input type="number" name="special_allowance" id="special_allowance" class="form-control" 
+                           value="{{ old('special_allowance', $salary->special_allowance ?? 0) }}" step="0.01" min="0">
+                    @error('special_allowance')
+                        <div style="color: #ef4444; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
+                    <label for="tds" class="form-label">TDS (Tax Deducted at Source)</label>
+                    <input type="number" name="tds" id="tds" class="form-control" 
+                           value="{{ old('tds', $salary->tds ?? 0) }}" step="0.01" min="0">
+                    @error('tds')
+                        <div style="color: #ef4444; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
+                    <label for="healthcare_cess" class="form-label">Healthcare Cess</label>
+                    <input type="number" name="healthcare_cess" id="healthcare_cess" class="form-control" 
+                           value="{{ old('healthcare_cess', $salary->healthcare_cess ?? 0) }}" step="0.01" min="0">
+                    @error('healthcare_cess')
                         <div style="color: #ef4444; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
                     @enderror
                 </div>
@@ -181,7 +228,137 @@
 </div>
 
 @push('scripts')
+<style>
+.modal-backdrop {
+    z-index: 9998 !important;
+}
+
+#ctcModal {
+    z-index: 9999 !important;
+}
+</style>
+<!-- CTC Calculation Modal -->
+<div class="modal fade" id="ctcModal" tabindex="-1" role="dialog" aria-labelledby="ctcModalLabel" aria-hidden="true" style="z-index: 9999;">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ctcModalLabel">CTC Calculation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="monthly_ctc" class="form-label">Monthly CTC</label>
+                    <input type="number" id="monthly_ctc" class="form-control" step="0.01" min="0" placeholder="Enter monthly CTC amount">
+                </div>
+                
+                <div id="calculationResults" style="display: none; margin-top: 20px;">
+                    <h6>Calculated Components:</h6>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Basic Salary:</strong> ₹<span id="calc_basic">0</span></p>
+                                <p><strong>HRA:</strong> ₹<span id="calc_hra">0</span></p>
+                                <p><strong>Conveyance Allowance:</strong> ₹<span id="calc_conveyance">0</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Special Allowance:</strong> ₹<span id="calc_special">0</span></p>
+                                <p><strong>TDS:</strong> ₹<span id="calc_tds">0</span></p>
+                                <p><strong>Healthcare Cess:</strong> ₹<span id="calc_cess">0</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="calculateComponents()">Calculate</button>
+                <button type="button" class="btn btn-success" id="applyBtn" onclick="applyCalculation()" style="display: none;">Apply to Form</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+
+
+    function calculateGrossSalary() {
+        const basic = parseFloat($('#basic_salary').val()) || 0;
+        const hra = parseFloat($('#hra').val()) || 0;
+        const conveyance = parseFloat($('#conveyance_allowance').val()) || 0;
+        const specialAllowance = parseFloat($('#special_allowance').val()) || 0;
+        const pf = parseFloat($('#pf').val()) || 0;
+        const pt = parseFloat($('#pt').val()) || 0;
+        const tds = parseFloat($('#tds').val()) || 0;
+        const healthcareCess = parseFloat($('#healthcare_cess').val()) || 0;
+        
+        const gross = basic + hra + conveyance + specialAllowance - pf - pt - tds - healthcareCess;
+        
+        if ($('#gross_display').length === 0) {
+            $('form').append('<div id="gross_display" style="background: #f0fdf4; padding: 16px; border-radius: 8px; margin-top: 20px; text-align: center;"><strong>Gross Salary: ₹<span id="gross_amount">'+gross+'</span></strong></div>');
+        }
+        
+        $('#gross_amount').text(gross.toFixed(2));
+    }
+
+function openCTCModal() {
+    $('#ctcModal').modal('show');
+}
+
+function calculateComponents() {
+    const monthlyCTC = parseFloat($('#monthly_ctc').val());
+    if (!monthlyCTC || monthlyCTC <= 0) {
+        alert('Please enter a valid monthly CTC amount');
+        return;
+    }
+    
+    $.ajax({
+        url: '{{ route("super-admin.calculate-salary-components") }}',
+        method: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}',
+            monthly_ctc: monthlyCTC,
+            emp_id: '{{ $salary->emp_id }}'
+        },
+        success: function(response) {
+
+            if (response.success) {
+                $('#calc_basic').text(response.components.basic_salary);
+                $('#calc_hra').text(response.components.hra);
+                $('#calc_conveyance').text(response.components.conveyance_allowance);
+                $('#calc_special').text(response.components.special_allowance);
+                $('#calc_tds').text(response.components.tds);
+                $('#calc_cess').text(response.components.healthcare_cess);
+                
+                $('#calculationResults').show();
+                $('#applyBtn').show();
+                
+                window.calculatedData = response;
+            } else {
+                alert('Error calculating components: ' + (response.message || 'Unknown error'));
+            }
+        },
+        error: function() {
+            alert('Error calculating salary components');
+        }
+    });
+}
+
+function applyCalculation() {
+    if (window.calculatedData) {
+        $('#basic_salary').val(window.calculatedData.components.basic_salary);
+        $('#hra').val(window.calculatedData.components.hra);
+        $('#conveyance_allowance').val(window.calculatedData.components.conveyance_allowance);
+        $('#special_allowance').val(window.calculatedData.components.special_allowance);
+        $('#tds').val(window.calculatedData.components.tds);
+        $('#healthcare_cess').val(window.calculatedData.components.healthcare_cess);
+        
+        calculateGrossSalary();
+        $('#ctcModal').modal('hide');
+    }
+}
+
 $(document).ready(function() {
     function calculatePF() {
         if ($('#auto_pf').is(':checked')) {
@@ -191,22 +368,7 @@ $(document).ready(function() {
         }
     }
     
-    function calculateGrossSalary() {
-        const basic = parseFloat($('#basic_salary').val()) || 0;
-        const hra = parseFloat($('#hra').val()) || 0;
-        const ta = parseFloat($('#ta').val()) || 0;
-        const conveyance = parseFloat($('#conveyance_allowance').val()) || 0;
-        const pf = parseFloat($('#pf').val()) || 0;
-        const pt = parseFloat($('#pt').val()) || 0;
-        
-        const gross = basic + hra + ta + conveyance - pf - pt;
-        
-        if ($('#gross_display').length === 0) {
-            $('form').append('<div id="gross_display" style="background: #f0fdf4; padding: 16px; border-radius: 8px; margin-top: 20px; text-align: center;"><strong>Gross Salary: ₹<span id="gross_amount">'+gross+'</span></strong></div>');
-        }
-        
-        $('#gross_amount').text(gross.toFixed(2));
-    }
+
     
     $('#auto_pf').on('change', function() {
         if ($(this).is(':checked')) {
@@ -222,7 +384,7 @@ $(document).ready(function() {
         calculateGrossSalary();
     });
     
-    $('#hra, #ta, #conveyance_allowance, #pf, #pt').on('input', calculateGrossSalary);
+    $('#hra, #conveyance_allowance, #special_allowance, #pf, #pt, #tds, #healthcare_cess').on('input', calculateGrossSalary);
     calculateGrossSalary();
 });
 </script>

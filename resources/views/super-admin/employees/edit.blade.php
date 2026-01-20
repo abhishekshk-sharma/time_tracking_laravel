@@ -75,6 +75,14 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Phone *</label>
+                    <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" 
+                           value="{{ old('phone', $employee->phone) }}" required>
+                    @error('phone')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
                 
                 <div class="form-group">
                     <label class="form-label">DOB</label>
@@ -94,6 +102,13 @@
                     <select class="form-control" name="status" required @error('status') is-invalid @enderror">
                         <option value="active" {{ $employee->status == 'active' ? 'selected' : '' }}>Active</option>
                         <option value="inactive" {{ $employee->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">City Category</label>
+                    <select class="form-control" name="metro_city" required @error('metro_city') is-invalid @enderror">
+                        <option value="0" {{ $employee->metro_city == 0 ? 'selected' : '' }}>Non-Metro City</option>
+                        <option value="1" {{ $employee->metro_city == 1 ? 'selected' : '' }}>Metro City</option>
                     </select>
                 </div>
             </div>
@@ -120,6 +135,17 @@
                 <div class="form-group">
                     <label class="form-label">Position</label>
                     <input type="text" name="position" class="form-control" value="{{ old('position', $employee->position) }}" @error('position') is-invalid @enderror">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Level</label>
+                    <select name="senior_junior" class="form-control @error('senior_junior') is-invalid @enderror">
+                        <option value="junior" {{ old('senior_junior', $employee->senior_junior) == 'junior' ? 'selected' : '' }}>Junior</option>
+                        <option value="senior" {{ old('senior_junior', $employee->senior_junior) == 'senior' ? 'selected' : '' }}>Senior</option>
+                    </select>
+                    @error('senior_junior')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
                 
                 <div class="form-group">

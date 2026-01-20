@@ -7,9 +7,9 @@
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm">
-                <div class="card-header" style="background: linear-gradient(135deg, #ff6b35 0%, #ff9900 100%); color: white;">
+                <div class="card-header" style="background: linear-gradient(135deg, #eeedfa, #f8eaf0);">
                     <h4 class="mb-0">
-                        <i class="fas fa-edit me-2"></i>Edit Salary Report - {{ $salaryReport->emp_name }}
+                        <i class="fas fa-edit me-2" style="color: #031074;"></i>Edit Salary Report - {{ $salaryReport->emp_name }}
                         <small class="ms-2 opacity-75">({{ date('F Y', mktime(0, 0, 0, $salaryReport->month, 1, $salaryReport->year)) }})</small>
                     </h4>
                 </div>
@@ -133,11 +133,18 @@
                                                 <input type="number" step="0.01" class="form-control" id="hra" name="hra" value="{{ old('hra', $salaryReport->hra) }}" required min="0">
                                             </div>
                                         </div>
-                                        <div style="grid-column: 1 / -1;">
+                                        <div>
                                             <label class="form-label fw-bold">Conveyance Allowance</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">₹</span>
                                                 <input type="number" step="0.01" class="form-control" id="conveyance_allowance" name="conveyance_allowance" value="{{ old('conveyance_allowance', $salaryReport->conveyance_allowance) }}" required min="0">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="form-label fw-bold">Special Allowance</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">₹</span>
+                                                <input type="number" step="0.01" class="form-control" id="special_allowance" name="special_allowance" value="{{ old('special_allowance', $salaryReport->special_allowance) }}" min="0">
                                             </div>
                                         </div>
                                     </div>
@@ -163,6 +170,20 @@
                                             <div class="input-group">
                                                 <span class="input-group-text text-danger">₹</span>
                                                 <input type="number" step="0.01" class="form-control" id="pt" name="pt" value="{{ old('pt', $salaryReport->pt) }}" required min="0">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="form-label fw-bold">TDS</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text text-danger">₹</span>
+                                                <input type="number" step="0.01" class="form-control" id="tds" name="tds" value="{{ old('tds', $salaryReport->tds) }}" min="0">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="form-label fw-bold">Healthcare Cess</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text text-danger">₹</span>
+                                                <input type="number" step="0.01" class="form-control" id="healthcare_cess" name="healthcare_cess" value="{{ old('healthcare_cess', $salaryReport->healthcare_cess) }}" min="0">
                                             </div>
                                         </div>
                                     </div>
@@ -237,6 +258,10 @@
                                             <input type="text" class="form-control form-control-sm text-success fw-bold" id="conveyance_display" value="₹0.00" readonly>
                                         </div>
                                         <div>
+                                            <label class="form-label small text-muted">Special Allow.</label>
+                                            <input type="text" class="form-control form-control-sm text-success fw-bold" id="special_allowance_display" value="₹0.00" readonly>
+                                        </div>
+                                        <div>
                                             <label class="form-label small text-success fw-bold">Gross Salary</label>
                                             <input type="text" class="form-control form-control-sm text-success fw-bold border-success" id="gross_salary_display" value="₹0.00" readonly>
                                         </div>
@@ -247,6 +272,14 @@
                                         <div>
                                             <label class="form-label small text-muted">PT</label>
                                             <input type="text" class="form-control form-control-sm text-danger fw-bold" id="pt_display" value="₹0.00" readonly>
+                                        </div>
+                                        <div>
+                                            <label class="form-label small text-muted">TDS</label>
+                                            <input type="text" class="form-control form-control-sm text-danger fw-bold" id="tds_display" value="₹0.00" readonly>
+                                        </div>
+                                        <div>
+                                            <label class="form-label small text-muted">Healthcare</label>
+                                            <input type="text" class="form-control form-control-sm text-danger fw-bold" id="healthcare_cess_display" value="₹0.00" readonly>
                                         </div>
                                         <div style="grid-column: 1 / -1;">
                                             <label class="form-label small text-danger fw-bold">Total Deductions</label>
@@ -295,8 +328,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const shortAttendance = parseFloat(document.querySelector('input[name="short_attendance"]').value) || 0;
         const hra = parseFloat(document.getElementById('hra').value) || 0;
         const conveyanceAllowance = parseFloat(document.getElementById('conveyance_allowance').value) || 0;
+        const specialAllowance = parseFloat(document.getElementById('special_allowance').value) || 0;
         const pf = parseFloat(document.getElementById('pf').value) || 0;
         const pt = parseFloat(document.getElementById('pt').value) || 0;
+        const tds = parseFloat(document.getElementById('tds').value) || 0;
+        const healthcareCess = parseFloat(document.getElementById('healthcare_cess').value) || 0;
 
         // Calculate payable days
         const payableDays = presentDays + holidays + sickLeave + casualLeave + regularization + (halfDays * 0.5) + (shortAttendance * 0.5);
@@ -304,8 +340,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Calculate payable basic salary
         const payableBasicSalary = (basicSalary / totalWorkingDays) * payableDays;
-        const grossSalary = payableBasicSalary + hra + conveyanceAllowance;
-        const totalDeductions = pf + pt;
+        const grossSalary = payableBasicSalary + hra + conveyanceAllowance + specialAllowance;
+        const totalDeductions = pf + pt + tds + healthcareCess;
         const netSalary = grossSalary - totalDeductions;
 
         const formatCurrency = (amount) => '₹' + amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -313,9 +349,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('payable_basic_display').value = formatCurrency(payableBasicSalary);
         document.getElementById('hra_display').value = formatCurrency(hra);
         document.getElementById('conveyance_display').value = formatCurrency(conveyanceAllowance);
+        document.getElementById('special_allowance_display').value = formatCurrency(specialAllowance);
         document.getElementById('gross_salary_display').value = formatCurrency(grossSalary);
         document.getElementById('pf_display').value = formatCurrency(pf);
         document.getElementById('pt_display').value = formatCurrency(pt);
+        document.getElementById('tds_display').value = formatCurrency(tds);
+        document.getElementById('healthcare_cess_display').value = formatCurrency(healthcareCess);
         document.getElementById('total_deductions_display').value = formatCurrency(totalDeductions);
         document.getElementById('net_salary_display').value = formatCurrency(netSalary);
     }
@@ -382,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Add event listeners to salary fields
-    ['basic_salary', 'hra', 'conveyance_allowance', 'pf', 'pt'].forEach(id => {
+    ['basic_salary', 'hra', 'conveyance_allowance', 'special_allowance', 'pf', 'pt', 'tds', 'healthcare_cess', 'total_working_days', 'payable_days'].forEach(id => {
         const element = document.getElementById(id);
         if (element) {
             element.addEventListener('input', updateCalculations);

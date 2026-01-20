@@ -372,7 +372,7 @@
             </div>
 
             @php
-                $isOrgActive = request()->routeIs('super-admin.departments*') || request()->routeIs('super-admin.regions*') || request()->routeIs('super-admin.location-settings*') || request()->routeIs('super-admin.leave-days*');
+                $isOrgActive = request()->routeIs('super-admin.departments*') || request()->routeIs('super-admin.regions*') || request()->routeIs('super-admin.location-settings*') || request()->routeIs('super-admin.leave-days*') || request()->routeIs('super-admin.tax-slabs*');
             @endphp
             <div class="nav-item">
                 <div class="nav-link {{ $isOrgActive ? 'active' : '' }}" onclick="toggleMenu('menu-org')" aria-expanded="{{ $isOrgActive ? 'true' : 'false' }}">
@@ -384,6 +384,7 @@
                     <li><a href="{{ route('super-admin.regions') }}" class="sub-nav-link {{ request()->routeIs('super-admin.regions*') ? 'active' : '' }}">Branch</a></li>
                     <li><a href="{{ route('super-admin.location-settings.index') }}" class="sub-nav-link {{ request()->routeIs('super-admin.location-settings*') ? 'active' : '' }}">Location Settings</a></li>
                     <li><a href="{{ route('super-admin.leave-days') }}" class="sub-nav-link {{ request()->routeIs('super-admin.leave-days*') ? 'active' : '' }}">Leave Days</a></li>
+                    <li><a href="{{ route('super-admin.tax-slabs') }}" class="sub-nav-link {{ request()->routeIs('super-admin.tax-slabs*') ? 'active' : '' }}">Payroll Settings</a></li>
                 </ul>
             </div>
 
