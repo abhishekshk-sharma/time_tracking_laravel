@@ -28,6 +28,28 @@
         align-items: center;
         justify-content: center;
         padding: 0;
+        flex-shrink: 0;
+        min-width: 40px;
+    }
+    
+    @media (max-width: 768px) {
+        .calendar-controls {
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            flex-shrink: 0;
+        }
+        
+        .current-month-display {
+            min-width: auto;
+            flex: 1;
+            margin: 0 1rem;
+        }
     }
     
     .calendar-container {
@@ -79,6 +101,10 @@
     .calendar-day.absent { 
         background: linear-gradient(135deg, #fef2f2, #fecaca); 
         color: #dc2626;
+    }
+    .calendar-day.wfh { 
+        background: linear-gradient(135deg, #f2fefe, #cafefc); 
+        color: #2687dc;
     }
     
     .calendar-day.weekend { 
@@ -282,9 +308,9 @@ $(document).ready(function() {
                 } else if (data[date].status === 'absent') {
                     status = 'Absent';
                     dayClass += ' absent';
-                } else if (data[date].status === 'weekend') {
-                    status = 'Weekend';
-                    dayClass += ' weekend';
+                } else if (data[date].status === 'wfh') {
+                    status = 'WFH';
+                    dayClass += ' wfh';
                 } else {
                     status = data[date].status;
                     dayClass += ' leave';

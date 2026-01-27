@@ -4,6 +4,39 @@
 
 @push('styles')
 <style>
+    /* Lunch Alarm Button */
+    #lunchAlarmBtn {
+        position: fixed !important;
+        top: 20px !important;
+        right: 20px !important;
+        z-index: 9999999 !important;
+        background: #ef4444 !important;
+        color: white !important;
+        border: none !important;
+        padding: 15px 20px !important;
+        border-radius: 50px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4) !important;
+        animation: pulse-alarm 1s infinite !important;
+        cursor: pointer !important;
+        display: none !important;
+        font-size: 14px !important;
+    }
+    
+    @keyframes pulse-alarm {
+        0% { transform: scale(1); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); }
+        50% { transform: scale(1.05); box-shadow: 0 8px 30px rgba(239, 68, 68, 0.6); }
+        100% { transform: scale(1); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); }
+    }
+    
+    @media (max-width: 768px) {
+        #lunchAlarmBtn {
+            top: 10px !important;
+            right: 10px !important;
+            padding: 12px 16px !important;
+            font-size: 12px !important;
+        }
+    }
     /* User Layout Common Styles */
     .user-avatar {
         width: 80px;
@@ -204,6 +237,11 @@
 @endpush
 
 @section('content')
+<!-- Lunch Alarm Button -->
+<button id="lunchAlarmBtn" style="display: none;">
+    <i class="fas fa-bell"></i> Stop Lunch Alarm
+</button>
+
 <!-- Mobile menu toggle -->
 <button class="mobile-menu-toggle" id="mobileMenuToggle">
     <i class="fas fa-bars"></i>
@@ -224,7 +262,7 @@
                     <i class="fas fa-bell"></i>
                     <span class="notification-badge" id="notificationCount" style="display: none;">0</span>
                     <div class="notification-dropdown" id="notificationDropdown">
-                        <div id="notificationList">Loading...</div>
+                        <div id="notificationList"></div>
                     </div>
                 </div>
                 <p>ID: {{ Auth::user()->emp_id }}</p>
@@ -372,44 +410,51 @@ $(document).ready(function() {
         }
     });
     
-    function loadNotifications() {
-        $.get('{{ route("notifications") }}', function(notifications) {
-            let html = '';
-            let unreadCount = 0;
-            
-            if (notifications.length === 0) {
-                html = '<div style="padding: 16px; text-align: center; color: #666;">No notifications</div>';
-            } else {
-                notifications.forEach(function(notification) {
-                    if (notification.status === 'pending') unreadCount++;
-                    
-                    let appType = notification.application ? notification.application.req_type.replace('_', ' ') : 'Application';
-                    let actionBy = notification.action_by || 'Admin';
-                    let timeAgo = new Date(notification.created_at).toLocaleDateString();
-                    let statusText = notification.application ? notification.application.status : 'pending';
-                    let statusColor = statusText === 'approved' ? '#10b981' : statusText === 'rejected' ? '#ef4444' : '#f59e0b';
-                    
-                    html += `
-                        <div style="padding: 12px 16px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; ${notification.status === 'pending' ? 'background: rgba(11, 87, 208, 0.05); border-left: 3px solid var(--primary);' : ''}" data-id="${notification.id}" onclick="window.location.href='{{ route('notifications.index') }}'" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='${notification.status === 'pending' ? 'rgba(11, 87, 208, 0.05)' : 'white'}'">
-                            <div style="font-weight: 600; margin-bottom: 4px; text-transform: capitalize; color: #1f2937;">${appType} Request #${notification.App_id}</div>
-                            <div style="font-size: 13px; color: ${statusColor}; margin-bottom: 4px; font-weight: 600; text-transform: uppercase;">Status: ${statusText}</div>
-                            <div style="font-size: 12px; color: #4b5563; margin-bottom: 4px;">Action by: ${actionBy}</div>
-                            <div style="font-size: 12px; color: #6b7280;">${timeAgo}</div>
-                        </div>
-                    `;
-                });
-            }
-            
-            $('#notificationList').html(html);
-            
-            if (unreadCount > 0) {
-                if(unreadCount > 9){
-                    $('#notificationCount').text('9+').show();
-                }else{
-                    $('#notificationCount').text(unreadCount).show();
+    function loadNotifications(showLoading = false) {
+        // console.log('Loading notifications...');
+        
+        $.ajax({
+            url: '{{ route("notifications") }}',
+            type: 'GET',
+            global: false, // Disable global AJAX events
+            success: function(notifications) {
+                let html = '';
+                let unreadCount = 0;
+                
+                if (notifications.length === 0) {
+                    html = '<div style="padding: 16px; text-align: center; color: #666;">No notifications</div>';
+                } else {
+                    notifications.forEach(function(notification) {
+                        if (notification.status === 'pending') unreadCount++;
+                        
+                        let appType = notification.application ? notification.application.req_type.replace('_', ' ') : 'Application';
+                        let actionBy = notification.action_by || 'Admin';
+                        let timeAgo = new Date(notification.created_at).toLocaleDateString();
+                        let statusText = notification.application ? notification.application.status : 'pending';
+                        let statusColor = statusText === 'approved' ? '#10b981' : statusText === 'rejected' ? '#ef4444' : '#f59e0b';
+                        
+                        html += `
+                            <div style="padding: 12px 16px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; ${notification.status === 'pending' ? 'background: rgba(11, 87, 208, 0.05); border-left: 3px solid var(--primary);' : ''}" data-id="${notification.id}" onclick="window.location.href='{{ route('notifications.index') }}'" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='${notification.status === 'pending' ? 'rgba(11, 87, 208, 0.05)' : 'white'}'">
+                                <div style="font-weight: 600; margin-bottom: 4px; text-transform: capitalize; color: #1f2937;">${appType} Request #${notification.App_id}</div>
+                                <div style="font-size: 13px; color: ${statusColor}; margin-bottom: 4px; font-weight: 600; text-transform: uppercase;">Status: ${statusText}</div>
+                                <div style="font-size: 12px; color: #4b5563; margin-bottom: 4px;">Action by: ${actionBy}</div>
+                                <div style="font-size: 12px; color: #6b7280;">${timeAgo}</div>
+                            </div>
+                        `;
+                    });
                 }
-            } else {
-                $('#notificationCount').hide();
+                
+                $('#notificationList').html(html);
+                
+                if (unreadCount > 0) {
+                    if(unreadCount > 9){
+                        $('#notificationCount').text('9+').show();
+                    }else{
+                        $('#notificationCount').text(unreadCount).show();
+                    }
+                } else {
+                    $('#notificationCount').hide();
+                }
             }
         });
     }
@@ -428,6 +473,81 @@ $(document).ready(function() {
     
     // Refresh notifications every 30 seconds
     setInterval(loadNotifications, 30000);
+    
+    // Lunch alarm functions
+    let alarmPlaying = false;
+    
+    function checkLunchAlarm() {
+        const empId = '{{ Auth::user()->emp_id }}';
+        $.ajax({
+            url: `{{ url('/api/lunch-alarm/check') }}/${empId}`,
+            method: 'GET',
+            global: false, // Disable global AJAX loading
+            success: function(data) {
+                if (data.alarm_active && !alarmPlaying) {
+                    showLunchAlarmButton();
+                    playAlarmSound();
+                    alarmPlaying = true;
+                } else if (!data.alarm_active && alarmPlaying) {
+                    stopLunchAlarm();
+                }
+            }
+        });
+    }
+    
+    function showLunchAlarmButton() {
+        $('#lunchAlarmBtn').show();
+    }
+    
+    function stopLunchAlarm() {
+        alarmPlaying = false;
+        $('#lunchAlarmBtn').hide();
+        const audio = document.getElementById('lunchAlarmAudio');
+        if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
+        
+        // Stop alarm on server
+        $.post('{{ route("lunch-alarm.stop") }}', {
+            _token: '{{ csrf_token() }}'
+        });
+    }
+    
+    function playAlarmSound() {
+        const audio = document.getElementById('lunchAlarmAudio');
+        if (audio) {
+            audio.loop = false;
+            audio.play().catch(e => console.log('Audio play failed:', e));
+            
+            // Auto-stop after 10 seconds
+            setTimeout(() => {
+                stopLunchAlarm();
+            }, 10000);
+        }
+    }
+    
+    // Check lunch alarm every 10 seconds
+    setInterval(checkLunchAlarm, 10000);
+    
+    // Initial check
+    checkLunchAlarm();
+    
+    // Lunch alarm button handler
+    $(document).on('click', '#lunchAlarmBtn', function() {
+        const audio = document.getElementById('lunchAlarmAudio');
+        if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
+        $(this).hide();
+        alarmPlaying = false;
+        
+        // Stop alarm on server
+        $.post('{{ route("lunch-alarm.stop") }}', {
+            _token: '{{ csrf_token() }}'
+        });
+    });
 });
 </script>
 @stack('page-scripts')

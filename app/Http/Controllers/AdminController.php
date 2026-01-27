@@ -804,12 +804,13 @@ class AdminController extends Controller
                 'Casual Leave' => $attendance['casual_leave'],
                 'Half Days' => $attendance['half_days'],
                 'Holidays' => $attendance['holidays'],
+                'WFH Days' => $attendance['wfh_days'] ?? 0,
                 'Regularization' => $attendance['regularization'],
                 'Short Attendance' => $attendance['short_attendance'],
                 'Total Payable Days' => $attendance['present_days'] + $attendance['holidays'] + 
                                        $attendance['sick_leave'] + $attendance['casual_leave'] + 
                                        ($attendance['half_days'] * 0.5) + ($attendance['short_attendance'] * 0.5) + 
-                                       $attendance['regularization']
+                                       $attendance['regularization'] + ($attendance['wfh_days'] ?? 0)
             ];
         }
         
@@ -1249,7 +1250,7 @@ class AdminController extends Controller
     {
         $request->validate([
             'date' => 'required|date',
-            'type' => 'required|in:holiday,working_day,weekend',
+            'type' => 'required|in:holiday,working_day,wfh',
             'description' => 'nullable|string|max:255'
         ]);
         

@@ -43,6 +43,8 @@ Route::middleware(['auth'])->prefix('api')->name('api.')->group(function () {
     Route::post('/time/details', [TimeController::class, 'getDetails'])->name('time.details');
     Route::post('/time/worked', [TimeController::class, 'timeWorked'])->name('time.worked');
     Route::post('/time/check-punch', [TimeController::class, 'checkFirstPunchIn'])->name('time.check-punch');
+    Route::get('/system/lunch-duration', [TimeController::class, 'getLunchDuration'])->name('system.lunch-duration');
+    Route::get('/lunch-alarm/check/{empId}', [TimeController::class, 'checkLunchAlarm'])->name('lunch-alarm.check');
     Route::post('/time/details-by-id', [TimeController::class, 'detailsById'])->name('time.details-by-id');
     Route::post('/time/filter', [TimeController::class, 'filterTime'])->name('time.filter');
     
@@ -112,6 +114,7 @@ Route::middleware(['auth', 'employee'])->group(function () {
     Route::post('/punch-in', [DashboardController::class, 'punchIn'])->name('punch.in');
     Route::post('/punch-out', [DashboardController::class, 'punchOut'])->name('punch.out');
     Route::post('/lunch-start', [DashboardController::class, 'lunchStart'])->name('lunch.start');
+    Route::post('/lunch-alarm/stop', [DashboardController::class, 'stopLunchAlarm'])->name('lunch-alarm.stop');
     Route::post('/lunch-end', [DashboardController::class, 'lunchEnd'])->name('lunch.end');
     Route::post('/capture-image', [DashboardController::class, 'captureImage'])->name('capture.image');
     

@@ -32,6 +32,36 @@
         position: relative !important;
     }
     
+    @media (max-width: 400px) {
+        .loading-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            min-width: 100vw !important;
+            min-height: 100vh !important;
+            z-index: 999999 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: rgba(0, 0, 0, 0.8) !important;
+        }
+        
+        .loading-content {
+            width: 85% !important;
+            max-width: 280px !important;
+            padding: 1.5rem !important;
+            margin: 1rem !important;
+            position: relative !important;
+            background: white !important;
+            border-radius: 12px !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+        }
+    }
+    
     .loading-spinner {
         width: 60px !important;
         height: 60px !important;
@@ -568,6 +598,32 @@
             padding: 1.25rem;
         }
     }
+
+    .my-swal-popup { z-index: 9999999 !important; }
+    
+    /* Lunch Alarm Button */
+    #lunchAlarmBtn {
+        position: fixed !important;
+        top: 20px !important;
+        right: 20px !important;
+        z-index: 9999999 !important;
+        background: #ef4444 !important;
+        color: white !important;
+        border: none !important;
+        padding: 15px 20px !important;
+        border-radius: 50px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4) !important;
+        animation: pulse-alarm 1s infinite !important;
+        cursor: pointer !important;
+        display: none !important;
+    }
+    
+    @keyframes pulse-alarm {
+        0% { transform: scale(1); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); }
+        50% { transform: scale(1.05); box-shadow: 0 8px 30px rgba(239, 68, 68, 0.6); }
+        100% { transform: scale(1); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); }
+    }
     
     @media (max-width: 480px) {
         .summary-card {
@@ -786,22 +842,29 @@ $(document).ready(function() {
     
     // Time tracking button handlers
     $('#punchInBtn').click(function() {
+        showLoadingModal("punch_in");
         handleTimeAction('punch_in');
     });
     
     $('#punchOutBtn').click(function() {
+        showLoadingModal("punch_out");
         handleTimeAction('punch_out');
     });
     
     $('#lunchStartBtn').click(function() {
+        showLoadingModal("lunch_start");
         handleTimeAction('lunch_start');
     });
     
     $('#lunchEndBtn').click(function() {
+        showLoadingModal("lunch_end");
         handleTimeAction('lunch_end');
+        stopLunchAlarm(); // Stop alarm when lunch ends
     });
     
     let isProcessing = false; // Prevent multiple simultaneous requests
+    let lunchAlarmTimer = null;
+    let lunchAlarmAudio = null;
     
     function handleTimeAction(action) {
         // Prevent multiple clicks during processing
@@ -811,31 +874,34 @@ $(document).ready(function() {
         
         isProcessing = true;
         
-        // Show loading modal
+        // Show loading modal IMMEDIATELY
         showLoadingModal(action);
         
         // Disable the clicked button immediately
         const clickedBtn = $('#' + action.replace('_', '') + 'Btn');
         clickedBtn.prop('disabled', true).addClass('processing');
         
-        // Get user location if needed
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    performTimeAction(action, {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    });
-                },
-                function(error) {
-                    // Location failed, try without coordinates
-                    performTimeAction(action, {});
-                }
-            );
-        } else {
-            // No geolocation support
-            performTimeAction(action, {});
-        }
+        // Small delay to ensure modal is visible before geolocation
+        setTimeout(() => {
+            // Get user location if needed
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        performTimeAction(action, {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        });
+                    },
+                    function(error) {
+                        // Location failed, try without coordinates
+                        performTimeAction(action, {});
+                    }
+                );
+            } else {
+                // No geolocation support
+                performTimeAction(action, {});
+            }
+        }, 100);
     }
     
     function performTimeAction(action, locationData) {
@@ -853,7 +919,7 @@ $(document).ready(function() {
             },
             timeout: 30000,
             success: function(response) {
-                hideLoadingModal();
+                
                 if (response.require_image) {
                     showImageCaptureModal(action);
                 } else if (response.success) {
@@ -863,11 +929,14 @@ $(document).ready(function() {
                         text: response.message,
                         timer: 2000,
                         showConfirmButton: false,
-                        zIndex: 9999999
+                        customClass: {
+                            popup: 'my-swal-popup'
+                        }
                     });
                     loadTimeData();
                     loadActivityData();
                     updateButtonStates();
+                    hideLoadingModal();
                 }
             },
             error: function(xhr) {

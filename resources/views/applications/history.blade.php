@@ -14,6 +14,39 @@
     .table-container {
         overflow-x: auto;
         border-radius: var(--radius-lg);
+        position: relative;
+    }
+    
+    .table {
+        position: relative;
+    }
+    
+    .table th:nth-child(6),
+    .table th:nth-child(7),
+    .table td:nth-child(6),
+    .table td:nth-child(7) {
+        position: sticky;
+        right: 0;
+        background: white;
+        z-index: 10;
+        box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table th:nth-child(7),
+    .table td:nth-child(7) {
+        right: 0;
+    }
+    
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        right: 100px;
+    }
+    
+    @media (max-width: 768px) {
+        .table th:nth-child(6),
+        .table td:nth-child(6) {
+            right: 80px;
+        }
     }
 </style>
 @endpush

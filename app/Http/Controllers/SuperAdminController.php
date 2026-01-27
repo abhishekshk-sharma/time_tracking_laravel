@@ -122,8 +122,10 @@ class SuperAdminController extends Controller
         $currentYear = request('year', Carbon::now()->year);
         
         $scheduleExceptions = \App\Models\ScheduleException::whereMonth('exception_date', $currentMonth)
-        ->whereMonth('exception_date', $currentMonth)
             ->whereYear('exception_date', $currentYear)
+            ->with(['admin' => function($query) {
+                $query->select('emp_id', 'username');
+            }])
             ->get();
 
             
@@ -138,7 +140,7 @@ class SuperAdminController extends Controller
     {
         $request->validate([
             'date' => 'required|date',
-            'type' => 'required|in:holiday,working_day,weekend',
+            'type' => 'required|in:holiday,working_day,WFH',
             'description' => 'nullable|string|max:255'
         ]);
         
@@ -192,12 +194,9 @@ class SuperAdminController extends Controller
             
 
             $exception = \App\Models\ScheduleException::where('exception_date', $current)
-            // ->whereMonth('exception_date', $monthStr)
-            // ->whereYear('exception_date', $yearStr)
-            ->where(function($query) use ($adminEmpId) {
-                $query->whereNotNull('superadmin_id')
-                      ->orWhere('admin_id', $adminEmpId);
-            })
+            ->with(['admin' => function($query) {
+                $query->select('emp_id', 'username');
+            }])
             ->get();
             // $exception = $scheduleExceptions->firstWhere('exception_date', $dateStr);
             
@@ -750,7 +749,7 @@ class SuperAdminController extends Controller
             $employee->firstPunchIn = $punchIns->first();
             $employee->lastPunchOut = $punchOuts->last();
             
-            // Calculate total working hours by pairing punch in/out sessions
+            // Calculate total working hours by pairing punch in/out sessions only
             $totalMinutes = 0;
             $punchInArray = $punchIns->values();
             $punchOutArray = $punchOuts->values();
@@ -884,11 +883,11 @@ class SuperAdminController extends Controller
             // Calculate total days in month
             $totalMonthDays = date('t', mktime(0, 0, 0, $month, 1, $year));
             
-            // Calculate payable days: present + holidays + sick/casual leave + (half_days * 0.5) + (short_attendance * 0.5)
+            // Calculate payable days: present + holidays + sick/casual leave + (half_days * 0.5) + (short_attendance * 0.5) + wfh_days + regularization
             $payableDays = $attendanceData['present_days'] + $attendanceData['holidays'] + 
                           $attendanceData['sick_leave'] + $attendanceData['casual_leave'] + 
-                          ($attendanceData['half_days'] * 0.5) + ($attendanceData['short_attendance'] * 0.5)
-                          + $attendanceData['regularization'];
+                          ($attendanceData['half_days'] * 0.5) + ($attendanceData['short_attendance'] * 0.5) 
+                           + $attendanceData['regularization'];
             
             $payableBasicSalary = ($salary->basic_salary / $totalMonthDays) * $payableDays;
             $grossSalary = $payableBasicSalary + $salary->hra + $salary->conveyance_allowance + $salary->special_allowance;
@@ -1769,12 +1768,13 @@ class SuperAdminController extends Controller
                 'Casual Leave' => $attendance['casual_leave'],
                 'Half Days' => $attendance['half_days'],
                 'Holidays' => $attendance['holidays'],
+                'WFH Days' => $attendance['wfh_days'] ?? 0,
                 'Regularization' => $attendance['regularization'],
                 'Short Attendance' => $attendance['short_attendance'],
                 'Total Payable Days' => $attendance['present_days'] + $attendance['holidays'] + 
                                        $attendance['sick_leave'] + $attendance['casual_leave'] + 
                                        ($attendance['half_days'] * 0.5) + ($attendance['short_attendance'] * 0.5) + 
-                                       $attendance['regularization']
+                                       $attendance['regularization'] + ($attendance['wfh_days'] ?? 0)
             ];
         }
 

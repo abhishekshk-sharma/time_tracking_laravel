@@ -137,7 +137,7 @@
                                         }
                                     }
                                     
-                                    $workingHours = $totalWorkingMinutes > 0 ? round($totalWorkingMinutes / 60, 2) : 0;
+                                    $workingHours = $totalWorkingMinutes > 0 ? sprintf('%d:%02d', floor($totalWorkingMinutes / 60), $totalWorkingMinutes % 60) : '0:00';
                                     $status = 'Absent';
                                     $statusClass = 'danger';
                                     
@@ -174,7 +174,7 @@
                                     <td>{{ $lunchStart ? $lunchStart->entry_time->format('H:i') : '-' }}</td>
                                     <td>{{ $lunchEnd ? $lunchEnd->entry_time->format('H:i') : '-' }}</td>
                                     <td>{{ $lastPunchOut ? $lastPunchOut->entry_time->format('H:i') : '-' }}</td>
-                                    <td>{{ $workingHours > 0 ? $workingHours . 'h' : '-' }}</td>
+                                    <td>{{ $workingHours !== '0:00' ? $workingHours : '-' }}</td>
                                     <td>
                                         <span class="badge p-2 text-bg-{{ $statusClass }}">{{ $status }}</span>
                                         @if($dateHasImages)

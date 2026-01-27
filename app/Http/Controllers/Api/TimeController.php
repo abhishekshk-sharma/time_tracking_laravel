@@ -705,4 +705,56 @@ class TimeController extends Controller
         
         return response($output);
     }
+    
+    public function getLunchDuration(Request $request)
+    {
+        try {
+            $lunchDuration = SystemSetting::where('setting_key', 'lunch_duration')->value('setting_value') ?? '60';
+            return response()->json(['lunch_duration' => (int)$lunchDuration]);
+        } catch (\Exception $e) {
+            \Log::error('GetLunchDuration Error: ' . $e->getMessage());
+            return response()->json(['lunch_duration' => 60]);
+        }
+    }
+    
+    public function checkLunchAlarm(Request $request, $empId)
+    {
+        try {
+            $now = Carbon::now();
+            
+            // Check if there's an active lunch session that should trigger alarm
+            $lunchStart = TimeEntry::where('employee_id', $empId)
+                ->where('entry_type', 'lunch_start')
+                ->whereDate('entry_time', $now->toDateString())
+                ->orderBy('entry_time', 'desc')
+                ->first();
+                
+            if (!$lunchStart) {
+                return response()->json(['alarm_active' => false]);
+            }
+            
+            // Check if lunch has ended
+            $lunchEnd = TimeEntry::where('employee_id', $empId)
+                ->where('entry_type', 'lunch_end')
+                ->where('entry_time', '>', $lunchStart->entry_time)
+                ->first();
+                
+            if ($lunchEnd) {
+                return response()->json(['alarm_active' => false]);
+            }
+            
+            // Get lunch duration from settings (use 1 minute for testing)
+            // $lunchDuration = 1; 
+            $lunchDuration = SystemSetting::where('setting_key', 'lunch_duration')->value('setting_value') ?? 60;
+            $alarmTime = Carbon::parse($lunchStart->entry_time)->addMinutes($lunchDuration - 5); // 30 seconds for testing
+            $alarmEndTime = ($alarmTime->copy())->addSeconds(10); // Alarm stops after 10 seconds
+            
+            // Check if alarm should be active (between alarm start and alarm end)
+            $alarmActive = $now->gte($alarmTime) && $now->lt($alarmEndTime);
+            
+            return response()->json(['alarm_active' => $alarmActive]);
+        } catch (\Exception $e) {
+            return response()->json(['alarm_active' => false]);
+        }
+    }
 }

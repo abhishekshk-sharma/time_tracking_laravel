@@ -398,6 +398,7 @@ class SalaryCalculationService
         $regularization = 0;
         $holidays = 0;
         $shortAttendance = 0;
+        $wfhDays = 0;
         
         $currentDate = $startDate->copy();
         while ($currentDate->lessThanOrEqualTo($endDate)) {
@@ -431,6 +432,9 @@ class SalaryCalculationService
                     if ($scheduleException && $scheduleException->type === 'working_day') {
                         // Weekend overridden as working day but no entry = absent
                         $absentDays++;
+                    } elseif ($scheduleException && $scheduleException->type === 'wfh') {
+                        // Weekend marked as WFH but no entry = absent
+                        $absentDays++;
                     } else {
                         // Regular weekend = week off
                         $holidays++;
@@ -440,13 +444,16 @@ class SalaryCalculationService
                     if ($scheduleException && $scheduleException->type === 'holiday') {
                         // Regular day marked as holiday
                         $holidays++;
+                    } elseif ($scheduleException && $scheduleException->type === 'wfh') {
+                        // Regular day marked as WFH but no entry = absent
+                        $absentDays++;
                     } else {
                         // Regular day with no entry = absent
                         $absentDays++;
                     }
                 }
             } else {
-                // Has time entries - check entry types
+                // Has time entries - check entry types first, then apply WFH logic
                 if ($entries->where('entry_type', 'holiday')->count() > 0) {
                     $holidays++;
                 } elseif ($entries->where('entry_type', 'casual_leave')->count() > 0) {
@@ -458,12 +465,26 @@ class SalaryCalculationService
                 } elseif ($entries->where('entry_type', 'half_day')->count() > 0) {
                     $halfDays++;
                 } else {
-                    $dayAttendance = $this->calculateDayAttendance($empId, $date);
-                    if ($dayAttendance >= 1.0) {
-                        $presentDays++;
-                    } elseif ($dayAttendance > 0) {
-                        $shortAttendance++;
+                    // Calculate attendance for regular punch in/out days
+                    $punchIns = $entries->where('entry_type', 'punch_in');
+                    $punchOuts = $entries->where('entry_type', 'punch_out');
+                    
+                    if ($punchIns->isNotEmpty()) {
+                        $dayAttendance = $this->calculateDayAttendance($empId, $date);
+                        
+                        // Check if this day should be counted as WFH
+                        if ($scheduleException && $scheduleException->type === 'wfh') {
+                            // Day marked as WFH with time entries = WFH day
+                            $wfhDays++;
+                        } elseif ($dayAttendance >= 1.0) {
+                            $presentDays++;
+                        } elseif ($dayAttendance > 0) {
+                            $shortAttendance++;
+                        } else {
+                            $absentDays++;
+                        }
                     } else {
+                        // Has entries but no punch in/out = absent
                         $absentDays++;
                     }
                 }
@@ -496,7 +517,8 @@ class SalaryCalculationService
             'casual_leave' => $casualLeave,
             'regularization' => $regularization,
             'holidays' => $holidays,
-            'short_attendance' => $shortAttendance
+            'short_attendance' => $shortAttendance,
+            'wfh_days' => $wfhDays
         ];
     }
 

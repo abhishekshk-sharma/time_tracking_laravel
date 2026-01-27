@@ -15,7 +15,7 @@
     
     @media (max-width: 768px) {
         .application-cards {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
             max-height: 75vh;
             overflow-y: auto;
@@ -730,16 +730,17 @@
                         </div>
                         
                         <div class="filter-group">
-                            <button type="button" class="btn btn-primary" id="checkfilter">
-                                <i class="fas fa-search"></i> Filter
-                            </button>
+                            <div style="display: flex; gap: 10px; align-items: end;">
+                                <button type="button" class="btn btn-primary" id="checkfilter">
+                                    <i class="fas fa-search"></i> Filter
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="resetFilter">
+                                    <i class="fas fa-undo"></i> Reset
+                                </button>
+                            </div>
                         </div>
                         
-                        <div class="filter-group">
-                            <button type="button" class="btn btn-secondary" id="resetFilter">
-                                <i class="fas fa-undo"></i> Reset
-                            </button>
-                        </div>
+                        
                         
                     </div>
                     

@@ -182,7 +182,7 @@ class DashboardController extends Controller
         $employee = Auth::user();
         $lastEntry = TimeEntry::getLastEntryForEmployee($employee->emp_id);
 
-        if (!$lastEntry || $lastEntry->entry_type !== 'punch_in') {
+        if (!$lastEntry || $lastEntry->entry_type !== 'punch_in' && $lastEntry->entry_type !== 'lunch_end') {
             return response()->json(['error' => 'Must punch in first'], 400);
         }
 
@@ -194,6 +194,11 @@ class DashboardController extends Controller
         ]);
 
         return response()->json(['success' => true, 'message' => 'Lunch Start Successful!']);
+    }
+    
+    public function stopLunchAlarm(Request $request)
+    {
+        return response()->json(['success' => true]);
     }
 
     public function lunchEnd(Request $request)
@@ -551,6 +556,7 @@ class DashboardController extends Controller
     
     private function getDayStatus($day, $userid)
     {
+        
         $date = $day['date'];
         $exception = $day['exception'] ?? null;
         $timeEntries = collect($day['time_entries'] ?? []);
@@ -561,7 +567,7 @@ class DashboardController extends Controller
             return match($exception->type) {
                 'holiday' => 'holiday',
                 'working_day' => 'present',
-                'weekend' => 'weekend',
+                'wfh' => 'wfh',
                 default => 'weekend'
             };
         }

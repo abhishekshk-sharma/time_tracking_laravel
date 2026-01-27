@@ -818,6 +818,12 @@
     </script>
     <script src="{{ asset('js/sweetAlert.js') }}"></script>
     <script src="{{ asset('js/modern-app.js') }}"></script>
+    
+    <!-- Lunch Alarm Audio -->
+    <audio id="lunchAlarmAudio" preload="auto">
+        <source src="{{ asset('audio/alarm.mp3') }}" type="audio/mpeg">
+        <source src="{{ asset('audio/alarm.wav') }}" type="audio/wav">
+    </audio>
     <script>
         // Set CSRF token for all AJAX requests
         $.ajaxSetup({

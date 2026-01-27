@@ -70,7 +70,7 @@
                                                 @if($exception['superadmin_id'])
                                                     Super Admin
                                                 @elseif($exception['admin_id'])
-                                                    Admin
+                                                    {{ $exception->admin->username ?? 'Admin' }}
                                                 @else
                                                     System
                                                 @endif
@@ -142,7 +142,7 @@
     <div class="calendar-legend">
         <div class="legend-item"><span class="dot dot-working"></span> Working Day</div>
         <div class="legend-item"><span class="dot dot-holiday"></span> Holiday</div>
-        <div class="legend-item"><span class="dot dot-weekend"></span> Weekend</div>
+        <div class="legend-item"><span class="dot dot-wfh"></span> WFH</div>
     </div>
 </div>
 
@@ -175,7 +175,7 @@
                                 <td class="text-muted">{{ $exception->description ?? 'No description' }}</td>
                                 <td>
                                     @if($exception->superadmin_id) <span class="creator-badge">Super Admin</span>
-                                    @elseif($exception->admin_id) <span class="creator-badge">Admin</span>
+                                    @elseif($exception->admin_id) <span class="creator-badge">{{ $exception->admin->username ?? 'Admin' }}</span>
                                     @else <span class="creator-badge">System</span>
                                     @endif
                                 </td>
@@ -427,7 +427,7 @@
 
     .event-working_day { background-color: var(--gc-green-bg); color: var(--gc-green); }
     .event-holiday { background-color: var(--gc-red-bg); color: var(--gc-red); }
-    .event-weekend { background-color: var(--gc-yellow-bg); color: #e37400; }
+    .event-wfh { background-color: #e3f2fd; color: #1976d2; }
 
     /* Legend */
     .calendar-legend {
@@ -466,7 +466,7 @@
     }
     .chip-working_day { background: #e6f4ea; color: #137333; }
     .chip-holiday { background: #fce8e6; color: #c5221f; }
-    .chip-weekend { background: #fef7e0; color: #b06000; }
+    .chip-wfh { background: #e3f2fd; color: #1976d2; }
     
     .creator-badge {
         background: #00aaff;
@@ -528,8 +528,8 @@
                         <input type="radio" class="btn-check" name="swal-type" id="type-working" value="working_day" ${type === 'working_day' ? 'checked' : ''}>
                         <label class="btn btn-outline-success flex-fill" for="type-working">Working</label>
                         
-                        <input type="radio" class="btn-check" name="swal-type" id="type-weekend" value="weekend" ${type === 'weekend' ? 'checked' : ''}>
-                        <label class="btn btn-outline-warning flex-fill" for="type-weekend">Weekend</label>
+                        <input type="radio" class="btn-check" name="swal-type" id="type-wfh" value="WFH" ${type === 'WFH' ? 'checked' : ''}>
+                        <label class="btn btn-outline-info flex-fill" for="type-wfh">WFH</label>
                     </div>
 
                     <label class="form-label small text-muted">Description (Optional)</label>
