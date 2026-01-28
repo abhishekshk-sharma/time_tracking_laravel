@@ -79,8 +79,8 @@ class SuperAdminController extends Controller
     public function dashboard()
     {
         $stats = [
-            'total_employees' => Employee::count(),
-            'active_employees' => Employee::where('status', 'active')->count(),
+            'total_employees' => Employee::whereNotIn('role', ['dummy', 'admin'])->count(),
+            'active_employees' => Employee::where('status', 'active')->whereNotIn('role', ['dummy', 'admin'])->count(),
             'total_departments' => Department::count(),
             'pending_applications' => Application::where('status', 'pending')->count(),
         ];
@@ -94,10 +94,12 @@ class SuperAdminController extends Controller
         // Calculate today's attendance
         $totalActiveEmployees = Employee::where('role', 'employee')
             ->where('status', 'active')
+            ->whereNotIn('role', ['dummy'])
             ->count();
             
         $presentToday = Employee::where('role', 'employee')
             ->where('status', 'active')
+            ->whereNotIn('role', ['dummy'])
             ->whereHas('timeEntries', function($query) {
                 $query->where('entry_type', 'punch_in')
                       ->whereDate('entry_time', today());

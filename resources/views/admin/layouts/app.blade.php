@@ -363,7 +363,7 @@
             <div class="notification-bell" id="notificationBell" style="margin-right: 16px; position: relative; cursor: pointer;">
                 <i class="fas fa-bell" style="font-size: 18px; color: var(--md-text-sub);"></i>
                 <span class="notification-badge" id="notificationCount" style="position: absolute; top: -8px; right: -8px; background: #dc2626; color: black; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: none; align-items: center; justify-content: center; font-weight: 600; padding-left: 5px;">0</span>
-                <div class="notification-dropdown" id="notificationDropdown" style="position: absolute; top: 100%; right: 0; background: black; border: 1px solid var(--md-outline-variant); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); width: 320px; max-height: 400px; overflow-y: auto; z-index: 1000; display: none; margin-top: 8px;">
+                <div class="notification-dropdown" id="notificationDropdown" style="position: absolute; top: 100%; right: 0; background: white; border: 1px solid var(--md-outline-variant); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); width: 320px; max-height: 400px; overflow-y: auto; z-index: 1000; display: none; margin-top: 8px;">
                     <div id="notificationList" style="padding: 8px;">Loading...</div>
                 </div>
             </div>
@@ -403,6 +403,12 @@
                 </a>
             </div>
             
+            <div class="nav-item">
+                <a href="{{ route('admin.employee-history') }}" class="nav-link {{ request()->routeIs('admin.employee-history*') ? 'active' : '' }}">
+                    <i class="fas fa-history"></i> Employee History
+                </a>
+            </div>
+            
             {{-- <div class="nav-item">
                 <a href="{{ route('admin.time-entries') }}" class="nav-link {{ request()->routeIs('admin.time-entries*') ? 'active' : '' }}">
                     <i class="fas fa-clock"></i> Time Entries
@@ -421,11 +427,7 @@
                 </a>
             </div>
             
-            <div class="nav-item">
-                <a href="{{ route('admin.employee-history') }}" class="nav-link {{ request()->routeIs('admin.employee-history*') ? 'active' : '' }}">
-                    <i class="fas fa-history"></i> Employee History
-                </a>
-            </div>
+            
             
             {{-- <div class="nav-item">
                 <a href="{{ route('admin.wfh') }}" class="nav-link {{ request()->routeIs('admin.wfh*') ? 'active' : '' }}">

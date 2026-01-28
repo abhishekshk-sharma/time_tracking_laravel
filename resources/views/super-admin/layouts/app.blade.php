@@ -339,7 +339,7 @@
             </div>
 
             @php
-                $isWorkforceActive = request()->routeIs('super-admin.employees*') || request()->routeIs('super-admin.employee-history*');
+                $isWorkforceActive = request()->routeIs('super-admin.employees*') || request()->routeIs('super-admin.employee-history*') || request()->routeIs('super-admin.attendance*') || request()->routeIs('super-admin.time-entry-images*') ;
             @endphp
             <div class="nav-item">
                 <div class="nav-link {{ $isWorkforceActive ? 'active' : '' }}" onclick="toggleMenu('menu-workforce')" aria-expanded="{{ $isWorkforceActive ? 'true' : 'false' }}">
@@ -348,14 +348,17 @@
                 </div>
                 <ul id="menu-workforce" class="sub-menu {{ $isWorkforceActive ? 'open' : '' }}">
                     <li><a href="{{ route('super-admin.employees') }}" class="sub-nav-link {{ request()->routeIs('super-admin.employees*') ? 'active' : '' }}">All Employees</a></li>
+                    <li><a href="{{ route('super-admin.attendance') }}" class="sub-nav-link {{ request()->routeIs('super-admin.attendance*') ? 'active' : '' }}">Daily Attendance</a></li>
+                    <li><a href="{{ route('super-admin.time-entry-images') }}" class="sub-nav-link {{ request()->routeIs('super-admin.time-entry-images*') ? 'active' : '' }}">Entry Images</a></li>
                     <li><a href="{{ route('super-admin.employee-history') }}" class="sub-nav-link {{ request()->routeIs('super-admin.employee-history*') ? 'active' : '' }}">History Logs</a></li>
+                    
                 </ul>
             </div>
 
             <div class="nav-label">Operations</div>
 
             @php
-                $isTimeActive = request()->routeIs('super-admin.attendance*') || request()->routeIs('super-admin.time-entries*') || request()->routeIs('super-admin.time-entry-images*') || request()->routeIs('super-admin.schedule*') || request()->routeIs('super-admin.applications*');
+                $isTimeActive =  request()->routeIs('super-admin.time-entries*')  || request()->routeIs('super-admin.schedule*') || request()->routeIs('super-admin.applications*');
             @endphp
             <div class="nav-item">
                 <div class="nav-link {{ $isTimeActive ? 'active' : '' }}" onclick="toggleMenu('menu-time')" aria-expanded="{{ $isTimeActive ? 'true' : 'false' }}">
@@ -363,9 +366,9 @@
                     <i class="fas fa-chevron-down chevron-icon"></i>
                 </div>
                 <ul id="menu-time" class="sub-menu {{ $isTimeActive ? 'open' : '' }}">
-                    <li><a href="{{ route('super-admin.attendance') }}" class="sub-nav-link {{ request()->routeIs('super-admin.attendance*') ? 'active' : '' }}">Daily Attendance</a></li>
-                    <li><a href="{{ route('super-admin.time-entries') }}" class="sub-nav-link {{ request()->routeIs('super-admin.time-entries*') ? 'active' : '' }}">Time Entries</a></li>
-                    <li><a href="{{ route('super-admin.time-entry-images') }}" class="sub-nav-link {{ request()->routeIs('super-admin.time-entry-images*') ? 'active' : '' }}">Entry Images</a></li>
+                    
+                    <li><a href="{{ route('super-admin.time-entries') }}" class="sub-nav-link {{ request()->routeIs('super-admin.time-entries*') ? 'active' : '' }}">All Entries</a></li>
+                    
                     <li><a href="{{ route('super-admin.schedule') }}" class="sub-nav-link {{ request()->routeIs('super-admin.schedule*') ? 'active' : '' }}">Schedule/Calendar</a></li>
                     <li><a href="{{ route('super-admin.applications') }}" class="sub-nav-link {{ request()->routeIs('super-admin.applications*') ? 'active' : '' }}">Applications</a></li>
                 </ul>
@@ -383,7 +386,7 @@
                     <li><a href="{{ route('super-admin.departments') }}" class="sub-nav-link {{ request()->routeIs('super-admin.departments*') ? 'active' : '' }}">Departments</a></li>
                     <li><a href="{{ route('super-admin.regions') }}" class="sub-nav-link {{ request()->routeIs('super-admin.regions*') ? 'active' : '' }}">Branch</a></li>
                     <li><a href="{{ route('super-admin.location-settings.index') }}" class="sub-nav-link {{ request()->routeIs('super-admin.location-settings*') ? 'active' : '' }}">Location Settings</a></li>
-                    <li><a href="{{ route('super-admin.leave-days') }}" class="sub-nav-link {{ request()->routeIs('super-admin.leave-days*') ? 'active' : '' }}">Leave Days</a></li>
+                    <li><a href="{{ route('super-admin.leave-days') }}" class="sub-nav-link {{ request()->routeIs('super-admin.leave-days*') ? 'active' : '' }}">Leave Days Settings</a></li>
                     <li><a href="{{ route('super-admin.tax-slabs') }}" class="sub-nav-link {{ request()->routeIs('super-admin.tax-slabs*') ? 'active' : '' }}">Payroll Settings</a></li>
                 </ul>
             </div>

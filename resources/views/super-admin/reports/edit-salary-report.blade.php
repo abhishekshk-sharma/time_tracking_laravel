@@ -3,6 +3,8 @@
 @section('title', 'Edit Salary Report')
 
 @section('content')
+
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -12,6 +14,23 @@
                         <i class="fas fa-edit me-2" style="color: #031074;"></i>Edit Salary Report - {{ $salaryReport->emp_name }}
                         <small class="ms-2 opacity-75">({{ date('F Y', mktime(0, 0, 0, $salaryReport->month, 1, $salaryReport->year)) }})</small>
                     </h4>
+                </div>
+                
+                <div class="page-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; margin-right: 27px;">
+                        <div>
+                            <h1 class="page-title"></h1>
+                            <p class="page-subtitle"></p>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <a href="#" class="btn btn-secondary" id='submitbtn' onclick="document.getElementById('salaryForm').submit();">
+                                <i class="fas fa-save me-2"></i> Update Report
+                            </a>
+                            <a href="{{ route('super-admin.reports') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Reports
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body p-4">
                     @if($errors->any())
@@ -292,7 +311,7 @@
                                             </div>
                                         </div>
                                         <div style="grid-column: 1 / -1;" class="mt-3">
-                                            <div class="d-grid gap-2">
+                                            <div class="d-grid gap-2" style="visibility: hidden;">
                                                 <button type="submit" class="btn btn-success btn-lg">
                                                     <i class="fas fa-save me-2"></i>Update Report
                                                 </button>

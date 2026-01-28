@@ -230,5 +230,15 @@ function toggleCustomDates(value) {
         endDateGroup.style.display = 'none';
     }
 }
+
+$(document).ready(function() {
+    function toggleCustomDatesOnLoad() {
+        const startDateGroup = document.getElementById('start_date_group');
+        const endDateGroup = document.getElementById('end_date_group');       
+        startDateGroup.style.display = 'none';
+        endDateGroup.style.display = 'none';       
+    }
+    toggleCustomDatesOnLoad();
+});
 </script>
 @endpush
