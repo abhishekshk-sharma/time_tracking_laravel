@@ -351,6 +351,7 @@
                     <li><a href="{{ route('super-admin.attendance') }}" class="sub-nav-link {{ request()->routeIs('super-admin.attendance*') ? 'active' : '' }}">Daily Attendance</a></li>
                     <li><a href="{{ route('super-admin.time-entry-images') }}" class="sub-nav-link {{ request()->routeIs('super-admin.time-entry-images*') ? 'active' : '' }}">Entry Images</a></li>
                     <li><a href="{{ route('super-admin.employee-history') }}" class="sub-nav-link {{ request()->routeIs('super-admin.employee-history*') ? 'active' : '' }}">History Logs</a></li>
+                     <li><a href="{{ route('super-admin.time-entries') }}" class="sub-nav-link {{ request()->routeIs('super-admin.time-entries*') ? 'active' : '' }}">All Entries</a></li>
                     
                 </ul>
             </div>
@@ -362,12 +363,12 @@
             @endphp
             <div class="nav-item">
                 <div class="nav-link {{ $isTimeActive ? 'active' : '' }}" onclick="toggleMenu('menu-time')" aria-expanded="{{ $isTimeActive ? 'true' : 'false' }}">
-                    <div class="nav-link-content"><i class="fas fa-clock nav-icon"></i> Time & Attendance</div>
+                    <div class="nav-link-content"><i class="fas fa-clock nav-icon"></i>Schedule & Applications</div>
                     <i class="fas fa-chevron-down chevron-icon"></i>
                 </div>
                 <ul id="menu-time" class="sub-menu {{ $isTimeActive ? 'open' : '' }}">
                     
-                    <li><a href="{{ route('super-admin.time-entries') }}" class="sub-nav-link {{ request()->routeIs('super-admin.time-entries*') ? 'active' : '' }}">All Entries</a></li>
+                   
                     
                     <li><a href="{{ route('super-admin.schedule') }}" class="sub-nav-link {{ request()->routeIs('super-admin.schedule*') ? 'active' : '' }}">Schedule/Calendar</a></li>
                     <li><a href="{{ route('super-admin.applications') }}" class="sub-nav-link {{ request()->routeIs('super-admin.applications*') ? 'active' : '' }}">Applications</a></li>

@@ -170,9 +170,9 @@
         }
         
         .notification-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
+            position: relative;
+            top: -9px;
+            right: 8px;
             background: var(--danger);
             color: white;
             border-radius: 50%;

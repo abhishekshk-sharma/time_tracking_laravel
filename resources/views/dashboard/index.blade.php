@@ -882,26 +882,27 @@ $(document).ready(function() {
         clickedBtn.prop('disabled', true).addClass('processing');
         
         // Small delay to ensure modal is visible before geolocation
-        setTimeout(() => {
+        // setTimeout(() => {
             // Get user location if needed
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(position) {
-                        performTimeAction(action, {
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude
-                        });
-                    },
-                    function(error) {
-                        // Location failed, try without coordinates
-                        performTimeAction(action, {});
-                    }
-                );
-            } else {
-                // No geolocation support
-                performTimeAction(action, {});
-            }
-        }, 100);
+        //     if (navigator.geolocation) {
+        //         navigator.geolocation.getCurrentPosition(
+        //             function(position) {
+        //                 performTimeAction(action, {
+        //                     latitude: position.coords.latitude,
+        //                     longitude: position.coords.longitude
+        //                 });
+        //             },
+        //             function(error) {
+        //                 // Location failed, try without coordinates
+        //                 performTimeAction(action, {});
+        //             }
+        //         );
+        //     } else {
+        //         // No geolocation support
+        //         performTimeAction(action, {});
+        //     }
+        // }, 100);
+        performTimeAction(action, {});
     }
     
     function performTimeAction(action, locationData) {
