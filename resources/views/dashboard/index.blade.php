@@ -969,7 +969,7 @@ $(document).ready(function() {
             html: `
                 <div style="text-align: center;">
                     <p>Please capture your image to proceed with ${action.replace('_', ' ')}.</p>
-                    <video id="camera" width="300" height="200" autoplay style="border-radius: 8px; margin: 10px 0;"></video>
+                    <video id="camera" width="300" height="500" autoplay style="border-radius: 8px; margin: 10px 0;"></video>
                     <canvas id="canvas" width="300" height="200" style="display: none;"></canvas>
                     <br>
                     <button id="captureBtn" class="btn btn-primary" style="margin: 10px;">Capture Image</button>

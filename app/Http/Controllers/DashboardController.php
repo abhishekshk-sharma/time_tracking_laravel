@@ -64,18 +64,18 @@ class DashboardController extends Controller
         }
 
         // Location authentication
-        // $locationAuth = app(LocationAuthService::class);
-        // $authResult = $locationAuth->authenticateLocation($employee, $request);
+        $locationAuth = app(LocationAuthService::class);
+        $authResult = $locationAuth->authenticateLocation($employee, $request);
         
-        // if (!$authResult['success']) {
-        //     if (isset($authResult['require_image'])) {
-        //         return response()->json([
-        //             'require_image' => true,
-        //             'message' => 'Please capture your image to proceed'
-        //         ]);
-        //     }
-        //     return response()->json(['error' => $authResult['message']], 400);
-        // }
+        if (!$authResult['success']) {
+            if (isset($authResult['require_image'])) {
+                return response()->json([
+                    'require_image' => true,
+                    'message' => 'Please capture your image to proceed'
+                ]);
+            }
+            return response()->json(['error' => $authResult['message']], 400);
+        }
 
         TimeEntry::create([
             'employee_id' => $employee->emp_id,
