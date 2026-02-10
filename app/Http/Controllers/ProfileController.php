@@ -12,10 +12,11 @@ class ProfileController extends Controller
 {
     public function index()
     {
-        $employee = Employee::with("region")->where('emp_id', '=', Auth::user()->emp_id)->first();
+        $employee = Employee::with(["region", "department"])->where('emp_id', '=', Auth::user()->emp_id)->first();
         // $region = $region->first()->region->name;
         $ff =  $employee->region->name??"N/A";
-        return view('profile', compact('ff'));
+        $department = $employee->department->name??"N/A";
+        return view('profile', compact(['ff', "department"]));
     }
 
     public function updateEmail(Request $request)
