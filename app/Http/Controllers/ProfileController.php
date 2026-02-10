@@ -48,6 +48,20 @@ class ProfileController extends Controller
         return response('success');
     }
 
+
+    public function updateDob(Request $request){
+
+        $employee = Auth::user();
+        $request->validate([
+                'newDob' => ['required', 'date', 'before:' . now()->subYears(18)->toDateString()],
+        ]);
+
+        $employee->update(['dob' => $request->newDob]);
+
+        return response('success');
+
+    }
+
     public function updateProfile(Request $request)
     {
         $click = $request->input('click');

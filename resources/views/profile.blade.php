@@ -543,6 +543,20 @@ function openDobModal() {
 }
 
 function closeModal(modalId) {
+
+    if(modalId == "emailModal"){
+        $("#newEmail").val("");
+        $("#confirmEmail").val("");
+    }
+    if(modalId == "passwordModal"){
+        $("#currentPassword").val("");
+        $("#newPassword").val("");
+        $("#confirmPassword").val("");
+    }
+    if(modalId == "dobModal"){
+        $("#newDob").val("");
+    }
+
     document.getElementById(modalId).style.display = 'none';
 }
 
@@ -597,6 +611,8 @@ function updateEmail() {
                         text: 'Your email address has been successfully updated.',
                         timer: 3000
                     }).then(() => {
+                        $("#newEmail").val("");
+                        $("#confirmEmail").val("");
                         $("#emailModal").hide();
                         document.querySelector('.detail-card:nth-child(1) p').textContent = newEmail;
                     });
@@ -668,6 +684,9 @@ function updatePassword() {
                         text: 'Your Password has been successfully updated.',
                         timer: 3000
                     }).then(() => {
+                        $("#currentPassword").val("");
+                        $("#newPassword").val("");
+                        $("#confirmPassword").val("");
                         $("#passwordModal").hide();
                     });
                 }
@@ -729,6 +748,7 @@ function updateDob() {
                         text: 'Your DOB has been successfully updated.',
                         timer: 3000
                     }).then(() => {
+                        $("#newDob").val("");
                         $("#dobModal").hide();
                         document.querySelector('.detail-card:nth-child(5) p').textContent = newDob;
                     });
