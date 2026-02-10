@@ -16,6 +16,7 @@ class ProfileController extends Controller
         // $region = $region->first()->region->name;
         $ff =  $employee->region->name??"N/A";
         $department = $employee->department->name??"N/A";
+   
         return view('profile', compact(['ff', "department"]));
     }
 
