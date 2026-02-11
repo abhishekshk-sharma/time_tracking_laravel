@@ -33,7 +33,7 @@
 <!-- Filters -->
 <div class="card">
     <div class="card-body">
-        <form method="GET" style="display: grid; grid-template-columns: 200px 200px 200px 200px 120px; gap: 15px; align-items: end;">
+        <form method="GET" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: end;">
             <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Period</label>
                 <select name="period" class="form-control" onchange="toggleCustomDates(this.value)">

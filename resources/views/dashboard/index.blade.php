@@ -969,8 +969,8 @@ $(document).ready(function() {
             html: `
                 <div style="text-align: center;">
                     <p>Please capture your image to proceed with ${action.replace('_', ' ')}.</p>
-                    <video id="camera" width="300" height="500" autoplay style="border-radius: 8px; margin: 10px 0;"></video>
-                    <canvas id="canvas" width="300" height="200" style="display: none;"></canvas>
+                    <video id="camera" width="300" height="300" autoplay style="border-radius: 8px; margin: 10px 0;"></video>
+                    <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
                     <br>
                     <button id="captureBtn" class="btn btn-primary" style="margin: 10px;">Capture Image</button>
                     <button id="retakeBtn" class="btn btn-secondary" style="margin: 10px; display: none;">Retake</button>
@@ -1035,7 +1035,7 @@ $(document).ready(function() {
         const context = canvas.getContext('2d');
         
         // Draw video frame to canvas
-        context.drawImage(video, 0, 0, 300, 200);
+        context.drawImage(video, 0, 0, 300, 300);
         
         // Get image data
         const imageData = canvas.toDataURL('image/jpeg');
