@@ -102,6 +102,10 @@ $(document).ready(function() {
     window.deleteNotification = deleteNotification;
     
     function showApplicationModal(applicationId) {
+
+        const formatDate = (dateStr) => { if (!dateStr) return ''; const date = new Date(dateStr); return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); };
+
+
         $.get(`/super-admin/applications/${applicationId}`, function(data) {
             const statusColors = {
                 'pending': '#f59e0b',
@@ -112,6 +116,7 @@ $(document).ready(function() {
             const statusColor = statusColors[data.status] || '#6b7280';
             const fileDisplay = data.file ? `<div style="margin-bottom: 15px;"><strong>Attached File:</strong><br><div style="display: flex; flex-direction: column; gap: 10px;"><img src="/${data.file}" alt="Application attachment" style="max-width: 100%; max-height: 300px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" onclick="window.open('/${data.file}', '_blank')"><a href="/${data.file}" download style="color: #007bff; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fas fa-download"></i> Download Attachment</a></div></div>` : '';
             
+            const formatted = `<strong>Date Range:</strong> ${formatDate(data.start_date)} ${ data.end_date && data.end_date !== data.start_date ? 'to ' + formatDate(data.end_date) : '' }`;
             let html = `
                 <div style="text-align: left;">
                     <div style="margin-bottom: 15px;">
@@ -130,7 +135,7 @@ $(document).ready(function() {
                         </div>
                     </div>
                     <div style="margin-bottom: 15px;">
-                        <strong>Date Range:</strong> ${data.start_date} ${data.end_date && data.end_date !== data.start_date ? 'to ' + data.end_date : ''}
+                         ${formatted}
                     </div>
                     ${fileDisplay}
                     <div style="margin-bottom: 15px;">

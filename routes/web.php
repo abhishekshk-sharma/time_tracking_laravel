@@ -40,7 +40,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('push.subscription.destroy');
     
     // Lunch alarm check (for AJAX polling)
-    Route::get('/lunch-alarm/check/{empId}', [LunchAlarmController::class, 'checkLunchAlarm'])
+    Route::get('/lunch-alarm/check/{empId}', [App\Http\Controllers\Api\LunchNotificationController::class, 'checkLunchAlarm'])
         ->name('lunch.alarm.check');
 });
 

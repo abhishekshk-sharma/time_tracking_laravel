@@ -1,0 +1,20 @@
+Route to trigger notification from browser:
+
+Add to routes/web.php:
+
+Route::post('/trigger-lunch-notification', function(Request $request) {
+    return response()->json([
+        'success' => true,
+        'message' => 'Lunch break ends in 5 minutes!',
+        'title' => '🍽️ Lunch Break Reminder',
+        'body' => 'Your lunch break ends soon. Please return to work.',
+        'trigger' => true
+    ]);
+})->middleware('auth')->name('trigger.lunch.notification');
+
+Then the service worker will show the notification when this endpoint is called.
+
+The issue is: Web Push from server requires proper FCM Server Key (not VAPID key).
+The test-push page works because it's client-side only.
+
+SOLUTION: Get your FCM Server Key from Firebase Console and update FCM_SERVER_KEY in .env

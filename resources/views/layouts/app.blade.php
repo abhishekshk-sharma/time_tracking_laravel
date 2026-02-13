@@ -23,6 +23,13 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
     <script src="{{ asset('js/push-notifications.js') }}" defer></script>
+    @auth
+    <script>
+        window.employeeId = '{{ Auth::user()->emp_id }}';
+    </script>
+    <script src="{{ asset('js/lunch-notification-checker.js') }}" defer></script>
+    @endauth
+
     
     <style>
         :root {
