@@ -134,7 +134,7 @@
         </tr>
         <tr>
             <td class="emp-label">DOB</td>
-            <td class="emp-value">{{ $employee->dob->format("d M, Y") ?? 'N/A' }}</td>
+            <td class="emp-value">{{ ($employee->dob ?  $employee->dob->format("d M, Y") : 'N/A' ) }}</td>
             <td class="emp-label">Date of Joining</td>
             <td class="emp-value">{{ $employee->hire_date->format("d M, Y") ?? 'N/A' }}</td>
         </tr>

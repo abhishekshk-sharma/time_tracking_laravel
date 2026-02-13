@@ -325,7 +325,7 @@
                             <div class="nav-indicator"></div>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" stytle="margin-bottom: 30px !important;">
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="nav-link logout-btn">
@@ -335,6 +335,16 @@
                             </button>
                         </form>
                     </li>
+                    {{-- <li >
+                       <form action="{{ route('logout') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="nav-link" style="color:white;">
+                                <i class="fas fa-sign-out-alt" style="color:white;"></i>
+                                <span style="color: white">Logout</span>
+                                <div class="nav-indicator"></div>
+                            </button>
+                        </form>
+                    </li> --}}
                 </ul>
             </nav>
         </aside>

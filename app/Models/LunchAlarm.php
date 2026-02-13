@@ -1,4 +1,5 @@
 <?php
+// app/Models/LunchAlarm.php
 
 namespace App\Models;
 
@@ -10,12 +11,20 @@ class LunchAlarm extends Model
         'employee_id',
         'lunch_start_time',
         'alarm_time',
-        'is_active'
+        'is_active',
+        'message',
+        'notification_sent_at'
     ];
 
     protected $casts = [
         'lunch_start_time' => 'datetime',
         'alarm_time' => 'datetime',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        'notification_sent_at' => 'datetime'
     ];
+
+    public function employee()
+    {
+        return $this->belongsTo(employee::class, 'emp_id');
+    }
 }

@@ -447,6 +447,9 @@
                 <button class="btn btn-info" onclick="openDobModal()">
                     <i class="fas fa-birthday-cake"></i> Update Date of Birth
                 </button>
+                <button class="btn btn-warning" id="enable-notifications">
+                    <i class="fas fa-bell"></i> Enable Notifications
+                </button>
             </div>
         </div>
 

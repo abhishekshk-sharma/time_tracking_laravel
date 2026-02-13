@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
-
+use Kreait\Firebase\Factory;
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -12,7 +12,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton('firebase.messaging', function ($app) { $factory = (new Factory)->withServiceAccount(config('services.firebase.credentials')); return $factory->createMessaging(); });
     }
 
     /**

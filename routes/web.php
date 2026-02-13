@@ -19,6 +19,37 @@ use App\Http\Controllers\Api\NotificationController as ApiNotificationController
 use App\Http\Controllers\SalarySlipController;
 use App\Http\Controllers\PayslipController;
 
+
+
+use App\Http\Controllers\WebPushController;
+use App\Http\Controllers\LunchAlarmController;
+
+// Protected routes (require authentication)
+Route::middleware(['auth'])->group(function () {
+    
+    // Test push notifications
+    Route::get('/test-push', function() {
+        return view('test-push');
+    });
+    
+    // Web Push Subscription endpoints
+    Route::post('/push-subscription', [WebPushController::class, 'store'])
+        ->name('push.subscription.store');
+    
+    Route::delete('/push-subscription', [WebPushController::class, 'destroy'])
+        ->name('push.subscription.destroy');
+    
+    // Lunch alarm check (for AJAX polling)
+    Route::get('/lunch-alarm/check/{empId}', [LunchAlarmController::class, 'checkLunchAlarm'])
+        ->name('lunch.alarm.check');
+});
+
+// Internal route for scheduler (should be protected)
+Route::post('/internal/send-lunch-reminders', [LunchAlarmController::class, 'sendLunchReminders'])
+    ->middleware(['throttle:60,1']); // Add your own authentication middleware
+
+
+
 Route::get('/', [AuthController::class, 'showLogin'])->name('home');
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
