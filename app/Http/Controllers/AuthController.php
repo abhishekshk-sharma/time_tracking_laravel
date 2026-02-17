@@ -58,7 +58,9 @@ class AuthController extends Controller
         session(['last_activity' => now()]);
         session(['at_office' => true]);
 
-        return $this->redirectBasedOnRole();
+        $output = ['success' => true, 'data' => _token];
+        return  json_encode($output);
+        // return $this->redirectBasedOnRole();
     }
 
     public function logout(Request $request)
