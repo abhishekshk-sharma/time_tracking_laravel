@@ -851,7 +851,6 @@ class AdminController extends Controller
     {
         $adminEmpId = auth()->user()->emp_id;
         
-        // Find salary report for admin's allotted employee using admin_id
         $salaryReport = \App\Models\SalaryReport::where('id', $id)
             ->where('admin_id', $adminEmpId)
             ->first();
@@ -861,7 +860,6 @@ class AdminController extends Controller
         }
         
         $employee = Employee::where('emp_id', $salaryReport->emp_id)->first();
-        // Use the same approach as super-admin with Browsershot and original template
         $html = view('super-admin.reports.salary-report-pdf', compact('salaryReport', 'employee'))->render();
         
         $pdf = \Spatie\Browsershot\Browsershot::html($html)
@@ -1655,6 +1653,37 @@ class AdminController extends Controller
         ]);
         
         return response()->json(['success' => true, 'message' => 'Time entry updated successfully']);
+    }
+
+    public function addTimeEntry(Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required|exists:employees,emp_id',
+            'date' => 'required|date',
+            'entry_type' => 'required|in:punch_in,punch_out,lunch_start,lunch_end',
+            'time' => 'required|date_format:H:i'
+        ]);
+        
+        $adminEmpId = auth()->user()->emp_id;
+        $employee = \App\Models\Employee::where('emp_id', $request->employee_id)->first();
+        
+        if (!$employee || $employee->referrance !== $adminEmpId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
+        
+        try {
+            $entryTime = $request->date . ' ' . $request->time . ':00';
+            
+            \App\Models\TimeEntry::create([
+                'employee_id' => $request->employee_id,
+                'entry_type' => $request->entry_type,
+                'entry_time' => $entryTime
+            ]);
+            
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function exportReport(Request $request, $type)

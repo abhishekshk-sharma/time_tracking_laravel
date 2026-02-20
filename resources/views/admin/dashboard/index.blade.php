@@ -10,26 +10,36 @@
 
 <!-- Stats Grid -->
 <div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-number">{{ $stats['total_employees'] }}</div>
-        <div class="stat-label">Total Employees</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-number" style='color:#0f9703;'>{{ $stats['active_employees'] }}</div>
-        <div class="stat-label">Active Employees</div>   
-    </div>
-    <div class="stat-card">
-        <div class="stat-number " style="color:rgb(171, 6, 6);">{{ $stats['inactive_employees'] }}</div>
-        <div class="stat-label">Inactive Employees</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-number">{{ $stats['present_today'] }}</div>
-        <div class="stat-label">Present Today</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-number">{{ $stats['pending_applications'] }}</div>
-        <div class="stat-label">Pending Applications</div>
-    </div>
+    <a href="{{ route('admin.employees') }}" style="text-decoration: none; color: inherit;">
+        <div class="stat-card">
+            <div class="stat-number">{{ $stats['total_employees'] }}</div>
+            <div class="stat-label">Total Employees</div>
+        </div>
+    </a>
+    <a href="{{ route('admin.employees') }}?status=active" style="text-decoration: none; color: inherit;">
+        <div class="stat-card">
+            <div class="stat-number" style='color:#0f9703;'>{{ $stats['active_employees'] }}</div>
+            <div class="stat-label">Active Employees</div>   
+        </div>
+    </a>
+    <a href="{{ route('admin.employees') }}?status=inactive" style="text-decoration: none; color: inherit;">
+        <div class="stat-card">
+            <div class="stat-number" style="color:rgb(171, 6, 6);">{{ $stats['inactive_employees'] }}</div>
+            <div class="stat-label">Inactive Employees</div>
+        </div>
+    </a>
+    <a href="{{ route('admin.attendance') }}?date={{ date('Y-m-d') }}" style="text-decoration: none; color: inherit;">
+        <div class="stat-card">
+            <div class="stat-number">{{ $stats['present_today'] }}</div>
+            <div class="stat-label">Present Today</div>
+        </div>
+    </a>
+    <a href="{{ route('admin.applications') }}?status=pending" style="text-decoration: none; color: inherit;">
+        <div class="stat-card">
+            <div class="stat-number">{{ $stats['pending_applications'] }}</div>
+            <div class="stat-label">Pending Applications</div>
+        </div>
+    </a>
     <div class="stat-card">
         <div class="stat-number">{{ $stats['total_departments'] }}</div>
         <div class="stat-label">Departments</div>

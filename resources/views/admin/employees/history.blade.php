@@ -84,28 +84,32 @@
                                 @if($dayEntries->has('punch_in'))
                                     <span class="badge text-bg-success" style="cursor: pointer;" onclick="editTimeEntry('{{ $dayEntries['punch_in']->id }}', 'punch_in', '{{ $dayEntries['punch_in']->entry_time->format('H:i') }}', '{{ $date }}')">{{ $dayEntries['punch_in']->entry_time->format('h:i A') }}</span>
                                 @else
-                                    <span class="text-muted">-</span>
+                                    <span class="text-muted" style="cursor: pointer;" onclick="editTimeEntry('', 'punch_in', '', '{{ $date }}')">-</span>
                                 @endif
                             </td>
                             <td>
                                 @if($dayEntries->has('lunch_start'))
                                     <span class="badge text-bg-warning" style="cursor: pointer;" onclick="editTimeEntry('{{ $dayEntries['lunch_start']->id }}', 'lunch_start', '{{ $dayEntries['lunch_start']->entry_time->format('H:i') }}', '{{ $date }}')">{{ $dayEntries['lunch_start']->entry_time->format('h:i A') }}</span>
                                 @else
-                                    <span class="text-muted">-</span>
+                                    <span class="text-muted" style="cursor: pointer;" onclick="editTimeEntry('', 'lunch_start', '', '{{ $date }}')">-</span>
                                 @endif
                             </td>
                             <td>
                                 @if($dayEntries->has('lunch_end'))
                                     <span class="badge text-bg-warning" style="cursor: pointer;" onclick="editTimeEntry('{{ $dayEntries['lunch_end']->id }}', 'lunch_end', '{{ $dayEntries['lunch_end']->entry_time->format('H:i') }}', '{{ $date }}')">{{ $dayEntries['lunch_end']->entry_time->format('h:i A') }}</span>
                                 @else
-                                    <span class="text-muted">-</span>
+                                    <span class="text-muted" style="cursor: pointer;" onclick="editTimeEntry('', 'lunch_end', '', '{{ $date }}')">-</span>
                                 @endif
                             </td>
                             <td>
                                 @if($dayEntries->has('punch_out'))
                                     <span class="badge text-bg-danger" style="cursor: pointer;" onclick="editTimeEntry('{{ $dayEntries['punch_out']->id }}', 'punch_out', '{{ $dayEntries['punch_out']->entry_time->format('H:i') }}', '{{ $date }}')">{{ $dayEntries['punch_out']->entry_time->format('h:i A') }}</span>
                                 @else
-                                    <span class="text-muted">-</span>
+                                    @if($dayEntries->has('punch_in'))
+                                        <span class="badge text-bg-warning" style="cursor: pointer;" onclick="editTimeEntry('', 'punch_out', '', '{{ $date }}')">Still Working</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 @endif
                             </td>
                             <td>
@@ -140,6 +144,7 @@
 @push('scripts')
 <script>
 function editTimeEntry(entryId, entryType, currentTime, date) {
+    const isNewEntry = !entryId || !currentTime;
     const typeLabels = {
         'punch_in': 'Punch In',
         'punch_out': 'Punch Out', 
@@ -148,7 +153,7 @@ function editTimeEntry(entryId, entryType, currentTime, date) {
     };
     
     Swal.fire({
-        title: `Edit ${typeLabels[entryType]}`,
+        title: isNewEntry ? `Add ${typeLabels[entryType]}` : `Edit ${typeLabels[entryType]}`,
         html: `
             <div style="text-align: left; margin: 20px 0;">
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">Date: ${new Date(date).toLocaleDateString()}</label>
@@ -170,8 +175,57 @@ function editTimeEntry(entryId, entryType, currentTime, date) {
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            updateTimeEntry(entryId, result.value, date);
+            if (isNewEntry) {
+                addTimeEntry(entryId, entryType, result.value, date);
+            } else {
+                updateTimeEntry(entryId, result.value, date);
+            }
         }
+    });
+}
+
+function addTimeEntry(entryId, entryType, newTime, date) {
+    fetch('/admin/time-entries/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            employee_id: '{{ $employee->emp_id }}',
+            date: date,
+            entry_type: entryType,
+            time: newTime
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Added!',
+                text: 'Time entry added successfully.',
+                confirmButtonColor: '#ff9900'
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: data.message || 'Failed to add time entry.',
+                confirmButtonColor: '#ff9900'
+            });
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'An error occurred while adding the time entry.',
+            confirmButtonColor: '#ff9900'
+        });
     });
 }
 

@@ -338,43 +338,36 @@
         </tbody>
     </table>
 
-    
-        <table width="100%" class="emp-info-table" style="margin-bottom: 20px; margin-top: 20px; display: flex; position: absolute;">
-            <tr>
-                <td class="emp-label">Working Days</td>
-                <td class="emp-label">{{ $salaryReport->total_working_days }}</td>
-                
-                
-            </tr>
-            <tr>
-                <td class="emp-label"  >Payable Days</td>
-                <td class="emp-label">{{ $salaryReport->payable_days }}</td>
-            </tr>
-            <tr>
-                <td  class="emp-label">Leaves Taken</td>
-                <td class="emp-label">{{ $salaryReport->casual_leave + $salaryReport->sick_leave }}</td>
-                
-            </tr>
-            <tr>
-                <td  class="emp-label">Absent Days</td>
-                <td class="emp-label">{{ $salaryReport->absent_days }}</td>
-            </tr>
-        </table>
-    
-        <table width="100%" style="margin-top: 20px;">
-            <tr>
-                <td width="60%">
-                    
-                </td>
-                <td width="40%">
-                    <div class="net-pay-box">
-                        <div class="net-label">Net Salary Payable</div>
-                        <div class="net-amount">&#8377; {{ number_format($salaryReport->net_salary, 2) }}</div>
-                    </div>
-                </td>
-            </tr>
-        </table>
-    </div>
+    <table width="100%" class="emp-info-table" style="margin-bottom: 20px; margin-top: 20px;">
+        <tr>
+            <td class="emp-label">Working Days</td>
+            <td class="emp-label">{{ $salaryReport->total_working_days }}</td>
+        </tr>
+        <tr>
+            <td class="emp-label">Payable Days</td>
+            <td class="emp-label">{{ $salaryReport->payable_days }}</td>
+        </tr>
+        <tr>
+            <td class="emp-label">Leaves Taken</td>
+            <td class="emp-label">{{ $salaryReport->casual_leave + $salaryReport->sick_leave }}</td>
+        </tr>
+        <tr>
+            <td class="emp-label">Absent Days</td>
+            <td class="emp-label">{{ $salaryReport->absent_days }}</td>
+        </tr>
+    </table>
+
+    <table width="100%" style="margin-top: 20px;">
+        <tr>
+            <td width="60%"></td>
+            <td width="40%">
+                <div class="net-pay-box">
+                    <div class="net-label">Net Salary Payable</div>
+                    <div class="net-amount">&#8377; {{ number_format($salaryReport->net_salary, 2) }}</div>
+                </div>
+            </td>
+        </tr>
+    </table>
 
     <div class="footer">
         Confidential Information • St zk Digital Media co. LLC • Private & Confidential

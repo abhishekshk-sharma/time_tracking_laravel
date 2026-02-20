@@ -70,7 +70,7 @@
         <div class="card-header" style="background: linear-gradient(135deg, #eeedfa, #f8eaf0); color: black;">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <div>
-                    <h3 style="margin: 0; color: black;">{{ $employee->username }}</h3>
+                    <a href="{{ route('super-admin.employees.show', $employee->id) }}" style="margin: 0; color: #3b82f6; text-decoration: none;"><h3 style="margin: 0; color: #3b82f6;">{{ $employee->username }}</h3></a>
                     <p style="margin: 5px 0 0 0; opacity: 0.9;">{{ $employee->emp_id }} • {{ $employee->department->name ?? 'No Department' }}</p>
                     <p style="margin: 5px 0 0 0; opacity: 0.9;">• {{ $admin_name[$employee->referrance]->username ?? 'No Admin' }} •</p>
                 </div>
@@ -170,10 +170,10 @@
                                     <td style="color: #495af2; cursor: pointer;" onclick="viewDayDetails('{{ $employee->emp_id }}', '{{ $date }}')">
                                         {{ \Carbon\Carbon::parse($date)->format('M d, Y') }}
                                     </td>
-                                    <td>{{ $firstPunchIn ? $firstPunchIn->entry_time->format('H:i') : '-' }}</td>
-                                    <td>{{ $lunchStart ? $lunchStart->entry_time->format('H:i') : '-' }}</td>
-                                    <td>{{ $lunchEnd ? $lunchEnd->entry_time->format('H:i') : '-' }}</td>
-                                    <td>{{ $lastPunchOut ? $lastPunchOut->entry_time->format('H:i') : '-' }}</td>
+                                    <td style="cursor: pointer; color: #3b82f6;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'punch_in', '{{ $firstPunchIn->id ?? '' }}', '{{ $firstPunchIn ? $firstPunchIn->entry_time->format('H:i') : '' }}')">{{ $firstPunchIn ? $firstPunchIn->entry_time->format('H:i') : '-' }}</td>
+                                    <td style="cursor: pointer; color: #3b82f6;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'lunch_start', '{{ $lunchStart->id ?? '' }}', '{{ $lunchStart ? $lunchStart->entry_time->format('H:i') : '' }}')">{{ $lunchStart ? $lunchStart->entry_time->format('H:i') : '-' }}</td>
+                                    <td style="cursor: pointer; color: #3b82f6;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'lunch_end', '{{ $lunchEnd->id ?? '' }}', '{{ $lunchEnd ? $lunchEnd->entry_time->format('H:i') : '' }}')">{{ $lunchEnd ? $lunchEnd->entry_time->format('H:i') : '-' }}</td>
+                                    <td style="cursor: pointer; color: #3b82f6;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'punch_out', '{{ $lastPunchOut->id ?? '' }}', '{{ $lastPunchOut ? $lastPunchOut->entry_time->format('H:i') : '' }}')">{{ $lastPunchOut ? $lastPunchOut->entry_time->format('H:i') : '-' }}</td>
                                     <td>{{ $workingHours !== '0:00' ? $workingHours : '-' }}</td>
                                     <td>
                                         <span class="badge p-2 text-bg-{{ $statusClass }}">{{ $status }}</span>
@@ -218,6 +218,142 @@
 @endif
 
 <script>
+function editTime(empId, date, entryType, entryId, currentTime) {
+    const isNewEntry = !entryId || !currentTime;
+    
+    Swal.fire({
+        title: isNewEntry ? `Add ${entryType.replace('_', ' ').toUpperCase()}` : `Edit ${entryType.replace('_', ' ').toUpperCase()}`,
+        html: `
+            <div style="text-align: left; padding: 20px;">
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-user me-2"></i>Employee ID</label>
+                    <input type="text" class="form-control" value="${empId}" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-calendar me-2"></i>Date</label>
+                    <input type="text" class="form-control" value="${new Date(date).toLocaleDateString()}" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-clock me-2"></i>Time</label>
+                    <input type="time" class="form-control" id="edit_time_input" value="${currentTime}">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-save"></i> Save',
+        cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+        width: '500px',
+        customClass: {
+            confirmButton: 'btn btn-primary',
+            cancelButton: 'btn btn-secondary'
+        },
+        buttonsStyling: false,
+        preConfirm: () => {
+            const newTime = document.getElementById('edit_time_input').value;
+            if (!newTime) {
+                Swal.showValidationMessage('Please enter a time');
+                return false;
+            }
+            return newTime;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (isNewEntry) {
+                addNewTimeEntry(empId, date, entryType, result.value);
+            } else {
+                updateSingleTime(entryId, result.value);
+            }
+        }
+    });
+}
+
+function addNewTimeEntry(empId, date, entryType, time) {
+    fetch('/super-admin/time-entries/add', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            employee_id: empId,
+            date: date,
+            entry_type: entryType,
+            time: time
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: 'Success',
+                text: 'Time entry added successfully',
+                icon: 'success',
+                confirmButtonColor: '#3b82f6'
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.message || 'Failed to add time entry',
+                icon: 'error',
+                confirmButtonColor: '#3b82f6'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to add time entry',
+            icon: 'error',
+            confirmButtonColor: '#3b82f6'
+        });
+    });
+}
+
+function updateSingleTime(entryId, newTime) {
+    fetch('/super-admin/time-entries/update-multiple', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            updates: [{ id: entryId, time: newTime }] 
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: 'Success',
+                text: 'Time updated successfully',
+                icon: 'success',
+                confirmButtonColor: '#3b82f6'
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.message || 'Failed to update time',
+                icon: 'error',
+                confirmButtonColor: '#3b82f6'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to update time',
+            icon: 'error',
+            confirmButtonColor: '#3b82f6'
+        });
+    });
+}
+
 function viewDayDetails(empId, date) {
     // Fetch detailed time entries for the specific day
     fetch(`/super-admin/time-entries?employee=${empId}&from_date=${date}&to_date=${date}`, {

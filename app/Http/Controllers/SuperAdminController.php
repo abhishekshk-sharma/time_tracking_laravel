@@ -81,17 +81,16 @@ class SuperAdminController extends Controller
         $stats = [
             'total_employees' => Employee::whereNotIn('role', ['dummy', 'admin'])->count(),
             'active_employees' => Employee::where('status', 'active')->whereNotIn('role', ['dummy', 'admin'])->count(),
+            'inactive_employees' => Employee::where('status', 'inactive')->whereNotIn('role', ['dummy', 'admin'])->count(),
             'total_departments' => Department::count(),
             'pending_applications' => Application::where('status', 'pending')->count(),
         ];
 
-        // Get recent applications (last 5)
         $recentApplications = Application::with('employee')
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
 
-        // Calculate today's attendance
         $totalActiveEmployees = Employee::where('role', 'employee')
             ->where('status', 'active')
             ->whereNotIn('role', ['dummy'])
@@ -110,6 +109,7 @@ class SuperAdminController extends Controller
         $attendancePercentage = $totalActiveEmployees > 0 ? round(($presentToday / $totalActiveEmployees) * 100) : 0;
         
         $todayAttendance = [
+            'total' => $totalActiveEmployees,
             'present' => $presentToday,
             'absent' => $absentToday,
             'percentage' => $attendancePercentage

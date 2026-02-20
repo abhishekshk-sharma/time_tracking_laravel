@@ -208,6 +208,7 @@ Route::middleware(['auth:super_admin', 'super_admin'])->prefix('super-admin')->n
     Route::post('/time-entry-images/delete', [SuperAdminController::class, 'deleteImages'])->name('time-entry-images.delete');
     Route::get('/time-entries/employee/{empId}/{date}', [SuperAdminController::class, 'getEmployeeTimeEntries'])->name('time-entries.employee');
     Route::post('/time-entries/update', [SuperAdminController::class, 'updateTimeEntry'])->name('time-entries.update');
+    Route::post('/time-entries/update-multiple', [SuperAdminController::class, 'updateTimeEntries'])->name('time-entries.update-multiple');
     Route::post('/time-entries/add', [SuperAdminController::class, 'addTimeEntry'])->name('time-entries.add');
     Route::delete('/time-entries/{timeEntry}', [SuperAdminController::class, 'deleteTimeEntry'])->name('time-entries.delete');
     
@@ -371,6 +372,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     // Time Entries
     Route::post('/time-entries/update', [AdminController::class, 'updateTimeEntry'])->name('time-entries.update');
+    Route::post('/time-entries/add', [AdminController::class, 'addTimeEntry'])->name('time-entries.add');
     
     // Reports
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');

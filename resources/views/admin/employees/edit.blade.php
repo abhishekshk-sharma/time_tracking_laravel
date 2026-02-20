@@ -4,8 +4,20 @@
 
 @section('content')
 <div class="page-header">
-    <h1 class="page-title">Edit Employee</h1>
-    <p class="page-subtitle">Update employee information</p>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">Edit Employee</h1>
+            <p class="page-subtitle">Update employee information</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ route('admin.employees.show', $employee) }}" class="btn btn-primary">
+                <i class="fas fa-user"></i> Go to Profile
+            </a>
+            <a href="{{ route('admin.employees') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
 </div>
 
 <div class="card">
@@ -201,9 +213,6 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> Update Employee
                 </button>
-                <a href="{{ route('admin.employees') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to List
-                </a>
             </div>
         </form>
     </div>

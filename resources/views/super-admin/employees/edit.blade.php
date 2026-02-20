@@ -9,9 +9,14 @@
             <h1 class="page-title">Edit Employee</h1>
             <p class="page-subtitle">{{ $employee->username }} ({{ $employee->emp_id }})</p>
         </div>
-        <a href="{{ route('super-admin.employees') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Back to List
-        </a>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ route('super-admin.employees.show', $employee) }}" class="btn btn-primary">
+                <i class="fas fa-user"></i> Go to Profile
+            </a>
+            <a href="{{ route('super-admin.employees') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+        </div>
     </div>
 </div>
 

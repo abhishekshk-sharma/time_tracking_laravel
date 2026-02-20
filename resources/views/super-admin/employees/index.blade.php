@@ -199,6 +199,9 @@
                                     <a href="{{ route('super-admin.employees.show', $employee) }}" class="btn btn-sm btn-secondary" title="View Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    <a href="{{ route('super-admin.employees.edit', $employee) }}" class="btn btn-sm btn-primary" title="Edit Employee">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>

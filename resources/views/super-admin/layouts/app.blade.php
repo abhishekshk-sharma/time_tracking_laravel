@@ -292,6 +292,71 @@
             .admin-sidebar { transform: translateX(-100%); transition: transform 0.3s; }
             .admin-main { margin-left: 0; padding: 20px; }
         }
+
+        /* Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 20px 0;
+            padding: 0;
+        }
+        
+        .pagination .page-item {
+            list-style: none;
+            margin: 0;
+        }
+        
+        .pagination .page-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 40px;
+            padding: 8px 12px;
+            border: 1px solid var(--md-outline-variant) !important;
+            border-radius: 8px !important;
+            color: var(--md-text-sub) !important;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.2s var(--ease-calm);
+            background: white !important;
+            margin: 0;
+        }
+        
+        .pagination .page-link:hover {
+            background-color: var(--md-primary-container) !important;
+            color: var(--md-on-primary-container) !important;
+            border-color: var(--md-primary) !important;
+            transform: translateY(-1px);
+        }
+        
+        .pagination .page-item.active .page-link {
+            background-color: var(--md-primary) !important;
+            color: white !important;
+            border-color: var(--md-primary) !important;
+            font-weight: 600;
+        }
+        
+        .pagination .page-item.disabled .page-link {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+            background: #f5f5f5 !important;
+        }
+        
+        .pagination .page-link svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        nav[role="navigation"] {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
     </style>
     @stack('styles')
 </head>

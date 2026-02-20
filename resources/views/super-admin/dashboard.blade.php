@@ -9,22 +9,30 @@
 </div>
 
 <div class="stats-grid">
-    <div class="stat-card">
+    <a href="{{ route('super-admin.employees') }}" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
         <div class="stat-number">{{ $stats['total_employees'] }}</div>
         <div class="stat-label" style="margin-top: 5px;">Total Employees</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ route('super-admin.employees', ['status' => 'active']) }}" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
         <div class="stat-number">{{ $stats['active_employees'] }}</div>
         <div class="stat-label" style="margin-top: 5px;">Active Employees</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ route('super-admin.employees', ['status' => 'inactive']) }}" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <div class="stat-number">{{ $stats['inactive_employees'] }}</div>
+        <div class="stat-label" style="margin-top: 5px;">Inactive Employees</div>
+    </a>
+    <a href="{{ route('super-admin.attendance', ['date' => today()->format('Y-m-d')]) }}" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <div class="stat-number">{{ $todayAttendance['present'] }}</div>
+        <div class="stat-label" style="margin-top: 5px;">Present Today</div>
+    </a>
+    <a href="{{ route('super-admin.departments') }}" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
         <div class="stat-number">{{ $stats['total_departments'] }}</div>
         <div class="stat-label" style="margin-top: 5px;">Departments</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ route('super-admin.applications', ['status' => 'pending']) }}" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
         <div class="stat-number">{{ $stats['pending_applications'] }}</div>
         <div class="stat-label" style="margin-top: 5px;">Pending Applications</div>
-    </div>
+    </a>
 </div>
 
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
