@@ -22,7 +22,7 @@ use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\Api\EmployeeApiController;
 
 // Employee Mobile API Routes
-Route::prefix('employee')->group(function () {
+Route::prefix('employee')->middleware(['logreponse'])->group(function () {
     // Public routes
     Route::post('/login', [EmployeeApiController::class, 'login']);
     
