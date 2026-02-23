@@ -6,7 +6,6 @@ use App\Models\Employee;
 use App\Models\Salary;
 use App\Services\SalaryCalculationService;
 use Illuminate\Http\Request;
-use Spatie\Browsershot\Browsershot;
 use Illuminate\Support\Facades\Response;
 use Carbon\Carbon;
 
@@ -21,7 +20,6 @@ class SalarySlipController extends Controller
     
     public function generate(Request $request)
     {
-        // Increase execution time for PDF generation
         set_time_limit(120);
         
         $empId = $request->input('emp_id');
@@ -77,6 +75,14 @@ class SalarySlipController extends Controller
         $employee->designation = $request->input('designation', $employee->designation);
         $employeeDepartment = $request->input('department', $employee->department->name ?? 'IT');
         
+        // Convert logo to base64 for Browserless.io
+        $logoPath = public_path('images/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoData = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+        }
+        
         $data = [
             'employee' => $employee,
             'salary' => $salaryData,
@@ -97,33 +103,47 @@ class SalarySlipController extends Controller
             'halfDays' => $halfDays,
             'weekOff' => $weekOff,
             'absentDays' => $absentDays,
-            'shortAttendance' => $shortAttendance
+            'shortAttendance' => $shortAttendance,
+            'logoBase64' => $logoBase64
         ];
         
         $html = view('super-admin.reports.salary-slip-pdf', $data)->render();
         
         $filename = 'salary_slip_' . $employee->emp_id . '_' . date('Y_m') . '.pdf';
         
-        $pdf = Browsershot::html($html)
-            ->format('A4')
-            ->margins(10, 10, 10, 10)
-            ->timeout(60)
-            ->setOption('args', [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--no-first-run',
-                '--disable-extensions',
-                '--disable-plugins'
-            ])
-            ->waitUntilNetworkIdle()
-            ->pdf();
+        // Use Browserless.io HTTP API directly
+        $browserlessUrl = config('laravel-pdf.browsershot.browserless_url');
+        $apiKey = config('laravel-pdf.browsershot.browserless_api_key');
         
-        return response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ]);
+        try {
+            $response = \Http::withOptions([
+                'verify' => true,
+            ])->post($browserlessUrl . '/pdf?token=' . $apiKey, [
+                'html' => $html,
+                'options' => [
+                    'format' => 'A4',
+                    'margin' => [
+                        'top' => '10mm',
+                        'right' => '10mm',
+                        'bottom' => '10mm',
+                        'left' => '10mm'
+                    ],
+                    'printBackground' => true
+                ]
+            ]);
+            
+            if ($response->successful()) {
+                return response($response->body(), 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                ]);
+            } else {
+                throw new \Exception('Failed to generate PDF: ' . $response->body());
+            }
+        } catch (\Exception $e) {
+            \Log::error('Browserless.io error', ['message' => $e->getMessage()]);
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
     }
     
     private function convertToWords($number)
