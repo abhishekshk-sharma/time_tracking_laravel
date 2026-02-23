@@ -96,7 +96,9 @@
     <table class="header-table">
         <tr>
             <td width="15%">
-                <img src="{{ public_path('images/logo.png') }}" alt="Company Logo" style="max-width: 80px; max-height: 60px;">
+                @if(!empty($logoBase64))
+                <img src="{{ $logoBase64 }}" alt="Company Logo" style="max-width: 80px; max-height: 60px;">
+                @endif
             </td>
             <td width="45%">
                 <div class="company-name">St zk Digital Media co. LLC</div>

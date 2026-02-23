@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
-use Spatie\Browsershot\Browsershot;
+use Spatie\LaravelPdf\Facades\Pdf;
 use Illuminate\Validation\Rule; 
 
 class SuperAdminController extends Controller
@@ -1000,17 +1000,59 @@ class SuperAdminController extends Controller
         $salaryReport = SalaryReport::with(['employee', 'region'])->findOrFail($id);
         $employee = Employee::where('emp_id', $salaryReport->emp_id)->first();
         
-        $html = view('super-admin.reports.salary-report-pdf', compact('salaryReport', 'employee'))->render();
+        // Convert logo to base64 for Browserless.io
+        $logoPath = public_path('images/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoData = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+        }
         
-        $pdf = Browsershot::html($html)
-            ->format('A4')
-            ->margins(10, 10, 10, 10)
-            ->showBackground()
-            ->pdf();
-
-        return response($pdf)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'attachment; filename="salary_slip_' . $salaryReport->emp_id . '_' . $salaryReport->month . '_' . $salaryReport->year . '.pdf"');
+        // Render the HTML view with base64 logo
+        $html = view('super-admin.reports.salary-report-pdf', compact('salaryReport', 'employee', 'logoBase64'))->render();
+        
+        // Use Browserless.io HTTP API directly
+        $browserlessUrl = config('laravel-pdf.browsershot.browserless_url');
+        $apiKey = config('laravel-pdf.browsershot.browserless_api_key');
+        
+        \Log::info('Calling Browserless.io API', [
+            'url' => $browserlessUrl . '/pdf?token=' . $apiKey
+        ]);
+        
+        try {
+            $response = \Http::withOptions([
+                'verify' => true,
+            ])->post($browserlessUrl . '/pdf?token=' . $apiKey, [
+                'html' => $html,
+                'options' => [
+                    'format' => 'A4',
+                    'margin' => [
+                        'top' => '10mm',
+                        'right' => '10mm',
+                        'bottom' => '10mm',
+                        'left' => '10mm'
+                    ],
+                    'printBackground' => true
+                ]
+            ]);
+            
+            if ($response->successful()) {
+                \Log::info('Browserless.io API call successful');
+                
+                return response($response->body())
+                    ->header('Content-Type', 'application/pdf')
+                    ->header('Content-Disposition', 'attachment; filename="salary_slip_' . $salaryReport->emp_id . '_' . $salaryReport->month . '_' . $salaryReport->year . '.pdf"');
+            } else {
+                \Log::error('Browserless.io API failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                throw new \Exception('Failed to generate PDF: ' . $response->body());
+            }
+        } catch (\Exception $e) {
+            \Log::error('Browserless.io error', ['message' => $e->getMessage()]);
+            throw $e;
+        }
     }
 
     public function editSalaryReport($id)
