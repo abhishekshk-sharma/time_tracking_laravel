@@ -59,8 +59,8 @@ class AuthController extends Controller
         session(['at_office' => true]);
 
         $output = ['success' => true, 'data' => csrf_token()];
-        return  json_encode($output);
-        // return $this->redirectBasedOnRole();
+        // return  json_encode($output);
+        return $this->redirectBasedOnRole();
     }
 
     public function logout(Request $request)
