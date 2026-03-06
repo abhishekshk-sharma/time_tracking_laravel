@@ -112,11 +112,16 @@ class SalarySlipController extends Controller
         $filename = 'salary_slip_' . $employee->emp_id . '_' . date('Y_m') . '.pdf';
         
         // Use Browserless.io HTTP API directly
-        $browserlessUrl = config('laravel-pdf.browsershot.browserless_url');
-        $apiKey = config('laravel-pdf.browsershot.browserless_api_key');
+        $browserlessUrl = env('BROWSERLESS_URL', 'https://chrome.browserless.io');
+        $apiKey = env('BROWSERLESS_API_KEY');
+        
+        \Log::info('SalarySlip PDF Generation', [
+            'url' => $browserlessUrl,
+            'has_api_key' => !empty($apiKey)
+        ]);
         
         try {
-            $response = \Http::withOptions([
+            $response = \Http::timeout(60)->withOptions([
                 'verify' => true,
             ])->post($browserlessUrl . '/pdf?token=' . $apiKey, [
                 'html' => $html,
@@ -138,7 +143,11 @@ class SalarySlipController extends Controller
                     'Content-Disposition' => 'attachment; filename="' . $filename . '"',
                 ]);
             } else {
-                throw new \Exception('Failed to generate PDF: ' . $response->body());
+                \Log::error('Browserless.io API failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                return back()->with('error', 'Failed to generate PDF. Please try again.');
             }
         } catch (\Exception $e) {
             \Log::error('Browserless.io error', ['message' => $e->getMessage()]);

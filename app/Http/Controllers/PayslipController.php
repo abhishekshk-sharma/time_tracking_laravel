@@ -7,7 +7,6 @@ use App\Models\SalaryReport;
 use App\Models\Employee;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
-use Spatie\Browsershot\Browsershot;
 
 class PayslipController extends Controller
 {
@@ -48,20 +47,59 @@ class PayslipController extends Controller
             
         $employee = Employee::where('emp_id', $payslip->emp_id)->first();
         
-        $html = view('payslips.pdf', ['salaryReport' => $payslip, 'employee' => $employee])->render();
+        // Convert logo to base64 for Browserless.io
+        $logoPath = public_path('images/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoData = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+        }
         
-        $pdf = Browsershot::html($html)
-            ->format('A4')
-            ->margins(10, 10, 10, 10)
-            ->showBackground()
-            ->waitUntilNetworkIdle()
-            ->pdf();
+        $html = view('payslips.pdf', ['salaryReport' => $payslip, 'employee' => $employee, 'logoBase64' => $logoBase64])->render();
+        
+        // Use Browserless.io HTTP API directly
+        $browserlessUrl = env('BROWSERLESS_URL', 'https://chrome.browserless.io');
+        $apiKey = env('BROWSERLESS_API_KEY');
+        
+        \Log::info('User Payslip PDF Generation', [
+            'url' => $browserlessUrl,
+            'has_api_key' => !empty($apiKey)
+        ]);
+        
+        try {
+            $response = \Http::timeout(60)->withOptions([
+                'verify' => true,
+            ])->post($browserlessUrl . '/pdf?token=' . $apiKey, [
+                'html' => $html,
+                'options' => [
+                    'format' => 'A4',
+                    'margin' => [
+                        'top' => '10mm',
+                        'right' => '10mm',
+                        'bottom' => '10mm',
+                        'left' => '10mm'
+                    ],
+                    'printBackground' => true
+                ]
+            ]);
             
-        $monthName = Carbon::create()->month($payslip->month)->format('F');
-        $filename = 'payslip_' . $monthName . '_' . $payslip->year . '.pdf';
-        
-        return response($pdf)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            if ($response->successful()) {
+                $monthName = Carbon::create()->month($payslip->month)->format('F');
+                $filename = 'payslip_' . $monthName . '_' . $payslip->year . '.pdf';
+                
+                return response($response->body())
+                    ->header('Content-Type', 'application/pdf')
+                    ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            } else {
+                \Log::error('Browserless.io API failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                return back()->with('error', 'Failed to generate PDF. Please try again.');
+            }
+        } catch (\Exception $e) {
+            \Log::error('Browserless.io error', ['message' => $e->getMessage()]);
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
     }
 }

@@ -1012,15 +1012,16 @@ class SuperAdminController extends Controller
         $html = view('super-admin.reports.salary-report-pdf', compact('salaryReport', 'employee', 'logoBase64'))->render();
         
         // Use Browserless.io HTTP API directly
-        $browserlessUrl = config('laravel-pdf.browsershot.browserless_url');
-        $apiKey = config('laravel-pdf.browsershot.browserless_api_key');
+        $browserlessUrl = env('BROWSERLESS_URL', 'https://chrome.browserless.io');
+        $apiKey = env('BROWSERLESS_API_KEY');
         
-        \Log::info('Calling Browserless.io API', [
-            'url' => $browserlessUrl . '/pdf?token=' . $apiKey
+        \Log::info('SuperAdmin PDF Generation', [
+            'url' => $browserlessUrl,
+            'has_api_key' => !empty($apiKey)
         ]);
         
         try {
-            $response = \Http::withOptions([
+            $response = \Http::timeout(60)->withOptions([
                 'verify' => true,
             ])->post($browserlessUrl . '/pdf?token=' . $apiKey, [
                 'html' => $html,
@@ -1047,11 +1048,11 @@ class SuperAdminController extends Controller
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
-                throw new \Exception('Failed to generate PDF: ' . $response->body());
+                return back()->with('error', 'Failed to generate PDF. Please try again.');
             }
         } catch (\Exception $e) {
             \Log::error('Browserless.io error', ['message' => $e->getMessage()]);
-            throw $e;
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
         }
     }
 
