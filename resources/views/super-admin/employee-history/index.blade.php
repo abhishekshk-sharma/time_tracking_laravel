@@ -72,7 +72,7 @@
                 <div>
                     <a href="{{ route('super-admin.employees.show', $employee->id) }}" style="margin: 0; color: #3b82f6; text-decoration: none;"><h3 style="margin: 0; color: #3b82f6;">{{ $employee->username }}</h3></a>
                     <p style="margin: 5px 0 0 0; opacity: 0.9;">{{ $employee->emp_id }} • {{ $employee->department->name ?? 'No Department' }}</p>
-                    <p style="margin: 5px 0 0 0; opacity: 0.9;">• {{ $admin_name[$employee->referrance]->username ?? 'No Admin' }} •</p>
+                    <p style="margin: 5px 0 0 0; opacity: 0.9;">Admin • {{ $admin_name[$employee->referrance]->username ?? 'No Admin' }}</p>
                 </div>
                 @if($hasImages)
                     <i class="fas fa-camera" style="color: green; margin-left: 8px; margin-right: 15px;" title="Images captured"></i>

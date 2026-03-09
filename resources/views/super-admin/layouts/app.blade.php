@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -215,12 +216,13 @@
         /* --- 3. Main Content --- */
         .admin-main {
             margin-left: var(--sidebar-width);
-            margin-top: var(--header-height);
+            margin-top: 47px;
+            /* margin-top: var(--header-height); */
             padding: 32px;
         }
 
         /* --- Global Components --- */
-        .card {
+        /* .card {
             background-color: var(--md-surface);
             border: 1px solid var(--md-outline-variant);
             border-radius: var(--radius-card);
@@ -231,7 +233,250 @@
         .card:hover { transform: translateY(-2px); box-shadow: var(--elevation-hover); border-color: transparent; }
         .card-header { background: linear-gradient(135deg, #eeedfa, #f8eaf0);; padding: 24px 28px 8px; border-bottom: none; display: flex; justify-content: space-between; align-items: center; }
         .card-title { font-size: 20px; color: var(--md-text-main); font-weight: 400; }
-        .card-body { padding: 28px; }
+        .card-body { padding: 28px; } */
+
+
+
+        /* Enhanced Card Styles - Compatible with existing structure */
+        .card {
+            background-color: var(--md-surface);
+            border: 1px solid var(--md-outline-variant);
+            border-radius: 7px;
+            margin-bottom: 24px;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); 
+            border-color: transparent; 
+        }
+
+        .card-header { 
+            background: linear-gradient(135deg, #f8f7ff, #f5f0ff);
+            padding: 20px 28px 16px; 
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+
+        .card-title { 
+            font-size: 20px; 
+            color: #1e293b; 
+            font-weight: 600; 
+            letter-spacing: -0.02em;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Button enhancements */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+
+        /* Table Container Enhancement */
+        .table-container {
+            border-radius: 16px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        /* Table Styling */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .table thead tr {
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .table th {
+            padding: 14px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            padding: 16px 20px;
+            color: #1e293b;
+            border-bottom: 1px solid #eef2f6;
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Badge Enhancements */
+        .badge {
+            display: inline-block;
+            padding: 6px 12px !important;
+            border-radius: 10px !important;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+        }
+
+        .text-bg-success {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            color: white !important;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+        }
+
+        .text-bg-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+            color: white !important;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.2);
+        }
+
+        .text-bg-info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+            color: white !important;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Action Buttons Enhancement */
+        .btn i, .btn-sm i {
+            font-size: 14px;
+            margin-right: 4px;
+        }
+
+        /* Employee count badge specific */
+        .badge.p-2.text-bg-info {
+            min-width: 40px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        /* Status badges */
+        td .badge {
+            min-width: 70px;
+        }
+
+        /* Empty state styling */
+        .card-body .text-muted {
+            text-align: center;
+            /* padding: 15px 20px; */
+            /* background: #f8fafc; */
+            /* border-radius: 16px; */
+            color: #64748b;
+            font-size: 14px;
+            margin: 0;
+            /* border: 2px dashed #e2e8f0; */
+        }
+
+        /* Add Font Awesome if not already present */
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .card-header {
+                background: linear-gradient(135deg, #1e293b, #0f172a);
+                border-bottom-color: rgba(255, 255, 255, 0.05);
+            }
+            
+            .card-title {
+                color: #f1f5f9;
+            }
+            
+            .table thead tr {
+                background: #1e293b;
+                border-bottom-color: #334155;
+            }
+            
+            .table th {
+                color: #94a3b8;
+            }
+            
+            .table td {
+                color: #e2e8f0;
+                border-bottom-color: #334155;
+            }
+            
+            .table tbody tr:hover {
+                background-color: #1e293b;
+            }
+            
+            .btn-secondary {
+                background: #1e293b;
+                border-color: #334155;
+                color: #e2e8f0;
+            }
+            
+            .btn-secondary:hover {
+                background: #334155;
+                border-color: #475569;
+                color: #f1f5f9;
+            }
+            
+            .card-body .text-muted {
+                background: #1e293b;
+                color: #94a3b8;
+                border-color: #334155;
+            }
+        }
+
+
+
+
 
         /* Buttons */
         .btn { border-radius: 7px; padding: 7px 15px; font-weight: 500; border: none; transition: all 0.3s; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;}
@@ -276,11 +521,140 @@
         .table td:last-child { border-left: 1px solid var(--md-outline-variant); background: #fff; }
 
         /* Stats Grid */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        /* .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 24px; }
         .stat-card { background: #fff; border: 1px solid var(--md-outline-variant); border-radius: var(--radius-card); padding: 24px; transition: 0.3s; }
         .stat-card:hover { border-color: var(--md-primary); transform: scale(1.02); }
         .stat-number { font-size: 36px; color: var(--md-text-main); }
-        .stat-label { font-size: 13px; color: var(--md-text-sub); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .stat-label { font-size: 13px; color: var(--md-text-sub); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; } */
+
+        /* Enhanced Professional Stats Styling */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 7px;
+            padding: 24px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.15);
+            border-color: transparent;
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-content {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.2;
+            margin-bottom: 4px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-trend {
+            font-size: 12px;
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 20px;
+            display: inline-block;
+            font-weight: 500;
+            color: #475569;
+        }
+
+        .stat-trend.positive {
+            background: rgba(16, 185, 129, 0.1);
+            color: #059669;
+        }
+
+        .stat-trend.negative {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+
+        .stat-trend.urgent {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .stat-card {
+                background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                border-color: rgba(255, 255, 255, 0.05);
+            }
+            
+            .stat-number {
+                color: #f1f5f9;
+            }
+            
+            .stat-label {
+                color: #94a3b8;
+            }
+            
+            .stat-trend {
+                background: rgba(255, 255, 255, 0.05);
+                color: #cbd5e1;
+            }
+        }
+
+
+        /* the stats card style ends here */
+
+
 
         /* Alerts */
         .alert { border-radius: 8px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; border: none; }
@@ -358,6 +732,166 @@
             width: 100%;
         }
     </style>
+
+    <!-- this style is for dayli attendance page stats cards -->
+<style>
+/* Enhanced Attendance Cards */
+.attendance-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px;
+    background: linear-gradient(135deg, #ffffff, #f8fafc);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.attendance-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.15);
+}
+
+/* .attendance-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--card-gradient);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+} */
+
+.attendance-card:hover::before {
+    opacity: 1;
+}
+
+.present-card::before {
+    --card-gradient: linear-gradient(90deg, #10b981, #059669);
+}
+
+.absent-card::before {
+    --card-gradient: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.rate-card::before {
+    --card-gradient: linear-gradient(90deg, #8b5cf6, #6d28d9);
+}
+
+.total-card::before {
+    --card-gradient: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.stat-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+    color: white;
+    font-size: 24px;
+}
+
+.stat-content {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.stat-content .stat-number {
+    font-size: 36px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.2;
+    margin-bottom: 4px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.stat-content .stat-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.stat-trend {
+    font-size: 12px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 20px;
+    display: inline-block;
+    font-weight: 500;
+    color: #475569;
+}
+
+.stat-trend i {
+    margin-right: 4px;
+    font-size: 10px;
+}
+
+.stat-trend.positive {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.stat-trend.negative {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+/* Add subtle animation on load */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.attendance-card {
+    animation: slideUp 0.5s ease forwards;
+    animation-delay: calc(var(--card-index) * 0.1s);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .attendance-card {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+    }
+    
+    .stat-content .stat-number {
+        color: #f1f5f9;
+    }
+    
+    .stat-content .stat-label {
+        color: #94a3b8;
+    }
+    
+    .stat-trend {
+        background: rgba(255, 255, 255, 0.05);
+        color: #cbd5e1;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .stats-grid[style*="grid-template-columns: repeat(4, 1fr)"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+</style>
     @stack('styles')
 </head>
 <body>
@@ -404,7 +938,7 @@
             </div>
 
             @php
-                $isWorkforceActive = request()->routeIs('super-admin.employees*') || request()->routeIs('super-admin.employee-history*') || request()->routeIs('super-admin.attendance*') || request()->routeIs('super-admin.time-entry-images*') ;
+                $isWorkforceActive = request()->routeIs('super-admin.employees*') || request()->routeIs('super-admin.employee-history*') || request()->routeIs('super-admin.attendance*') || request()->routeIs('super-admin.time-entries*') || request()->routeIs('super-admin.time-entry-images*') ;
             @endphp
             <div class="nav-item">
                 <div class="nav-link {{ $isWorkforceActive ? 'active' : '' }}" onclick="toggleMenu('menu-workforce')" aria-expanded="{{ $isWorkforceActive ? 'true' : 'false' }}">
@@ -424,7 +958,7 @@
             <div class="nav-label">Operations</div>
 
             @php
-                $isTimeActive =  request()->routeIs('super-admin.time-entries*')  || request()->routeIs('super-admin.schedule*') || request()->routeIs('super-admin.applications*');
+                $isTimeActive =   request()->routeIs('super-admin.schedule*') || request()->routeIs('super-admin.applications*');
             @endphp
             <div class="nav-item">
                 <div class="nav-link {{ $isTimeActive ? 'active' : '' }}" onclick="toggleMenu('menu-time')" aria-expanded="{{ $isTimeActive ? 'true' : 'false' }}">

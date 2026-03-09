@@ -114,8 +114,71 @@ class SuperAdminController extends Controller
             'absent' => $absentToday,
             'percentage' => $attendancePercentage
         ];
+        
+        // Get recent admins
+        $recentAdmins = Employee::where('role', 'admin')
+            ->withCount(['assignedEmployees' => function($query) {
+                $query->where('role', 'employee');
+            }])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+        
+        // Get recent employees
+        $recentEmployees = Employee::where('role', 'employee')
+            ->with('department')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+        
+        // Get today's attendance details
+        $todayAttendanceDetails = Employee::where('role', 'employee')
+            ->where('status', 'active')
+            ->with(['timeEntries' => function($query) {
+                $query->whereDate('entry_time', today())
+                      ->orderBy('entry_time');
+            }, 'department'])
+            ->limit(5)
+            ->get();
+        
+        // Get recent salaries
+        $recentSalaries = Salary::with('employee')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+        
+        // Get top attendance employees for current month
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+        $topAttendanceEmployees = Employee::where('role', 'employee')
+            ->where('status', 'active')
+            ->with('department')
+            ->get()
+            ->map(function($employee) use ($currentMonth, $currentYear) {
+                $attendanceCount = TimeEntry::where('employee_id', $employee->emp_id)
+                    ->where('entry_type', 'punch_in')
+                    ->whereMonth('entry_time', $currentMonth)
+                    ->whereYear('entry_time', $currentYear)
+                    ->distinct('entry_time')
+                    ->count(DB::raw('DATE(entry_time)'));
+                
+                $employee->attendance_count = $attendanceCount;
+                return $employee;
+            })
+            ->sortByDesc('attendance_count')
+            ->take(10)
+            ->values();
 
-        return view('super-admin.dashboard', compact('stats', 'recentApplications', 'todayAttendance'));
+        return view('super-admin.dashboard', compact(
+            'stats', 
+            'recentApplications', 
+            'todayAttendance',
+            'recentAdmins',
+            'recentEmployees',
+            'todayAttendanceDetails',
+            'recentSalaries',
+            'topAttendanceEmployees'
+        ));
     }
 
     public function schedule()

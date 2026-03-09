@@ -45,31 +45,67 @@
     </div>
 </div>
 
-<!-- Attendance Summary -->
-<div class="stats-grid">
+<!-- Enhanced Attendance Summary -->
+<div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 24px;">
     @php
         $presentCount = $employees->filter(function($emp) { return $emp->timeEntries->where('entry_type', 'punch_in')->count() > 0; })->count();
         $absentCount = $employees->count() - $presentCount;
         $attendanceRate = $employees->count() > 0 ? round(($presentCount / $employees->count()) * 100, 1) : 0;
     @endphp
     
-    <div class="stat-card">
-        <div class="stat-number">{{ $presentCount }}</div>
-        <div class="stat-label">Present</div>
+    <div class="stat-card attendance-card present-card">
+        <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number">{{ $presentCount }}</div>
+            <div class="stat-label">Present Today</div>
+            {{-- <div class="stat-trend positive">
+                <i class="fas fa-arrow-up"></i> {{ $employees->count() > 0 ? round(($presentCount / $employees->count()) * 100) : 0 }}% of workforce
+            </div> --}}
+        </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-number">{{ $absentCount }}</div>
-        <div class="stat-label">Absent</div>
+    
+    <div class="stat-card attendance-card absent-card">
+        <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            <i class="fas fa-times-circle"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number">{{ $absentCount }}</div>
+            <div class="stat-label">Absent Today</div>
+            {{-- <div class="stat-trend negative">
+                <i class="fas fa-arrow-down"></i> {{ $employees->count() > 0 ? round(($absentCount / $employees->count()) * 100) : 0 }}% of workforce
+            </div> --}}
+        </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-number">{{ $attendanceRate }}%</div>
-        <div class="stat-label">Attendance Rate</div>
+    
+    <div class="stat-card attendance-card rate-card">
+        <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number">{{ $attendanceRate }}%</div>
+            <div class="stat-label">Attendance Rate</div>
+            {{-- <div class="stat-trend">
+                <i class="fas fa-calendar-check"></i> Overall performance
+            </div> --}}
+        </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-number">{{ $employees->total() }}</div>
-        <div class="stat-label">Total Employees</div>
+    
+    <div class="stat-card attendance-card total-card">
+        <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-number">{{ $employees->total() }}</div>
+            <div class="stat-label">Total Employees</div>
+            {{-- <div class="stat-trend">
+                <i class="fas fa-user-plus"></i> Enrolled staff
+            </div> --}}
+        </div>
     </div>
 </div>
+
 
 <!-- Attendance Table -->
 <div class="card">
@@ -86,9 +122,9 @@
                             <th>Department</th>
                             <th>Status</th>
                             <th>Punch In</th>
-                            <th>Punch Out</th>
                             <th>Lunch Start</th>
                             <th>Lunch End</th>
+                            <th>Punch Out</th>
                             <th>Working Hours</th>
                             <th>Actions</th>
                         </tr>
@@ -139,18 +175,7 @@
                                     <span class="text-muted" style="cursor: pointer;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'punch_in', '', '')">-</span>
                                 @endif
                             </td>
-                            <td>
-                                @if($employee->lastPunchOut)
-                                    <div style="font-weight: 500; cursor: pointer; color: #3b82f6;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'punch_out', '{{ $employee->lastPunchOut->id }}', '{{ $employee->lastPunchOut->entry_time->format('H:i') }}')">{{ $employee->lastPunchOut->entry_time->format('h:i A') }}</div>
-                                    <div style="font-size: 12px; color: #565959;">{{ $employee->lastPunchOut->entry_time->format('M d') }}</div>
-                                @else
-                                    @if($employee->firstPunchIn)
-                                        <span class="badge p-2 text-bg-warning" style="cursor: pointer;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'punch_out', '', '')">Still Working</span>
-                                    @else
-                                        <span class="text-muted" style="cursor: pointer;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'punch_out', '', '')">-</span>
-                                    @endif
-                                @endif
-                            </td>
+                            
                             <td>
                                 @php
                                     $lunchStart = $employee->timeEntries->where('entry_type', 'lunch_start')->first();
@@ -171,6 +196,18 @@
                                     <div style="font-size: 12px; color: #565959;">{{ $lunchEnd->entry_time->format('M d') }}</div>
                                 @else
                                     <span class="text-muted" style="cursor: pointer;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'lunch_end', '', '')">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($employee->lastPunchOut)
+                                    <div style="font-weight: 500; cursor: pointer; color: #3b82f6;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'punch_out', '{{ $employee->lastPunchOut->id }}', '{{ $employee->lastPunchOut->entry_time->format('H:i') }}')">{{ $employee->lastPunchOut->entry_time->format('h:i A') }}</div>
+                                    <div style="font-size: 12px; color: #565959;">{{ $employee->lastPunchOut->entry_time->format('M d') }}</div>
+                                @else
+                                    @if($employee->firstPunchIn)
+                                        <span class="badge p-2 text-bg-warning" style="cursor: pointer;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'punch_out', '', '')">Still Working</span>
+                                    @else
+                                        <span class="text-muted" style="cursor: pointer;" onclick="editTime('{{ $employee->emp_id }}', '{{ $date }}', 'punch_out', '', '')">-</span>
+                                    @endif
                                 @endif
                             </td>
                             <td>

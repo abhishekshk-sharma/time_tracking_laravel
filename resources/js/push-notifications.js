@@ -1,175 +1,168 @@
 // resources/js/push-notifications.js
 
-class PushNotificationManager {
-    constructor() {
-        this.vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || document.querySelector('meta[name="vapid-public-key"]')?.content;
-        this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        this.subscribeButton = document.getElementById('enable-notifications');
+// class PushNotificationManager {
+//     constructor() {
+//         // Push notifications disabled
+//         console.log('Push notifications feature is disabled');
+//     }
+
+    // async init() {
+    //     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    //         console.log('Push notifications not supported');
+    //         return;
+    //     }
+
+    //     const permission = await this.checkPermission();
         
-        this.init();
-    }
+    //     if (permission === 'granted') {
+    //         await this.registerServiceWorker();
+    //     }
 
-    async init() {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            console.log('Push notifications not supported');
-            return;
-        }
+    //     if (this.subscribeButton) {
+    //         this.subscribeButton.addEventListener('click', () => this.requestPermission());
+    //     }
+    // }
 
-        const permission = await this.checkPermission();
+    // async checkPermission() {
+    //     if (!('Notification' in window)) return 'denied';
         
-        if (permission === 'granted') {
-            await this.registerServiceWorker();
-        }
-
-        if (this.subscribeButton) {
-            this.subscribeButton.addEventListener('click', () => this.requestPermission());
-        }
-    }
-
-    async checkPermission() {
-        if (!('Notification' in window)) return 'denied';
+    //     if (Notification.permission === 'granted') {
+    //         this.updateUI('enabled');
+    //         return 'granted';
+    //     } else if (Notification.permission === 'denied') {
+    //         this.updateUI('denied');
+    //         return 'denied';
+    //     }
         
-        if (Notification.permission === 'granted') {
-            this.updateUI('enabled');
-            return 'granted';
-        } else if (Notification.permission === 'denied') {
-            this.updateUI('denied');
-            return 'denied';
-        }
-        
-        this.updateUI('prompt');
-        return 'prompt';
-    }
+    //     this.updateUI('prompt');
+    //     return 'prompt';
+    // }
 
-    async requestPermission() {
-        try {
-            const permission = await Notification.requestPermission();
+    // async requestPermission() {
+    //     try {
+    //         const permission = await Notification.requestPermission();
             
-            if (permission === 'granted') {
-                this.updateUI('enabled');
-                await this.registerServiceWorker();
-            } else {
-                this.updateUI('denied');
-            }
-        } catch (error) {
-            console.error('Error requesting permission:', error);
-        }
-    }
+    //         if (permission === 'granted') {
+    //             this.updateUI('enabled');
+    //             await this.registerServiceWorker();
+    //         } else {
+    //             this.updateUI('denied');
+    //         }
+    //     } catch (error) {
+    //         console.error('Error requesting permission:', error);
+    //     }
+    // }
 
-    async registerServiceWorker() {
-        try {
-            const registration = await navigator.serviceWorker.register('/service-worker.js');
-            console.log('Service Worker registered:', registration);
+    // async registerServiceWorker() {
+    //     try {
+    //         const registration = await navigator.serviceWorker.register('/service-worker.js');
+    //         console.log('Service Worker registered:', registration);
             
-            const subscription = await registration.pushManager.getSubscription();
+    //         const subscription = await registration.pushManager.getSubscription();
             
-            if (!subscription) {
-                await this.subscribeUser(registration);
-            } else {
-                await this.sendSubscriptionToServer(subscription);
-            }
-        } catch (error) {
-            console.error('Service Worker registration failed:', error);
-        }
-    }
+    //         if (!subscription) {
+    //             await this.subscribeUser(registration);
+    //         } else {
+    //             await this.sendSubscriptionToServer(subscription);
+    //         }
+    //     } catch (error) {
+    //         console.error('Service Worker registration failed:', error);
+    //     }
+    // }
 
-    async subscribeUser(registration) {
-        try {
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
-            });
+    // async subscribeUser(registration) {
+    //     try {
+    //         const subscription = await registration.pushManager.subscribe({
+    //             userVisibleOnly: true,
+    //             applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
+    //         });
 
-            console.log('Subscribed to push notifications');
-            await this.sendSubscriptionToServer(subscription);
+    //         console.log('Subscribed to push notifications');
+    //         await this.sendSubscriptionToServer(subscription);
             
-        } catch (error) {
-            console.error('Failed to subscribe:', error);
-        }
-    }
+    //     } catch (error) {
+    //         console.error('Failed to subscribe:', error);
+    //     }
+    // }
 
-    async sendSubscriptionToServer(subscription) {
-        try {
-            const response = await fetch('/push-subscription', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': this.csrfToken,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(subscription)
-            });
+    // async sendSubscriptionToServer(subscription) {
+    //     try {
+    //         const response = await fetch('/push-subscription', {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //                 'X-CSRF-TOKEN': this.csrfToken,
+    //                 'Accept': 'application/json'
+    //             },
+    //             body: JSON.stringify(subscription)
+    //         });
 
-            if (response.ok) {
-                console.log('Subscription saved to server');
-                this.showSuccess('Notifications enabled successfully!');
-            } else {
-                console.error('Failed to save subscription');
-            }
-        } catch (error) {
-            console.error('Error saving subscription:', error);
-        }
-    }
+    //         if (response.ok) {
+    //             console.log('Subscription saved to server');
+    //             this.showSuccess('Notifications enabled successfully!');
+    //         } else {
+    //             console.error('Failed to save subscription');
+    //         }
+    //     } catch (error) {
+    //         console.error('Error saving subscription:', error);
+    //     }
+    // }
 
-    urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding)
-            .replace(/\-/g, '+')
-            .replace(/_/g, '/');
+    // urlBase64ToUint8Array(base64String) {
+    //     const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    //     const base64 = (base64String + padding)
+    //         .replace(/\-/g, '+')
+    //         .replace(/_/g, '/');
         
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
+    //     const rawData = window.atob(base64);
+    //     const outputArray = new Uint8Array(rawData.length);
         
-        for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-        }
-        return outputArray;
-    }
+    //     for (let i = 0; i < rawData.length; ++i) {
+    //         outputArray[i] = rawData.charCodeAt(i);
+    //     }
+    //     return outputArray;
+    // }
 
-    updateUI(status) {
-        if (!this.subscribeButton) return;
+    // updateUI(status) {
+    //     if (!this.subscribeButton) return;
         
-        switch(status) {
-            case 'enabled':
-                this.subscribeButton.innerHTML = '<i class="fas fa-check-circle"></i> Notifications Enabled';
-                this.subscribeButton.classList.remove('btn-primary', 'btn-warning');
-                this.subscribeButton.classList.add('btn-success');
-                this.subscribeButton.disabled = true;
-                break;
+    //     switch(status) {
+    //         case 'enabled':
+    //             this.subscribeButton.innerHTML = '<i class="fas fa-check-circle"></i> Notifications Enabled';
+    //             this.subscribeButton.classList.remove('btn-primary', 'btn-warning');
+    //             this.subscribeButton.classList.add('btn-success');
+    //             this.subscribeButton.disabled = true;
+    //             break;
                 
-            case 'denied':
-                this.subscribeButton.innerHTML = '<i class="fas fa-times-circle"></i> Notifications Blocked';
-                this.subscribeButton.classList.remove('btn-primary', 'btn-success');
-                this.subscribeButton.classList.add('btn-danger');
-                this.subscribeButton.disabled = true;
-                break;
+    //         case 'denied':
+    //             this.subscribeButton.innerHTML = '<i class="fas fa-times-circle"></i> Notifications Blocked';
+    //             this.subscribeButton.classList.remove('btn-primary', 'btn-success');
+    //             this.subscribeButton.classList.add('btn-danger');
+    //             this.subscribeButton.disabled = true;
+    //             break;
                 
-            case 'prompt':
-                this.subscribeButton.innerHTML = '<i class="fas fa-bell"></i> Enable Notifications';
-                this.subscribeButton.classList.remove('btn-success', 'btn-danger');
-                this.subscribeButton.classList.add('btn-primary');
-                this.subscribeButton.disabled = false;
-                break;
-        }
-    }
+    //         case 'prompt':
+    //             this.subscribeButton.innerHTML = '<i class="fas fa-bell"></i> Enable Notifications';
+    //             this.subscribeButton.classList.remove('btn-success', 'btn-danger');
+    //             this.subscribeButton.classList.add('btn-primary');
+    //             this.subscribeButton.disabled = false;
+    //             break;
+    //     }
+    // }
 
-    showSuccess(message) {
-        const toast = document.createElement('div');
-        toast.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
-        toast.style.zIndex = '9999';
-        toast.innerHTML = `
-            <strong>Success!</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(toast);
+    // showSuccess(message) {
+    //     const toast = document.createElement('div');
+    //     toast.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+    //     toast.style.zIndex = '9999';
+    //     toast.innerHTML = `
+    //         <strong>Success!</strong> ${message}
+    //         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    //     `;
+    //     document.body.appendChild(toast);
         
-        setTimeout(() => toast.remove(), 5000);
-    }
-}
+    //     setTimeout(() => toast.remove(), 5000);
+    // }
+// }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    window.pushManager = new PushNotificationManager();
-});
-
-export default PushNotificationManager;
+// Push notifications disabled - no initialization
+// export default PushNotificationManager;
