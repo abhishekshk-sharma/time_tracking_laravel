@@ -241,7 +241,7 @@
         .card {
             background-color: var(--md-surface);
             border: 1px solid var(--md-outline-variant);
-            border-radius: 7px;
+            border-radius: 5px;
             margin-bottom: 24px;
             position: relative;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -321,7 +321,7 @@
 
         /* Table Container Enhancement */
         .table-container {
-            border-radius: 16px;
+            border-radius: 3px;
             overflow: hidden;
             margin-top: 8px;
         }
@@ -426,53 +426,6 @@
         /* Add Font Awesome if not already present */
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
 
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            .card-header {
-                background: linear-gradient(135deg, #1e293b, #0f172a);
-                border-bottom-color: rgba(255, 255, 255, 0.05);
-            }
-            
-            .card-title {
-                color: #f1f5f9;
-            }
-            
-            .table thead tr {
-                background: #1e293b;
-                border-bottom-color: #334155;
-            }
-            
-            .table th {
-                color: #94a3b8;
-            }
-            
-            .table td {
-                color: #e2e8f0;
-                border-bottom-color: #334155;
-            }
-            
-            .table tbody tr:hover {
-                background-color: #1e293b;
-            }
-            
-            .btn-secondary {
-                background: #1e293b;
-                border-color: #334155;
-                color: #e2e8f0;
-            }
-            
-            .btn-secondary:hover {
-                background: #334155;
-                border-color: #475569;
-                color: #f1f5f9;
-            }
-            
-            .card-body .text-muted {
-                background: #1e293b;
-                color: #94a3b8;
-                border-color: #334155;
-            }
-        }
 
 
 
@@ -509,7 +462,7 @@
         .form-control:focus { outline: none; border-color: var(--md-primary); box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--md-primary); }
 
         /* Tables */
-        .table-container { border: 1px solid var(--md-outline-variant); border-radius: var(--radius-card); overflow: hidden; background: white; position: relative; overflow-x: auto;}
+        .table-container { border: 1px solid var(--md-outline-variant); overflow: hidden; background: white; position: relative; overflow-x: auto;}
         .table { width: 100%; border-collapse: collapse; }
         .table th { padding: 16px 24px; background: #fff; color: var(--md-text-sub); font-weight: 500; border-bottom: 1px solid var(--md-outline-variant); text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
         .table td { padding: 18px 24px; border-bottom: 1px solid var(--md-outline-variant); color: var(--md-text-main); vertical-align: middle; }
@@ -627,27 +580,6 @@
             }
             50% {
                 opacity: 0.7;
-            }
-        }
-
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            .stat-card {
-                background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-                border-color: rgba(255, 255, 255, 0.05);
-            }
-            
-            .stat-number {
-                color: #f1f5f9;
-            }
-            
-            .stat-label {
-                color: #94a3b8;
-            }
-            
-            .stat-trend {
-                background: rgba(255, 255, 255, 0.05);
-                color: #cbd5e1;
             }
         }
 
@@ -865,25 +797,6 @@
     animation-delay: calc(var(--card-index) * 0.1s);
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    .attendance-card {
-        background: linear-gradient(135deg, #1e293b, #0f172a);
-    }
-    
-    .stat-content .stat-number {
-        color: #f1f5f9;
-    }
-    
-    .stat-content .stat-label {
-        color: #94a3b8;
-    }
-    
-    .stat-trend {
-        background: rgba(255, 255, 255, 0.05);
-        color: #cbd5e1;
-    }
-}
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
