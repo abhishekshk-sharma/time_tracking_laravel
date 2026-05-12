@@ -497,7 +497,7 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: var(--radius-xl);
-            padding: 1.5rem;
+            /* padding: 1.5rem; */
             box-shadow: var(--shadow-md);
             transition: var(--transition);
             position: relative;

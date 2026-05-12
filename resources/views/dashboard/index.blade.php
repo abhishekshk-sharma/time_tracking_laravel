@@ -461,7 +461,7 @@
             }
 
             .tracking-controls {
-                padding: 1.5rem;
+                padding: 1.9rem;
             }
 
             .control-group {

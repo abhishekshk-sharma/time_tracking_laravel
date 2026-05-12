@@ -208,6 +208,14 @@
             min-width: 560px;
         }
     }
+    @media (max-width: 360px){
+        .table-container{
+            transform: scale(.41);
+            width: 190vw;
+            position: relative;
+            left: -56%;
+        }
+    }
 </style>
 @endpush
 
