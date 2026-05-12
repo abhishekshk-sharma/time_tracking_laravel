@@ -6,7 +6,7 @@
 <div class="page-header">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h1 class="page-title">Employees</h1>
+            <h1 class="page-title">Employees faizan</h1>
             <p class="page-subtitle">Manage your workforce</p>
         </div>
         <a href="{{ route('admin.employees.create') }}" class="btn btn-primary">

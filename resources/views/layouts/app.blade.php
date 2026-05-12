@@ -66,6 +66,23 @@
             --radius-lg: 0.75rem;
             --radius-xl: 1rem;
             --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #0f172a;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-900: #0f172a;
+            --radius: 0.75rem;
+            --radius-xl: 1rem;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --transition: all 0.2s ease;
         }
         
         * {
@@ -518,7 +535,7 @@
         }
         
         .card-title i {
-            margin-right: 0.75rem;
+            margin-right: 0rem;
             color: var(--primary);
         }
         
