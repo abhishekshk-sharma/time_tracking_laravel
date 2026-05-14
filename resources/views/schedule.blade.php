@@ -51,23 +51,26 @@
             margin: 0 1rem;
         }
     }
-    
+    .calendar-container-parent {
+        position: relative;
+        overflow: hidden;
+    }
+
     .calendar-container {
         margin: 1.5rem 0;
+        overflow: scroll;
+    }
+
+    .calendar-container::-webkit-scrollbar {
+        display: none;
     }
     
     .calendar-days {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 1px;
-        background: var(--gray-200);
-        border-radius: var(--radius);
-        overflow: scroll;
-        margin-top: 1px;
+        display: contents;
     }
 
-    .calendar-days::-webkit-scrollbar {
-        display: none;
+    .calendar-days-inner {
+        display: contents;
     }
     
     .calendar-day {
@@ -122,6 +125,8 @@
         gap: 1.5rem;
         flex-wrap: wrap;
         margin-top: 1.5rem;
+        padding: 1rem;
+        justify-content: center;
         padding-top: 1.5rem;
         border-top: 1px solid var(--gray-200);
     }
@@ -167,6 +172,20 @@
         font-weight: 500;
         opacity: 0.8;
     }
+
+    .card-title i{
+        margin-right: 2rem;
+    }
+    .btn i{
+        margin: 0;
+    }
+
+    @media (max-width: 380px) {
+        .calendar-container {
+            transform-origin: top left;
+            margin: 0;
+        }
+    }
 </style>
 @endpush
 
@@ -187,20 +206,23 @@
             </button>
         </div>
     </div>
-    
-    <div class="calendar-container">
-        <div class="calendar-grid" id="calendar">
-            <div class="calendar-header">Mon</div>
-            <div class="calendar-header">Tue</div>
-            <div class="calendar-header">Wed</div>
-            <div class="calendar-header">Thu</div>
-            <div class="calendar-header">Fri</div>
-            <div class="calendar-header">Sat</div>
-            <div class="calendar-header">Sun</div>
+
+    <div class="calendar-container-parent">
+
+        <div class="calendar-container">
+            <div class="calendar-grid" id="calendar">
+                <div class="calendar-header">Mon</div>
+                <div class="calendar-header">Tue</div>
+                <div class="calendar-header">Wed</div>
+                <div class="calendar-header">Thu</div>
+                <div class="calendar-header">Fri</div>
+                <div class="calendar-header">Sat</div>
+                <div class="calendar-header">Sun</div>
+                <div id="calendarDays" class="calendar-days-inner"></div>
+            </div>
         </div>
-        
-        <div id="calendarDays" class="calendar-days"></div>
     </div>
+    
     
     <div class="calendar-legend">
         <div class="legend-item">
@@ -268,6 +290,7 @@ $(document).ready(function() {
             },
             success: function(data) {
                 renderCalendar(data);
+                fixCalendarHeight();
             },
             error: function(xhr, status, error) {
                 console.error('Error loading calendar:', error);
@@ -340,6 +363,31 @@ $(document).ready(function() {
         $('#calendarDays').html(html);
     }
     
+    function fixCalendarHeight() {
+        var vw = window.innerWidth;
+        if (vw <= 380) {
+            var scale = Math.max(0.3, vw / 420);
+            var $cc = $('.calendar-container');
+            $cc.css({
+                'transform': 'scale(' + scale + ')',
+                'width': (100 / scale) + '%',
+                'margin-left': 0
+            });
+            // collapse the blank void: natural height * (scale - 1) is negative
+            var naturalH = $cc[0].scrollHeight;
+            $cc.css('margin-bottom', (naturalH * scale - naturalH) + 'px');
+        } else {
+            $('.calendar-container').css({
+                'transform': '',
+                'width': '',
+                'margin-left': '',
+                'margin-bottom': ''
+            });
+        }
+    }
+
+    $(window).on('resize', fixCalendarHeight);
+
     window.showDayDetails = function(date) {
         $.ajax({
             url: '{{ route("api.schedule.details") }}',

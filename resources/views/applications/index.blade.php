@@ -173,6 +173,7 @@
         border-radius: 12px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         border: 1px solid #e5e7eb;
+        margin-bottom: 80px;
     }
     
     .tableflow::-webkit-scrollbar {
@@ -508,7 +509,8 @@
         }
         
         .today-summary {
-            grid-template-columns: 1fr;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
         }
     }
@@ -516,8 +518,27 @@
 @endpush
 
 @section('page-content')
-
-<div class="application-cards">
+                <div class="today-summary">
+                    <div class="summary-card">
+                        <h3>Total Casual Leave</h3>
+                        <p id="rcl" value="" style='display: inline;'></p> &nbsp;/&nbsp;
+                        <p id="tcl" value="" style='display: inline;'></p> 
+                    </div>
+                    <div class="summary-card">
+                        <h3>Total Sick Leave </h3>
+                        <p id="rsl" value="" style='display: inline;'></p> &nbsp;/&nbsp;
+                        <p id="tsl" value="" style='display: inline;'></p>
+                    </div>
+                    {{-- <div class="summary-card">
+                        <h3>Remaining Sick Leave</h3>
+                    </div> --}}
+                    
+                    {{-- <div class="summary-card">
+                        <h3>Remaining Casual Leave</h3>
+                    </div> --}}
+                       
+                </div>
+                <div class="application-cards">
                     <div class="app-card" data-type="casual_leave">
                         <div class="app-icon leave-icon">
                             <i class="fas fa-umbrella-beach"></i>
@@ -659,25 +680,7 @@
                     </form>
                 </div>
 
-                <div class="today-summary">
-                        <div class="summary-card">
-                            <h3>Total Sick Leave </h3>
-                            <p id="rsl" value="" style='display: inline;'></p> &nbsp;/&nbsp;
-                            <p id="tsl" value="" style='display: inline;'></p>
-                        </div>
-                        {{-- <div class="summary-card">
-                            <h3>Remaining Sick Leave</h3>
-                        </div> --}}
-                        <div class="summary-card">
-                            <h3>Total Casual Leave</h3>
-                            <p id="rcl" value="" style='display: inline;'></p> &nbsp;/&nbsp;
-                            <p id="tcl" value="" style='display: inline;'></p> 
-                        </div>
-                        {{-- <div class="summary-card">
-                            <h3>Remaining Casual Leave</h3>
-                        </div> --}}
-                       
-                    </div>
+                
                 
                 <div class="applications-history">
                     <h3 class="section-title">
@@ -1364,6 +1367,31 @@
                 // Reload all applications
                 checkrequests();
             });
+
+
+            function fixTableHeight() {
+                var vw = window.innerWidth;
+                if (vw <= 480) {
+                    var naturalWidth = 560;
+                    var scale = Math.max(0.3, vw / naturalWidth);
+                    var $tc = $('.table-container');
+                    $tc.css({
+                        'transform': 'scale(' + scale + ')',
+                        'width': (100 / scale) + '%'
+                    });
+                    var naturalH = $tc[0].scrollHeight;
+                    $tc.css('margin-bottom', (naturalH * scale - naturalH) + 'px');
+                } else {
+                    $('.table-container').css({
+                        'transform': '',
+                        'width': '',
+                        'margin-bottom': ''
+                    });
+                }
+            }
+
+            $(window).on('resize', fixTableHeight);
+            fixTableHeight();
 
         });
     </script>

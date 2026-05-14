@@ -212,7 +212,7 @@ class TimeController extends Controller
         $output = '<h3 class="section-title">
                     <i class="fas fa-history"></i>
                     Today\'s Activity
-                </h3>';
+                   </h3>';
 
         foreach ($entries as $row) {
             $icon = "bullseye";
@@ -355,16 +355,21 @@ class TimeController extends Controller
                 $requiredHalfMinutes = ((int)$halfParts[0] * 60) + (int)$halfParts[1];
                 $comHalf = $totalTimeMinutes >= $requiredHalfMinutes;
             }
+            
 
+            // =========== this code is we are not using for now ===========
             // Format status
+
             $statusColors = [
                 'Present' => 'green',
                 'Late' => 'orange', 
                 'Absent' => 'red'
             ];
-            $statusLabel = "<label style='color:{$statusColors[$status]};'>{$status}</label>";
+            // $statusLabel = "<label style='color:{$statusColors[$status]};'>{$status}</label>";
 
             $firstPunchFormatted = $firstEntry ? Carbon::parse($firstEntry->entry_time)->format('H:i A') : 'N/A';
+            
+            // =========== this code is we are not using for now =========== 
 
             return response()->json([
                 'worktime' => $workTime,
@@ -375,7 +380,7 @@ class TimeController extends Controller
                 'total_hours' => $totalWorkedTime,
                 'network' => $netWorkTime,
                 'totalLunchByemp' => $totalLunchTime ?: '0M',
-                'late' => $statusLabel,
+                'late' => $status,
                 'isHalf' => $isHalfDay,
                 'com_half' => $comHalf
             ]);

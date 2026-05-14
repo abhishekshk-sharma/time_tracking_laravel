@@ -53,7 +53,7 @@ class RequestController extends Controller
             }
             return response($output);
         } else {
-            return response("<p style='color:red;'>Not Found!</p>");
+            return response("<tr><td colspan='6' style='text-align: center; color: #6c757d;'>No applications found.</td></tr>");
         }
     }
 

@@ -126,7 +126,7 @@
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: var(--radius-xl);
+            border-radius: 5px;
             padding: 1.5rem;
             box-shadow: var(--shadow-xl);
             height: 100vh;
@@ -329,8 +329,8 @@
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: var(--radius-xl);
-            padding: 2rem;
+            border-radius: 5px;
+            padding: 1rem;
             box-shadow: var(--shadow-xl);
             min-height: calc(100vh - 3rem);
             transition: var(--transition);
@@ -496,8 +496,8 @@
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: var(--radius-xl);
-            /* padding: 1.5rem; */
+            border-radius: 5px;
+            padding: 0.2rem;
             box-shadow: var(--shadow-md);
             transition: var(--transition);
             position: relative;
@@ -524,6 +524,7 @@
             margin-bottom: 1.5rem;
             padding-bottom: 1rem;
             border-bottom: 1px solid var(--gray-200);
+            border-radius: var(--radius-xl);
         }
         
         .card-title {
@@ -535,7 +536,7 @@
         }
         
         .card-title i {
-            margin-right: 0rem;
+            margin-right: 2rem;
             color: var(--primary);
         }
         
@@ -555,6 +556,7 @@
             text-align: center;
             transition: var(--transition);
             position: relative;
+
             overflow: hidden;
         }
         
@@ -698,7 +700,7 @@
             gap: 1px;
             background: var(--gray-200);
             border-radius: var(--radius);
-            overflow: hidden;
+            /* overflow: hidden; */
         }
         
         .calendar-header {

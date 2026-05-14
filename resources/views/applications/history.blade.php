@@ -8,7 +8,7 @@
     .card {
         border: 1px solid rgba(100, 116, 139, 0.16);
         box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
-        border-radius: 22px;
+        border-radius: 5px;
         overflow: hidden;
     }
 
@@ -89,7 +89,7 @@
         overflow-x: auto;
         background: #ffffff;
         border-top: 1px solid rgba(148, 163, 184, 0.2);
-        
+        padding: 1rem;
     }
 
     .table {
@@ -208,12 +208,10 @@
             min-width: 560px;
         }
     }
-    @media (max-width: 360px){
-        .table-container{
-            transform: scale(.41);
-            width: 190vw;
-            position: relative;
-            left: -56%;
+
+    @media (max-width: 480px) {
+        .table-container {
+            transform-origin: top left;
         }
     }
 </style>
@@ -321,10 +319,12 @@ $(document).ready(function() {
                 } else {
                     $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: #666;">No data found for current month</td></tr>');
                 }
+                fixTableHeight();
             },
             error: function(xhr, status, error) {
                 console.error('Error loading current month data:', error);
                 $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: red;">Error loading data: ' + (xhr.responseText || error) + '</td></tr>');
+                fixTableHeight();
             }
         });
     }
@@ -346,10 +346,12 @@ $(document).ready(function() {
                 } else {
                     $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: #666;">No data found for last month</td></tr>');
                 }
+                fixTableHeight();
             },
             error: function(xhr, status, error) {
                 console.error('Error loading last month data:', error);
                 $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: red;">Error loading data: ' + (xhr.responseText || error) + '</td></tr>');
+                fixTableHeight();
             }
         });
     }
@@ -373,13 +375,39 @@ $(document).ready(function() {
                 } else {
                     $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: #666;">No data found for selected date range</td></tr>');
                 }
+                fixTableHeight();
             },
             error: function(xhr, status, error) {
                 console.error('Error loading custom range data:', error);
                 $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: red;">Error loading data: ' + (xhr.responseText || error) + '</td></tr>');
+                fixTableHeight();
             }
         });
     }
+
+    function fixTableHeight() {
+        var vw = window.innerWidth;
+        if (vw <= 480) {
+            var naturalWidth = 560;
+            var scale = Math.max(0.3, vw / naturalWidth);
+            var $tc = $('.table-container');
+            $tc.css({
+                'transform': 'scale(' + scale + ')',
+                'width': (100 / scale) + '%'
+            });
+            var naturalH = $tc[0].scrollHeight;
+            $tc.css('margin-bottom', (naturalH * scale - naturalH) + 'px');
+        } else {
+            $('.table-container').css({
+                'transform': '',
+                'width': '',
+                'margin-bottom': ''
+            });
+        }
+    }
+
+    $(window).on('resize', fixTableHeight);
+    fixTableHeight();
 });
 </script>
 @endpush
