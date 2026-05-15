@@ -6,12 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use NotificationChannels\WebPush\HasPushSubscriptions;
 use Laravel\Sanctum\HasApiTokens;
 
 class Employee extends Authenticatable
 {
-    use HasFactory, Notifiable, HasPushSubscriptions, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens;
 
     protected $fillable = [
         'emp_id',

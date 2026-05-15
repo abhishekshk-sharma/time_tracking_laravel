@@ -7,10 +7,9 @@ use App\Models\Employee;
 use App\Models\TimeEntry;
 use App\Models\LunchAlarm;
 use App\Models\SystemSetting;
-use App\Notifications\LunchReminderNotification;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class LunchAlarmController extends Controller
 {
@@ -100,13 +99,7 @@ class LunchAlarmController extends Controller
                         ->whereDate('created_at', $now->toDateString())
                         ->exists();
 
-                    if (!$alreadySent && $employee->pushSubscriptions()->exists()) {
-                        // Send web push notification
-                        $employee->notify(new LunchReminderNotification(
-                            $lunchEndTime,
-                            $employee->full_name ?? $employee->username ?? $employee->emp_id
-                        ));
-                        
+                    if (!$alreadySent) {
                         // Record the notification
                         LunchAlarm::create([
                             'employee_id' => $employee->emp_id,
@@ -120,7 +113,7 @@ class LunchAlarmController extends Controller
                         $notificationsSent++;
                         $employeesNotified[] = $employee->name;
                         
-                        Log::info("Lunch reminder sent to employee: {$employee->name} (ID: {$employee->emp_id})");
+                        Log::info("Lunch reminder recorded for employee: {$employee->name} (ID: {$employee->emp_id})");
                     }
                 }
             }

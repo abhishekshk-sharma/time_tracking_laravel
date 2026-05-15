@@ -309,11 +309,11 @@
 
     /* Preserve all original dashboard styles */
     .page-header {
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
     }
 
     .page-title {
-        font-size: 1.875rem;
+        font-size: 1.5rem;
         font-weight: 800;
         background: linear-gradient(135deg, #1e293b, #4f46e5);
         background-clip: text;
@@ -332,8 +332,8 @@
         background: linear-gradient(135deg, #eff6ff, #dbeafe);
         border-left: 4px solid #3b82f6;
         border-radius: var(--radius);
-        padding: 1rem 1.25rem;
-        margin-bottom: 1.75rem;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.75rem;
         display: flex;
         align-items: center;
         gap: 0.75rem;
@@ -346,8 +346,8 @@
         background: white;
         border-radius: var(--radius-xl);
         box-shadow: var(--shadow-md);
-        padding: 1.5rem;
-        margin-bottom: 2rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -357,7 +357,7 @@
     }
 
     .clock-display {
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: 700;
         font-family: 'Inter', monospace;
         letter-spacing: 1px;
@@ -403,15 +403,15 @@
 
     .summary-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
     }
 
     .summary-card {
         background: white;
         border-radius: var(--radius-xl);
-        padding: 1.5rem;
+        padding: 0.75rem 1rem;
         box-shadow: var(--shadow-sm);
         border: 1px solid var(--gray-200);
         transition: var(--transition);
@@ -426,21 +426,22 @@
     }
 
     .status-card {
-        margin-top: -1.5rem;
-        margin-bottom: 2rem;
+        grid-column: span 2;
+        margin-top: 0;
+        margin-bottom: 0.75rem;
     }
 
     .card-icon {
-        width: 48px;
-        height: 48px;
+        width: 32px;
+        height: 32px;
         background: linear-gradient(135deg, #eef2ff, #e0e7ff);
-        border-radius: 1rem;
+        border-radius: 0.5rem;
         display: flex;
         align-items: center;
         justify-content: center;
         color: var(--primary);
-        font-size: 1.6rem;
-        margin-bottom: 1rem;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
     }
 
     .summary-card h3 {
@@ -453,10 +454,10 @@
     }
 
     .summary-card p {
-        font-size: 1.8rem;
+        font-size: 1.2rem;
         font-weight: 800;
         color: var(--gray-900);
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.2rem;
     }
 
     .card-trend {
@@ -471,13 +472,13 @@
         background: white;
         border-radius: var(--radius-xl);
         box-shadow: var(--shadow-md);
-        margin-bottom: 2rem;
+        margin-bottom: 0.75rem;
         border: 1px solid var(--gray-200);
         overflow: hidden;
     }
 
     .card-header {
-        padding: 1.5rem 1rem;
+        padding: 0.75rem 1rem;
         border-bottom: 1px solid var(--gray-200);
         display: flex;
         justify-content: space-between;
@@ -487,7 +488,7 @@
     }
 
     .card-title {
-        font-size: 1.375rem;
+        font-size: 1.125rem;
         font-weight: 700;
         display: flex;
         align-items: center;
@@ -497,19 +498,19 @@
 
     .card-title i {
         color: var(--primary);
-        font-size: 1.25rem;
+        font-size: 1.1rem;
     }
 
     .tracking-controls {
         position: relative;
-        padding: 2rem;
+        padding: 0.75rem 1rem;
     }
 
     .control-group {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin-bottom: 1.5rem;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
     }
 
     .control-group:last-child {
@@ -519,19 +520,19 @@
     .tracking-btn {
         border: none;
         border-radius: var(--radius);
-        padding: 1.5rem 1.25rem;
+        padding: 0.75rem 0.5rem;
         font-weight: 600;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.25rem;
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         color: white;
         position: relative;
         overflow: hidden;
         box-shadow: var(--shadow-sm);
-        min-height: 120px;
+        min-height: 80px;
         justify-content: center;
     }
 
@@ -560,18 +561,18 @@
     }
 
     .btn-content i {
-        font-size: 2rem;
+        font-size: 1.4rem;
         opacity: 0.9;
     }
 
     .btn-content span {
-        font-size: 1rem;
+        font-size: 0.85rem;
         font-weight: 600;
         text-align: center;
     }
 
     .btn-description {
-        font-size: 0.75rem;
+        font-size: 0.65rem;
         opacity: 0.8;
         font-weight: 400;
         text-align: center;
@@ -833,7 +834,7 @@
 
 @section('page-content')
 <!-- User Profile Card -->
-<div class="profile-card">
+<!-- <div class="profile-card">
     <div class="profile-avatar-large">
         <i class="fas fa-user-circle"></i>
     </div>
@@ -843,7 +844,7 @@
         <span class="status-dot" style="background:#10b981; width:8px;height:8px;border-radius:50%;display:inline-block;"></span>
         <span>Active</span>
     </div>
-</div>
+</div> -->
 
 <!-- Dashboard Content -->
 <div id="dashboardContent">
@@ -916,30 +917,18 @@
                     <p id="lunchTime">Loading...</p>
                     <div class="card-trend"><i class="fas fa-minus"></i><span>Break duration</span></div>
                 </div>
+                <div class="summary-card status-card">
+                    <div class="card-icon"><i class="fas fa-user-check"></i></div>
+                    <h3>Status</h3>
+                    <p id="status">Loading...</p>
+                    <div class="card-trend">
+                        <i class="fas fa-circle"></i>
+                        <span id="statusIndicator">Checking status...</span>
+                    </div>
+                </div>
             </div>
 
-            <div class="activity-card">
-                <div class="card-header">
-                    <h2 class="card-title"><i class="fas fa-activity"></i>Today's Activity</h2>
-                </div>
-                <div class="activity-content">
-                    <div class="summary-card status-card">
-                        <div class="card-icon"><i class="fas fa-user-check"></i></div>
-                        <h3>Status</h3>
-                        <p id="status">Loading...</p>
-                        <div class="card-trend">
-                            <i class="fas fa-circle"></i>
-                            <span id="statusIndicator">Checking status...</span>
-                        </div>
-                    </div>
-                    <div class="activity-timeline" id="activityTimeline">
-                        <div class="activity-placeholder">
-                            <i class="fas fa-clock"></i>
-                            <p>No activity recorded yet today</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
         </div>
 </div>
 
@@ -1050,6 +1039,7 @@ $(document).ready(function() {
         $.ajax({
             url: '{{ route("api.time.worked") }}',
             method: 'POST',
+            global: false,
             data: { click: 'timeWorked', _token: '{{ csrf_token() }}' },
             success: function(data) {
                 if (data) {
@@ -1085,25 +1075,13 @@ $(document).ready(function() {
         });
     }
     
-    function loadActivityData() {
-        $.ajax({
-            url: '{{ route("api.time.details") }}',
-            method: 'POST',
-            data: { click: 'getDetails', _token: '{{ csrf_token() }}' },
-            success: function(data) {
-                if (data && data.trim() !== '') {
-                    $('#activityTimeline').html(data);
-                } else {
-                    $('#activityTimeline').html(`<div class="activity-placeholder"><i class="fas fa-clock"></i><p>No activity recorded yet today</p></div>`);
-                }
-            }
-        });
-    }
+
     
     function updateButtonStates() {
         $.ajax({
             url: '{{ route("api.time.check-punch") }}',
             method: 'POST',
+            global: false,
             data: { click: 'checkfirstpunchin', _token: '{{ csrf_token() }}' },
             success: function(response) {
                 $('.tracking-btn').prop('disabled', false).removeClass('disabled');
@@ -1153,16 +1131,19 @@ $(document).ready(function() {
             data: { _token: '{{ csrf_token() }}' },
             timeout: 30000,
             success: function(response) {
+                hideLoadingModal();
                 if (response.require_image) {
                     // Simplified image capture handling
-                    Swal.fire({ title: 'Image Capture', text: 'Please capture your image', icon: 'info' });
+                    setTimeout(() => {
+                        Swal.fire({ title: 'Image Capture', text: 'Please capture your image', icon: 'info' });
+                    }, 100);
                 } else if (response.success) {
-                    Swal.fire({ icon: 'success', title: 'Success!', text: response.message, timer: 2000, showConfirmButton: false });
                     loadTimeData();
-                    loadActivityData();
                     updateButtonStates();
+                    setTimeout(() => {
+                        Swal.fire({ icon: 'success', title: 'Success!', text: response.message, timer: 2000, showConfirmButton: false });
+                    }, 100);
                 }
-                hideLoadingModal();
             },
             error: function(xhr) {
                 hideLoadingModal();
@@ -1184,7 +1165,6 @@ $(document).ready(function() {
     
     // ========== INITIALIZATION ==========
     loadTimeData();
-    loadActivityData();
     updateButtonStates();
     
     setInterval(function() { loadTimeData(); updateButtonStates(); }, 300000);

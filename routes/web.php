@@ -21,23 +21,12 @@ use App\Http\Controllers\PayslipController;
 
 
 
-use App\Http\Controllers\WebPushController;
 use App\Http\Controllers\LunchAlarmController;
 
 // Protected routes (require authentication)
 Route::middleware(['auth'])->group(function () {
     
-    // Test push notifications
-    Route::get('/test-push', function() {
-        return view('test-push');
-    });
     
-    // Web Push Subscription endpoints
-    Route::post('/push-subscription', [WebPushController::class, 'store'])
-        ->name('push.subscription.store');
-    
-    Route::delete('/push-subscription', [WebPushController::class, 'destroy'])
-        ->name('push.subscription.destroy');
     
     // Lunch alarm check (for AJAX polling)
     Route::get('/lunch-alarm/check/{empId}', [App\Http\Controllers\Api\LunchNotificationController::class, 'checkLunchAlarm'])
@@ -163,6 +152,7 @@ Route::middleware(['auth', 'employee'])->group(function () {
     // History and Schedule Routes
     Route::get('/history', [ApplicationController::class, 'history'])->name('history');
     Route::get('/schedule', [DashboardController::class, 'schedule'])->name('schedule');
+    Route::get('/todays-activity', [DashboardController::class, 'todaysActivity'])->name('todays-activity');
     
     // Time Management Routes
     Route::post('/time-management', [TimeManagementController::class, 'handleTimeAction'])->name('time.management');

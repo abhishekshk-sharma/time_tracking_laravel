@@ -192,10 +192,20 @@
 @section('page-content')
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">
-            <i class="fas fa-calendar-alt"></i>
-            {{ Auth::user()->full_name }} - Monthly Schedule
-        </h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+            <h2 class="card-title">
+                <i class="fas fa-calendar-alt"></i>
+                {{ Auth::user()->full_name }} - Monthly Schedule
+            </h2>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <a href="{{ route('applications.history') }}" class="btn btn-primary">
+                    <i class="fas fa-history" style="margin-right: 5px;"></i> Attendance History
+                </a>
+                <a href="{{ route('todays-activity') }}" class="btn btn-secondary">
+                    <i class="fas fa-activity" style="margin-right: 5px;"></i> Today's Activity
+                </a>
+            </div>
+        </div>
         <div class="calendar-controls">
             <button id="prevMonth" class="btn btn-secondary btn-icon">
                 <i class="fas fa-chevron-left"></i>

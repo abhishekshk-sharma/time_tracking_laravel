@@ -354,6 +354,11 @@ class DashboardController extends Controller
         return view('applications.history');
     }
     
+    public function todaysActivity()
+    {
+        return view('todays-activity');
+    }
+    
     public function schedule()
     {
         $currentMonth = request('month', Carbon::now()->month);
