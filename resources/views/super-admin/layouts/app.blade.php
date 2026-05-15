@@ -233,7 +233,7 @@
         .card:hover { transform: translateY(-2px); box-shadow: var(--elevation-hover); border-color: transparent; }
         .card-header { background: linear-gradient(135deg, #eeedfa, #f8eaf0);; padding: 24px 28px 8px; border-bottom: none; display: flex; justify-content: space-between; align-items: center; }
         .card-title { font-size: 20px; color: var(--md-text-main); font-weight: 400; }
-        .card-body { padding: 28px; } */
+         { padding: 28px; } */
 
 
 

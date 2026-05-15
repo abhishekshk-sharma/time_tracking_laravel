@@ -119,7 +119,7 @@
         }
         
         .day-status {
-            font-size: 0.55rem;
+            font-size: 0.55rem !important;
             letter-spacing: -0.3px;
             text-align: center;
             line-height: 1;

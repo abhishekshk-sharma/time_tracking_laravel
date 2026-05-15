@@ -24,7 +24,7 @@
 
     /* Status Bar Filler (Android style) */
     .status-bar {
-        height: var(--status-bar-height);
+        /* height: var(--status-bar-height); */
         background: transparent;
     }
 
@@ -267,7 +267,7 @@
         @endif
         <a href="{{ route('applications.index') }}" class="nav-item-bottom {{ request()->routeIs('applications.index') ? 'active' : '' }}">
             <i class="fas fa-file-alt"></i>
-            <span>Applications</span>
+            <span>Forms</span>
         </a>
         <a href="{{ route('schedule') }}" class="nav-item-bottom {{ request()->routeIs('schedule') ? 'active' : '' }}">
             <i class="fas fa-calendar-alt"></i>

@@ -713,8 +713,8 @@ const animationStyles = `
 
 .table-responsive {
     overflow-x: auto;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-md);
+    transform: scale(0.9);
+    
 }
 
 .table-filter {
@@ -724,6 +724,8 @@ const animationStyles = `
     border: 1px solid var(--gray-300);
     border-radius: var(--radius-md);
     font-size: 0.875rem;
+    position: sticky;
+    left: 0;
 }
 
 .sortable {

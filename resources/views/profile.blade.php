@@ -84,7 +84,7 @@
         backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.3);
         border-radius: var(--radius-xl);
-        padding: 2rem;
+        padding: 0.8rem;
         box-shadow: var(--shadow-xl);
         animation: fadeIn 0.6s ease-out;
     }

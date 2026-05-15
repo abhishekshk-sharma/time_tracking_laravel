@@ -39,12 +39,13 @@
         --gray-900: #0f172a;
         --radius: 0.75rem;
         --radius-xl: 1rem;
+        --radius-5px: 5px;
         --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
         --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         --transition: all 0.2s ease;
         --bottom-nav-height: 70px;
-        --status-bar-height: 28px;
+ 
         
         /* Activity timeline additional variables */
         --bg-card: #ffffff;
@@ -81,12 +82,6 @@
         position: relative;
         box-shadow: 0 0 20px rgba(0,0,0,0.05);
         padding-bottom: var(--bottom-nav-height);
-    }
-
-    /* Status Bar Filler (Android style) */
-    .status-bar {
-        height: var(--status-bar-height);
-        background: transparent;
     }
 
     /* App Bar / Header - Material Top Bar */
@@ -310,7 +305,7 @@
 
     .clock-widget {
         background: white;
-        border-radius: var(--radius-xl);
+        border-radius: var(--radius-5px);
         box-shadow: var(--shadow-md);
         padding: 1rem;
         margin-bottom: 0.75rem;
@@ -370,14 +365,14 @@
     .summary-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
+        gap: 0.5rem;
         margin-bottom: 0.75rem;
     }
 
     .summary-card {
         background: white;
-        border-radius: var(--radius-xl);
-        padding: 0.75rem 1rem;
+        border-radius: var(--radius-5px);
+        padding: 0.6rem 0.8rem;
         box-shadow: var(--shadow-sm);
         border: 1px solid var(--gray-200);
         transition: var(--transition);
@@ -396,6 +391,7 @@
         margin-top: 0;
         margin-bottom: 0.75rem;
     }
+
 
     .card-icon {
         width: 32px;
@@ -436,7 +432,7 @@
 
     .time-tracking-card {
         background: white;
-        border-radius: var(--radius-xl);
+        border-radius: var(--radius-5px);
         box-shadow: var(--shadow-md);
         margin-bottom: 0.75rem;
         border: 1px solid var(--gray-200);
@@ -568,14 +564,20 @@
     }
 
     /* Status text styles */
-    .status-text-present { -webkit-text-fill-color: green !important; font-size: 32px !important; }
+    .status-text-present { -webkit-text-fill-color: #1fff009e !important; font-size: 32px !important; }
     .status-text-late { -webkit-text-fill-color: orange !important; font-size: 32px !important; }
     .status-text-absent { -webkit-text-fill-color: red !important; font-size: 32px !important; }
+    .status-text-icon-present { -webkit-text-fill-color: #1fff009e !important; }
+    .status-text-icon-late { -webkit-text-fill-color: orange !important;}
+    .status-text-icon-absent { -webkit-text-fill-color: red !important;}
+    .status-Indicator-present { -webkit-text-fill-color: #198754 !important; font-size: 12px !important; font-weight: 800;}
+    .status-Indicator-late { -webkit-text-fill-color: #6e3a02 !important; font-size: 12px !important; font-weight: 800;}
+    .status-Indicator-absent { -webkit-text-fill-color: #ba2218 !important; font-size: 12px !important; font-weight: 800;}
 
     /* Activity timeline */
     .activity-card {
         background: white;
-        border-radius: var(--radius-xl);
+        border-radius: var(--radius-5px);
         border: 1px solid var(--gray-200);
         overflow: hidden;
     }
@@ -770,30 +772,36 @@
 
     /* Responsive Adjustments */
     @media (max-width: 640px) {
-        .time-format-toggle { position: relative; left: 80%; }
-        .clock-widget { padding: 1rem; flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+        .time-format-toggle {         
+            position: relative;
+            display: flex;
+            align-self: end; 
+        }
+        .clock-widget { padding: 1rem; flex-direction: column; align-items: flex-start; gap: 0.1rem; }
         .clock-display { font-size: 2rem; }
         .clock-date { font-size: 0.8rem; }
         .time-tracking-card .card-header { padding: 1.25rem 1.5rem; }
         .time-tracking-card .card-title { font-size: 1.125rem; }
-        .tracking-controls { padding: 1.9rem; }
+        
         .control-group { gap: 1rem; }
         .tracking-btn { padding: 1.25rem 1rem; min-height: 100px; }
         .btn-content i { font-size: 1.5rem; }
         .btn-content span { font-size: 0.9rem; }
         .btn-description { font-size: 0.7rem; }
-        .summary-grid { grid-template-columns: 1fr 1fr !important; gap: 1rem; }
-        .summary-card { padding: 1rem; }
-        .card-icon { width: 40px; height: 40px; font-size: 1.25rem; }
-        .summary-card p { font-size: 1.25rem; }
+        .summary-grid { grid-template-columns: 1fr 1fr !important; gap: 0.5rem; }
+        .summary-card { padding: 0.6rem 0.75rem; }
+        .card-icon { width: 32px; height: 32px; font-size: 1rem; margin-bottom: 0.4rem; }
+        .summary-card h3 { font-size: 0.8rem; margin-bottom: 0.3rem; }
+        .summary-card p { font-size: 1.1rem; }
+        .card-trend { font-size: 0.65rem; }
         .activity-content { padding: 1rem; }
     }
 
     @media (max-width: 480px) {
-        .control-group { width: 100%; grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
-        .tracking-btn { min-height: 80px; padding: 0.8rem; }
-        .time-tracking-card .card-header { padding: 1.2rem 0.9rem; }
-        .summary-grid { gap: 0.75rem; }
+        .control-group { width: 100%; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+        .tracking-btn { min-height: 80px; padding: 0.6rem; }
+        .time-tracking-card .card-header { padding: 1rem 0.75rem; }
+        .summary-grid { gap: 0.4rem; }
     }
 </style>
 @endpush
@@ -884,11 +892,11 @@
                     <div class="card-trend"><i class="fas fa-minus"></i><span>Break duration</span></div>
                 </div>
                 <div class="summary-card status-card">
-                    <div class="card-icon"><i class="fas fa-user-check"></i></div>
+                    <div class="card-icon" id="statusCardIcon"><i class="fas fa-user-check"></i></div>
                     <h3>Status</h3>
                     <p id="status">Loading...</p>
                     <div class="card-trend">
-                        <i class="fas fa-circle"></i>
+                        <i class="fas fa-circle" id="statusIndicatorIcon"></i>
                         <span id="statusIndicator">Checking status...</span>
                     </div>
                 </div>
@@ -1018,18 +1026,38 @@ $(document).ready(function() {
                     let statusText = data.late || 'Not Punched In';
                     $('#status').text(statusText);
                     
+
+                    var statusClass = 'status-text-' + statusText.toLowerCase();
+                    var indicatorClass = 'status-Indicator-' + statusText.toLowerCase();
+                    var iconClass = 'status-text-icon-' + statusText.toLowerCase();
+
+                    // Remove old status-text-* classes only
+                    $('#status').removeClass(function(index, className) {
+                        return (className.match(/(^|\s)status-text-\S+/g) || []).join(' ');
+                    }).addClass(statusClass);
+
+                    $('#statusIndicator').removeClass(function(index, className) {
+                        return (className.match(/(^|\s)status-Indicator-\S+/g) || []).join(' ');
+                    }).addClass(indicatorClass);
+
+                    $('#statusIndicatorIcon').removeClass(function(index, className) {
+                        return (className.match(/(^|\s)status-Indicator-\S+/g) || []).join(' ');
+                    }).addClass(indicatorClass);
+
+                    $('#statusCardIcon').removeClass(function(index, className) {
+                        return (className.match(/(^|\s)status-text-icon-\S+/g) || []).join(' ');
+                    }).addClass(iconClass);
+
+
+
                     if (statusText.toLowerCase().includes('present')) {
                         $('#statusIndicator').text('Working');
-                        $('.status-card .card-icon').css('color', '#22c55e');
                     } else if (statusText.toLowerCase().includes('late')) {
                         $('#statusIndicator').text('Late arrival');
-                        $('.status-card .card-icon').css('color', '#f59e0b');
                     } else if (statusText.toLowerCase().includes('absent')) {
                         $('#statusIndicator').text('Not present');
-                        $('.status-card .card-icon').css('color', '#ef4444');
                     } else {
                         $('#statusIndicator').text('Ready to start');
-                        $('.status-card .card-icon').css('color', '#6b7280');
                     }
                 }
             },
@@ -1065,6 +1093,8 @@ $(document).ready(function() {
                 } else if (response == '6') {
                     $('.tracking-btn').prop('disabled', true).addClass('disabled');
                 }
+
+                loadTimeData();
             }
         });
     }

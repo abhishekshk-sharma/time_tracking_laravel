@@ -94,3 +94,4 @@ class FilterController extends Controller
         return response('error');
     }
 }
+

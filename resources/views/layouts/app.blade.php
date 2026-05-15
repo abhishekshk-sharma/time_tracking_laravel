@@ -21,6 +21,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="{{ asset('css/modern-styles.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
+    <script src="{{ asset('js/push-notifications.js') }}" defer></script>
     @auth
     <script>
         window.employeeId = '{{ Auth::user()->emp_id }}';
@@ -387,7 +389,7 @@
             justify-content: center;
             padding: 0.75rem 1.5rem;
             border: none;
-            border-radius: var(--radius-md);
+            border-radius: 5px;
             font-weight: 600;
             font-size: 0.875rem;
             text-decoration: none;
@@ -658,7 +660,7 @@
             width: 100%;
             padding: 0.875rem 1rem;
             border: 1px solid var(--gray-300);
-            border-radius: var(--radius-md);
+            border-radius: 5px;
             font-size: 0.875rem;
             font-family: inherit;
             transition: var(--transition);

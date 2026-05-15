@@ -1,7 +1,7 @@
 @extends('layouts.user')
 
 @section('page-title', 'Employee Applications')
-@section('page-subtitle', 'Submit and manage your leave requests, complaints, and other applications.')
+@section('page-subtitle', '')
 
 @push('page-styles')
 <style>
@@ -11,6 +11,7 @@
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
         gap: 20px;
         margin-bottom: 30px;
+        /* margin-top: 3rem; */
     }
     
     @media (max-width: 768px) {
@@ -48,6 +49,12 @@
             display: none;
         }
     }
+
+    @media (max-width: 370px) {
+        .application-cards{
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        }
+    }
     #typeFilter, #statusFilter{
         padding: 8px;
     }
@@ -62,7 +69,7 @@
     }
     .app-card {
         background: white;
-        border-radius: 10px;
+        border-radius: 5px;
         padding: 20px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         text-align: center;
@@ -125,7 +132,7 @@
     .application-form {
         display: none;
         background: #fffbfbff;
-        border-radius: 10px;
+        border-radius: 5px;
         padding: 25px;
         margin-top: 20px;
     }
@@ -176,7 +183,7 @@
     }
     
     .applications-history {
-        margin-top: 40px;
+        margin-top: 5rem;
     }
     
     .history-filters {
@@ -190,10 +197,10 @@
         width: 100%;
         overflow-x: auto;
         background: white;
-        border-radius: 12px;
+        border-radius: 5px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         border: 1px solid #e5e7eb;
-        margin-bottom: 80px;
+        
     }
     
     .tableflow::-webkit-scrollbar {
@@ -202,12 +209,12 @@
     
     .tableflow::-webkit-scrollbar-track {
         background: #f1f5f9;
-        border-radius: 4px;
+        border-radius: 5px;
     }
     
     .tableflow::-webkit-scrollbar-thumb {
         background: #cbd5e1;
-        border-radius: 4px;
+        border-radius: 5px;
     }
     
     .tableflow::-webkit-scrollbar-thumb:hover {
@@ -218,7 +225,7 @@
         width: 100%;
         border-collapse: collapse;
         background: white;
-        border-radius: 12px;
+        border-radius: 5px;
         overflow: hidden;
     }
     
@@ -289,7 +296,7 @@
     
     .tableflow .btn {
         padding: 0.5rem 1rem;
-        border-radius: 8px;
+        border-radius: 5px;
         font-size: 0.75rem;
         font-weight: 500;
         text-decoration: none;
@@ -314,7 +321,7 @@
     
     .notification {
         padding: 15px;
-        border-radius: 8px;
+        border-radius: 5px;
         margin-bottom: 20px;
         display: none;
     }
@@ -347,7 +354,7 @@
     
     .modal-content {
         background: white;
-        border-radius: 10px;
+        border-radius: 5px;
         width: 600px;
         max-width: 90%;
         max-height: 90vh;
@@ -409,7 +416,7 @@
     
     .image-modal-content {
         background: white;
-        border-radius: 10px;
+        border-radius: 5px;
         padding: 20px;
         max-width: 90%;
         max-height: 90%;
@@ -423,7 +430,7 @@
         max-width: 100%;
         max-height: 70vh;
         object-fit: contain;
-        border-radius: 8px;
+        border-radius: 5px;
         margin-bottom: 15px;
     }
     
@@ -448,7 +455,7 @@
     
     .file-upload-area {
         border: 2px dashed #cbd5e1;
-        border-radius: 8px;
+        border-radius: 5px;
         padding: 20px;
         text-align: center;
         cursor: pointer;
@@ -511,14 +518,15 @@
             grid-column: span 2;
             display: flex;
             justify-content: flex-end;
-            margin-top: 10px;
+            margin-top: -10px;
+            
         }
         
         .tableflow {
             width: 100%;
             margin-left: 0;
             overflow-x: auto;
-            border-radius: 8px;
+            border-radius: 5px;
         }
         
         .tableflow table {
@@ -559,7 +567,7 @@
         
         .today-summary .summary-card {
             background: white;
-            border-radius: 10px;
+            border-radius: 5px;
             padding: 10px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             border: 1px solid #e5e7eb;
