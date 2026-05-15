@@ -33,22 +33,120 @@
     }
     
     @media (max-width: 768px) {
+        /* Make header buttons stack neatly */
+        .card-header > div:first-child {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px;
+        }
+        
+        .card-header > div:first-child > div {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            margin-top: 5px !important;
+        }
+        
+        .card-header .btn {
+            font-size: 0.75rem;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .card-title {
+            text-align: center;
+            font-size: 1.15rem;
+            margin-bottom: 5px;
+        }
+        
+        .card-title i {
+            margin-right: 8px !important;
+        }
+        
+        /* Clean calendar controls */
         .calendar-controls {
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             justify-content: space-between;
+            background: var(--gray-50);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 15px;
         }
         
         .btn-icon {
-            width: 44px;
-            height: 44px;
-            min-width: 44px;
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
             flex-shrink: 0;
         }
         
         .current-month-display {
             min-width: auto;
             flex: 1;
-            margin: 0 1rem;
+            margin: 0;
+            font-size: 1rem;
+        }
+        
+        /* Native compact calendar grid override */
+        .calendar-container {
+            margin: 10px 0;
+            overflow: visible;
+        }
+        
+        .calendar-header {
+            padding: 6px 2px !important;
+            font-size: 0.65rem !important;
+            text-transform: uppercase;
+        }
+        
+        .calendar-day {
+            min-height: 48px !important;
+            padding: 2px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+        }
+        
+        .day-number {
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+        }
+        
+        .day-status {
+            font-size: 0.55rem;
+            letter-spacing: -0.3px;
+            text-align: center;
+            line-height: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            max-width: 100%;
+            text-overflow: ellipsis;
+        }
+        
+        /* Compact Legend */
+        .calendar-legend {
+            gap: 6px;
+            padding: 10px 0 0 0;
+            margin-top: 10px;
+        }
+        
+        .legend-item {
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
         }
     }
     .calendar-container-parent {
@@ -180,12 +278,6 @@
         margin: 0;
     }
 
-    @media (max-width: 380px) {
-        .calendar-container {
-            transform-origin: top left;
-            margin: 0;
-        }
-    }
 </style>
 @endpush
 
@@ -300,7 +392,6 @@ $(document).ready(function() {
             },
             success: function(data) {
                 renderCalendar(data);
-                fixCalendarHeight();
             },
             error: function(xhr, status, error) {
                 console.error('Error loading calendar:', error);
@@ -373,30 +464,7 @@ $(document).ready(function() {
         $('#calendarDays').html(html);
     }
     
-    function fixCalendarHeight() {
-        var vw = window.innerWidth;
-        if (vw <= 380) {
-            var scale = Math.max(0.3, vw / 420);
-            var $cc = $('.calendar-container');
-            $cc.css({
-                'transform': 'scale(' + scale + ')',
-                'width': (100 / scale) + '%',
-                'margin-left': 0
-            });
-            // collapse the blank void: natural height * (scale - 1) is negative
-            var naturalH = $cc[0].scrollHeight;
-            $cc.css('margin-bottom', (naturalH * scale - naturalH) + 'px');
-        } else {
-            $('.calendar-container').css({
-                'transform': '',
-                'width': '',
-                'margin-left': '',
-                'margin-bottom': ''
-            });
-        }
-    }
-
-    $(window).on('resize', fixCalendarHeight);
+    // Calendar is styled natively via CSS grid, no JS scaling needed.
 
     window.showDayDetails = function(date) {
         $.ajax({

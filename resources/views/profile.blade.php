@@ -159,84 +159,113 @@
         margin: 0.25rem 0;
     }
     
-    .profile-details {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
+    .profile-info .emp-id {
+        background: var(--primary-light);
+        color: var(--primary-dark);
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        margin-top: 0.5rem;
     }
     
-    .detail-card {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.6));
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: var(--radius-xl);
-        padding: 1.5rem;
-        position: relative;
-        transition: var(--transition);
+    .settings-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .settings-group-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--gray-500);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.75rem;
+        padding-left: 0.5rem;
+    }
+    
+    .settings-list {
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         overflow: hidden;
+        border: 1px solid var(--gray-200);
     }
     
-    .detail-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--primary), var(--secondary));
+    .settings-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-100);
+        transition: var(--transition);
+        position: relative;
     }
     
-    .detail-card.editable {
+    .settings-item:last-child {
+        border-bottom: none;
+    }
+    
+    .settings-item.editable {
         cursor: pointer;
     }
     
-    .detail-card.editable:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-xl);
-        border-color: rgba(79, 70, 229, 0.3);
+    .settings-item.editable:hover {
+        background: var(--gray-50);
     }
     
-    .detail-card h3 {
+    .settings-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius);
+        background: var(--primary-light);
+        color: var(--primary);
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-        color: var(--primary);
+        justify-content: center;
+        font-size: 1.1rem;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+    
+    .settings-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .settings-label {
+        font-size: 0.85rem;
+        color: var(--gray-500);
+        margin-bottom: 0.25rem;
+    }
+    
+    .settings-value {
         font-size: 1rem;
         font-weight: 600;
-    }
-    
-    .detail-card h3 i {
-        font-size: 1.25rem;
-    }
-    
-    .detail-card p {
         color: var(--gray-900);
-        font-size: 1.125rem;
-        font-weight: 600;
-        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
-    .edit-icon {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
+    .settings-action {
         color: var(--gray-400);
         font-size: 1rem;
-        transition: var(--transition);
+        margin-left: 1rem;
+        transition: transform 0.2s;
     }
     
-    .detail-card.editable:hover .edit-icon {
+    .settings-item.editable:hover .settings-action {
         color: var(--primary);
-        transform: scale(1.1);
+        transform: translateX(3px);
     }
     
-    .action-buttons {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        justify-content: center;
+    .logout-item .settings-icon {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+    }
+    
+    .text-danger {
+        color: var(--danger) !important;
     }
     
     .modal {
@@ -377,14 +406,15 @@
             width: 100px;
             height: 100px;
             font-size: 2.5rem;
+            margin: 0 auto;
         }
         
-        .profile-details {
-            grid-template-columns: 1fr;
+        .settings-value {
+            font-size: 0.95rem;
         }
         
-        .action-buttons {
-            flex-direction: column;
+        .settings-item {
+            padding: 0.875rem 1rem;
         }
         
         .modal-content {
@@ -404,52 +434,93 @@
                 <div class="profile-info">
                     <h2>{{ Auth::user()->full_name }}</h2>
                     <p>{{ Auth::user()->position }}</p>
-                    <p>{{ Auth::user()->emp_id }}</p>
-                    <p><strong>Branch:</strong> {{$ff}}</p>
+                    <div class="emp-id">{{ Auth::user()->emp_id }}</div>
                 </div>
             </div>
 
-            <div class="profile-details">
-                <div class="detail-card">
-                    <h3><i class="fas fa-envelope"></i> Email Address</h3>
-                    <p>{{ Auth::user()->email }}</p>
-                </div>
-                <div class="detail-card">
-                    <h3><i class="fas fa-phone"></i> Phone Number</h3>
-                    <p>{{ Auth::user()->phone }}</p>
-                </div>
-                <div class="detail-card">
-                    <h3><i class="fas fa-building"></i> Department</h3>
-                    <p>{{$department}}</p>
-                </div>
-                <div class="detail-card">
-                    <h3><i class="fas fa-calendar-alt"></i> Join Date</h3>
-                    <p>{{ Auth::user()->hire_date ? Auth::user()->hire_date->format('M d, Y') : 'N/A' }}</p>
-                </div>
-                <div class="detail-card editable" onclick="openDobModal()">
-                    <h3><i class="fas fa-birthday-cake"></i> Date of Birth</h3>
-                    <p id="dobDisplay">{{ Auth::user()->dob ? Auth::user()->dob->format('M d, Y') : 'Not Set' }}</p>
-                    <span class="edit-icon"><i class="fas fa-edit"></i></span>
-                </div>
-                <div class="detail-card">
-                    <h3><i class="fas fa-briefcase"></i> Position</h3>
-                    <p>{{ Auth::user()->position }}</p>
+            <div class="settings-group">
+                <h3 class="settings-group-title">Personal Information</h3>
+                <div class="settings-list">
+                    <div class="settings-item editable" onclick="openEmailModal()">
+                        <div class="settings-icon"><i class="fas fa-envelope"></i></div>
+                        <div class="settings-content">
+                            <div class="settings-label">Email Address</div>
+                            <div class="settings-value">{{ Auth::user()->email }}</div>
+                        </div>
+                        <div class="settings-action"><i class="fas fa-chevron-right"></i></div>
+                    </div>
+                    
+                    <div class="settings-item">
+                        <div class="settings-icon"><i class="fas fa-phone"></i></div>
+                        <div class="settings-content">
+                            <div class="settings-label">Phone Number</div>
+                            <div class="settings-value">{{ Auth::user()->phone }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-item editable" onclick="openDobModal()">
+                        <div class="settings-icon"><i class="fas fa-birthday-cake"></i></div>
+                        <div class="settings-content">
+                            <div class="settings-label">Date of Birth</div>
+                            <div class="settings-value" id="dobDisplay">{{ Auth::user()->dob ? Auth::user()->dob->format('M d, Y') : 'Not Set' }}</div>
+                        </div>
+                        <div class="settings-action"><i class="fas fa-chevron-right"></i></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="action-buttons">
-                <button class="btn btn-primary" onclick="openEmailModal()">
-                    <i class="fas fa-envelope"></i> Change Email
-                </button>
-                <button class="btn btn-success" onclick="openPasswordModal()">
-                    <i class="fas fa-lock"></i> Change Password
-                </button>
-                <button class="btn btn-info" onclick="openDobModal()">
-                    <i class="fas fa-birthday-cake"></i> Update Date of Birth
-                </button>
-                <button class="btn btn-warning" id="enable-notifications">
-                    <i class="fas fa-bell"></i> Enable Notifications
-                </button>
+            <div class="settings-group">
+                <h3 class="settings-group-title">Company Information</h3>
+                <div class="settings-list">
+                    <div class="settings-item">
+                        <div class="settings-icon"><i class="fas fa-building"></i></div>
+                        <div class="settings-content">
+                            <div class="settings-label">Department</div>
+                            <div class="settings-value">{{$department}}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-item">
+                        <div class="settings-icon"><i class="fas fa-map-marker-alt"></i></div>
+                        <div class="settings-content">
+                            <div class="settings-label">Branch</div>
+                            <div class="settings-value">{{$ff}}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-item">
+                        <div class="settings-icon"><i class="fas fa-calendar-alt"></i></div>
+                        <div class="settings-content">
+                            <div class="settings-label">Join Date</div>
+                            <div class="settings-value">{{ Auth::user()->hire_date ? Auth::user()->hire_date->format('M d, Y') : 'N/A' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-group">
+                <h3 class="settings-group-title">Account Security</h3>
+                <div class="settings-list">
+                    <div class="settings-item editable" onclick="openPasswordModal()">
+                        <div class="settings-icon"><i class="fas fa-lock"></i></div>
+                        <div class="settings-content">
+                            <div class="settings-label">Change Password</div>
+                            <div class="settings-value">Update your security credentials</div>
+                        </div>
+                        <div class="settings-action"><i class="fas fa-chevron-right"></i></div>
+                    </div>
+                    
+                    <form action="{{ route('logout') }}" method="POST" id="logoutForm" style="display: none;">
+                        @csrf
+                    </form>
+                    <div class="settings-item logout-item editable" onclick="document.getElementById('logoutForm').submit();">
+                        <div class="settings-icon text-danger"><i class="fas fa-sign-out-alt"></i></div>
+                        <div class="settings-content">
+                            <div class="settings-label text-danger">Logout</div>
+                            <div class="settings-value">Sign out of your account</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

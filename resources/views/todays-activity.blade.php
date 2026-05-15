@@ -154,8 +154,33 @@
         margin: 0;
     }
 
-    @media (max-width: 640px) {
-        .activity-content { padding: 1rem; }
+    @media (max-width: 768px) {
+        .card-header {
+            padding: 1rem;
+        }
+        
+        .card-title {
+            font-size: 1.15rem;
+            flex-wrap: wrap;
+        }
+        
+        .activity-content {
+            padding: 1rem 0.5rem;
+        }
+        
+        .activity-item {
+            padding: 0.6rem 0.8rem;
+            gap: 0.75rem;
+        }
+        
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+        }
+        
+        .activity-icon i {
+            font-size: 1rem;
+        }
     }
 </style>
 @endpush
@@ -163,7 +188,13 @@
 @section('page-content')
 <div class="activity-card">
     <div class="card-header">
-        <h2 class="card-title"><i class="fas fa-activity"></i>Today's Activity</h2>
+        <h2 class="card-title">
+            <a href="{{ route('schedule') }}" class="btn btn-secondary" style="padding: 5px 12px; margin-right: 10px; border-radius: 8px;">
+                <i class="fas fa-arrow-left" style="margin:0; color: inherit;"></i>
+            </a>
+            <i class="fas fa-chart-line" style="margin-right: 8px;"></i>
+            Today's Activity
+        </h2>
     </div>
     <div class="activity-content">
         <div class="activity-timeline" id="activityTimeline">

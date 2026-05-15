@@ -163,34 +163,32 @@
         color: var(--slate-500);
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 768px) {
         .card-header {
             flex-direction: column;
             align-items: stretch;
+            padding: 1rem;
+        }
+        
+        .header-title .card-title {
+            font-size: 1.15rem;
+            flex-wrap: wrap;
+        }
+        
+        .header-title .card-subtitle {
+            font-size: 0.8rem;
         }
 
         .card-actions {
-            justify-content: center;
-        }
-
-        .table {
-            min-width: 700px;
-        }
-    }
-
-    @media (max-width: 640px) {
-        .card-header {
-            padding: 1.25rem 1rem;
-        }
-
-        .header-title .card-title {
-            font-size: 1.15rem;
+            justify-content: stretch;
+            width: 100%;
         }
 
         .filter-group,
         #customDateInputs {
             flex-direction: column;
             align-items: stretch;
+            width: 100%;
         }
 
         .form-input {
@@ -198,20 +196,27 @@
             min-width: unset;
         }
 
-        .table {
-            min-width: 620px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .table {
-            min-width: 560px;
-        }
-    }
-
-    @media (max-width: 480px) {
         .table-container {
-            transform-origin: top left;
+            padding: 0.5rem;
+            /* Native horizontal scroll for table on mobile */
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .table {
+            min-width: 550px;
+        }
+        
+        .table th,
+        .table td {
+            padding: 0.6rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        .table .badge {
+            padding: 0.3rem 0.5rem;
+            font-size: 0.65rem;
+            min-width: auto;
         }
     }
 </style>
@@ -222,6 +227,9 @@
     <div class="card-header">
         <div class="header-title">
             <h2 class="card-title">
+                <a href="{{ route('schedule') }}" class="btn btn-secondary" style="padding: 5px 12px; margin-right: 10px; border-radius: 8px;">
+                    <i class="fas fa-arrow-left" style="margin:0; color: inherit;"></i>
+                </a>
                 <i class="fas fa-clock"></i>
                 {{ Auth::user()->full_name }} - Time Records
             </h2>
@@ -319,12 +327,10 @@ $(document).ready(function() {
                 } else {
                     $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: #666;">No data found for current month</td></tr>');
                 }
-                fixTableHeight();
             },
             error: function(xhr, status, error) {
                 console.error('Error loading current month data:', error);
                 $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: red;">Error loading data: ' + (xhr.responseText || error) + '</td></tr>');
-                fixTableHeight();
             }
         });
     }
@@ -346,12 +352,10 @@ $(document).ready(function() {
                 } else {
                     $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: #666;">No data found for last month</td></tr>');
                 }
-                fixTableHeight();
             },
             error: function(xhr, status, error) {
                 console.error('Error loading last month data:', error);
                 $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: red;">Error loading data: ' + (xhr.responseText || error) + '</td></tr>');
-                fixTableHeight();
             }
         });
     }
@@ -375,39 +379,15 @@ $(document).ready(function() {
                 } else {
                     $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: #666;">No data found for selected date range</td></tr>');
                 }
-                fixTableHeight();
             },
             error: function(xhr, status, error) {
                 console.error('Error loading custom range data:', error);
                 $('#historyTableBody').html('<tr><td colspan="7" style="padding: 20px; text-align: center; color: red;">Error loading data: ' + (xhr.responseText || error) + '</td></tr>');
-                fixTableHeight();
             }
         });
     }
 
-    function fixTableHeight() {
-        var vw = window.innerWidth;
-        if (vw <= 480) {
-            var naturalWidth = 560;
-            var scale = Math.max(0.3, vw / naturalWidth);
-            var $tc = $('.table-container');
-            $tc.css({
-                'transform': 'scale(' + scale + ')',
-                'width': (100 / scale) + '%'
-            });
-            var naturalH = $tc[0].scrollHeight;
-            $tc.css('margin-bottom', (naturalH * scale - naturalH) + 'px');
-        } else {
-            $('.table-container').css({
-                'transform': '',
-                'width': '',
-                'margin-bottom': ''
-            });
-        }
-    }
-
-    $(window).on('resize', fixTableHeight);
-    fixTableHeight();
+    // Native CSS horizontal scrolling is used on mobile instead of JS scaling
 });
 </script>
 @endpush
