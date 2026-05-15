@@ -15,31 +15,38 @@
     
     @media (max-width: 768px) {
         .application-cards {
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            max-height: 75vh;
-            overflow-y: auto;
-            padding-right: 10px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-height: none;
+            overflow-y: visible;
+            padding-right: 0;
         }
         
-        .application-cards::-webkit-scrollbar {
-            /* width: 6px; */
+        .app-card {
+            padding: 12px 8px;
+        }
+        
+        .app-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        
+        .app-card h3 {
+            font-size: 0.75rem;
+            line-height: 1.2;
+            margin-bottom: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .app-card p {
             display: none;
         }
-        
-        /* .application-cards::-webkit-scrollbar-track {
-            background: #04305b;
-            border-radius: 3px;
-        }
-        
-        .application-cards::-webkit-scrollbar-thumb {
-            background: #82043f;
-            border-radius: 3px;
-        }
-        
-        .application-cards::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        } */
     }
     #typeFilter, #statusFilter{
         padding: 8px;
@@ -127,7 +134,20 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
+    }
+    
+    .form-scroll-container {
+        max-height: 50vh;
+        overflow-y: auto;
+        padding-right: 5px;
+        /* Hide scrollbar for Firefox */
+        scrollbar-width: none;
+    }
+    
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .form-scroll-container::-webkit-scrollbar {
+        display: none;
     }
     
     .back-button {
@@ -334,7 +354,10 @@
         overflow-y: auto;
         padding: 25px;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        position: relative;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
     }
     .modal-content::-webkit-scrollbar{
         display:none;
@@ -468,7 +491,27 @@
         }
         
         .history-filters {
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .history-filters .filter-group {
+            width: 100%;
+        }
+        
+        .history-filters .filter-group select,
+        .history-filters .filter-group input {
+            width: 100%;
+            padding: 8px;
+            font-size: 0.85rem;
+        }
+        
+        .history-filters .filter-group:last-child {
+            grid-column: span 2;
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
         }
         
         .tableflow {
@@ -498,8 +541,7 @@
         }
         
         .modal-content {
-            left: 5%;
-            width: 90%;
+            width: 95%;
         }
         
         #imageModal {
@@ -512,6 +554,29 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
+            margin-bottom: 1rem;
+        }
+        
+        .today-summary .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+        
+        .today-summary .summary-card h3 {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        
+        .today-summary .summary-card p {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--dark);
         }
     }
 </style>
@@ -611,9 +676,11 @@
                     
                     <form id="requestForm" enctype="multipart/form-data">
                         @csrf
-                        <div class="form-row">
+                        
+                        <div class="form-scroll-container">
+                            <div class="form-row">
                             <div class="form-group">
-                                <label for="requestType">Request Type</label>
+                                <label for="requestType">Request Type<sup style="color:red;">*</sup></label>
                                 <select id="requestType" name="requestType" required>
                                     <option value="">Select Request Type</option>
                                     <option value="casual_leave">Casual Leave</option>
@@ -638,28 +705,28 @@
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="startDate">Start Date</label>
+                                <label for="startDate">Start Date<sup style="color:red;">*</sup></label>
                                 <input type="date" id="startDate" name="startDate" required>
                             </div>
                             
                             <div class="form-group" id="endDateGroup">
-                                <label for="endDate" id="request_end_day">End Date</label>
+                                <label for="endDate" id="request_end_day">End Date<sup style="color:red;">*</sup></label>
                                 <input type="date" id="endDate" name="endDate" required>
                             </div>
                         </div>
                         
                         <div class="form-group">
-                            <label for="subject">Subject</label>
+                            <label for="subject">Subject<sup style="color:red;">*</sup></label>
                             <input type="text" id="subject" name="subject" placeholder="Enter subject of your request" required>
                         </div>
                         
                         <div class="form-group">
-                            <label for="description">Description</label>
+                            <label for="description">Description<sup style="color:red;">*</sup></label>
                             <textarea id="description" name="description" placeholder="Please provide details of your request" required></textarea>
                         </div>
                         
                         <div class="form-group" id="attachmentGroup">
-                            <label for="attachment">Attachment (if any) <p style="color:red;">Limit is 2MB (JPEG & PNG)</p></label>
+                            <label for="attachment">Attachment (if any) <p style="color:red; font-size:10px;">Limit is 2MB (JPEG & PNG)</p></label>
                             <div class="file-upload-area" onclick="document.getElementById('attachment').click()">
                                 <input type="file" id="attachment" name="image" accept="image/jpeg,image/jpg,image/png,image/gif" style="display: none;">
                                 <div class="file-upload-content">
@@ -667,6 +734,8 @@
                                     <span>Choose file or drag here</span>
                                 </div>
                             </div>
+                        </div>
+                        
                         </div>
                         
                         <div class="form-actions">
@@ -1052,13 +1121,13 @@
                     if(type == "punch_Out_regularization"){
                         document.getElementById('endDate').setAttribute('type', 'datetime-local'); 
                         
-                        document.getElementById('request_end_day').innerHTML = "Punch Out Time";
+                        document.getElementById('request_end_day').innerHTML = "Punch Out Time<sup style='color:red;'>*</sup>";
 
                     }
                     else{
 
                         document.getElementById('endDate').setAttribute('type', 'date'); 
-                        document.getElementById('request_end_day').innerHTML = "End Date";
+                        document.getElementById('request_end_day').innerHTML = "End Date<sup style='color:red;'>*</sup>";
                     }
                 } else {
                     endDateGroup.style.display = 'none';

@@ -629,18 +629,24 @@ const animationStyles = `
 }
 
 .form-progress {
+    position: sticky;
+    top: 65px;
+    z-index: 50;
     margin-bottom: 1rem;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
     border-radius: var(--radius-md);
     border: 1px solid var(--gray-200);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
 }
 
 .progress-bar {
     width: 100%;
-    height: 8px;
+    height: 10px;
     background: var(--gray-200);
-    border-radius: 4px;
+    border-radius: 5px;
     overflow: hidden;
     margin-bottom: 0.5rem;
 }
@@ -654,8 +660,11 @@ const animationStyles = `
 
 .progress-text {
     font-size: 0.875rem;
-    color: var(--gray-600);
-    font-weight: 500;
+    color: var(--primary);
+    font-weight: 700;
+    display: block;
+    text-align: right;
+    margin-top: 4px;
 }
 
 .form-progress.complete .progress-fill {
