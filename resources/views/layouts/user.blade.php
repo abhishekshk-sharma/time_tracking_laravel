@@ -129,7 +129,7 @@
         gap: 4px;
         flex: 1;
         padding: 8px 0;
-        border-radius: 32px;
+        border-radius: 1px;
         transition: 0.2s;
         cursor: pointer;
         background: transparent;

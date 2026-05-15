@@ -203,41 +203,7 @@
         z-index: 1000;
     }
 
-    .nav-item-bottom {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        flex: 1;
-        padding: 8px 0;
-        border-radius: 32px;
-        transition: 0.2s;
-        cursor: pointer;
-        background: transparent;
-        border: none;
-        font-family: inherit;
-        color: #94a3b8;
-    }
-
-    .nav-item-bottom i {
-        font-size: 1.4rem;
-    }
-
-    .nav-item-bottom span {
-        font-size: 0.7rem;
-        font-weight: 500;
-    }
-
-    .nav-item-bottom.active {
-        color: var(--primary);
-        background: rgba(79,70,229,0.08);
-    }
-
-    .nav-item-bottom:active {
-        transform: scale(0.96);
-    }
-
+ 
     /* Notification Dropdown */
     .notification-dropdown-mobile {
         position: fixed;
