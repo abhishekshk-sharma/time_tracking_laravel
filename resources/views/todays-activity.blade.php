@@ -42,7 +42,7 @@
         color: var(--primary);
         background: var(--accent-soft);
         padding: 0.35rem;
-        border-radius: 0.5rem;
+        border-radius: 5px;
     }
 
     /* Activity List */
@@ -61,12 +61,12 @@
         gap: 1rem;
         padding: 0.8rem 1rem;
         background: var(--bg-card);
-        border-radius: var(--radius);
+        border-radius: 5px;
         border: 1px solid var(--border-light);
         transition: var(--transition);
         position: relative;
         cursor: default;
-        box-shadow: 3px 3px 5px -2px rgb(157, 172, 197);
+        box-shadow: 1px 1px 8px -2px rgb(157 172 197 / 55%);
         margin-bottom: 0.5rem;
     }
 
@@ -80,7 +80,7 @@
     .activity-icon {
         width: 42px;
         height: 42px;
-        border-radius: var(--radius);
+        border-radius: 5px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -132,7 +132,7 @@
     /* Card */
     .activity-card {
         background: white;
-        border-radius: 1rem;
+        border-radius: 5px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         margin-bottom: 1.5rem;
         overflow: hidden;
@@ -189,7 +189,7 @@
 <div class="activity-card">
     <div class="card-header">
         <h2 class="card-title">
-            <a href="{{ route('schedule') }}" class="btn btn-secondary" style="padding: 5px 12px; margin-right: 10px; border-radius: 8px;">
+            <a href="{{ route('schedule') }}" class="btn btn-secondary" style="padding: 5px 12px; margin-right: 10px; border-radius: 5px;">
                 <i class="fas fa-arrow-left" style="margin:0; color: inherit;"></i>
             </a>
             <i class="fas fa-chart-line" style="margin-right: 8px;"></i>

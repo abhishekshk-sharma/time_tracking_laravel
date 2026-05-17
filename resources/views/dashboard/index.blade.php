@@ -205,7 +205,7 @@
         top: 60px;
         right: 16px;
         background: white;
-        border-radius: 20px;
+        border-radius: 5px;
         width: 320px;
         max-height: 450px;
         overflow-y: auto;
@@ -481,7 +481,7 @@
 
     .tracking-btn {
         border: none;
-        border-radius: var(--radius);
+        border-radius: var(--radius-5px);
         padding: 0.75rem 0.5rem;
         font-weight: 600;
         display: flex;

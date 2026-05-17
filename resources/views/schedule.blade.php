@@ -149,6 +149,33 @@
             height: 12px;
         }
     }
+
+    @media (max-width: 350px) {
+        .schedule-action-btns {
+            flex-direction: column !important;
+            gap: 6px !important;
+        }
+
+        .schedule-action-btns .btn {
+            font-size: 0.72rem;
+            padding: 7px 8px;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+        }
+
+        .schedule-action-btns .btn i {
+            display: none !important;
+        }
+
+        .current-month-display {
+            font-size: 0.85rem;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+        }
+    }
     .calendar-container-parent {
         position: relative;
         overflow: hidden;
@@ -289,12 +316,12 @@
                 <i class="fas fa-calendar-alt"></i>
                 {{ Auth::user()->full_name }} - Monthly Schedule
             </h2>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <div class="schedule-action-btns" style="display: flex; gap: 10px; margin-top: 10px;">
                 <a href="{{ route('applications.history') }}" class="btn btn-primary">
                     <i class="fas fa-history" style="margin-right: 5px;"></i> Attendance History
                 </a>
                 <a href="{{ route('todays-activity') }}" class="btn btn-secondary">
-                    <i class="fas fa-activity" style="margin-right: 5px;"></i> Today's Activity
+                    <i class="fas fa-chart-line" style="margin-right: 5px;"></i> Today's Activity
                 </a>
             </div>
         </div>

@@ -599,7 +599,7 @@
             width: 100%;
             border-collapse: collapse;
             background: white;
-            border-radius: var(--radius-lg);
+            border-radius: 5px;
             overflow: scroll;
             box-shadow: var(--shadow);
             border: 1px solid var(--gray-200);

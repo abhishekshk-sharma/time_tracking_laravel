@@ -23,7 +23,7 @@ class TimeTrackingApp {
         // Enhanced AJAX setup
         $(document).ajaxStart(() => this.showGlobalLoading());
         $(document).ajaxStop(() => this.hideGlobalLoading());
-        
+
         // Error handling
         $(document).ajaxError((event, xhr, settings, error) => {
             this.handleAjaxError(xhr, error);
@@ -31,10 +31,10 @@ class TimeTrackingApp {
 
         // Smooth scrolling for anchor links
         this.setupSmoothScrolling();
-        
+
         // Keyboard shortcuts
         this.setupKeyboardShortcuts();
-        
+
         // Auto-save functionality
         this.setupAutoSave();
     }
@@ -81,25 +81,25 @@ class TimeTrackingApp {
 
     showNotification(message, type = 'success', duration = 4000) {
         const notification = this.createNotification(message, type);
-        
+
         // Manage queue
         if (this.notificationQueue.length >= this.maxNotifications) {
             this.removeNotification(this.notificationQueue[0]);
         }
-        
+
         this.notificationQueue.push(notification);
         document.body.appendChild(notification);
-        
+
         // Animate in
         requestAnimationFrame(() => {
             notification.classList.add('show');
         });
-        
+
         // Auto remove
         setTimeout(() => {
             this.removeNotification(notification);
         }, duration);
-        
+
         // Click to dismiss
         notification.addEventListener('click', () => {
             this.removeNotification(notification);
@@ -109,7 +109,7 @@ class TimeTrackingApp {
     createNotification(message, type) {
         const notification = document.createElement('div');
         notification.className = `notification-toast-enhanced ${type}`;
-        
+
         const icon = this.getNotificationIcon(type);
         notification.innerHTML = `
             <i class="fas fa-${icon}"></i>
@@ -118,7 +118,7 @@ class TimeTrackingApp {
                 <i class="fas fa-times"></i>
             </button>
         `;
-        
+
         return notification;
     }
 
@@ -174,7 +174,7 @@ class TimeTrackingApp {
         if (!$btn.data('original-html')) {
             $btn.data('original-html', $btn.html());
         }
-        
+
         $btn.prop('disabled', true)
             .html(`<i class="fas fa-spinner fa-spin"></i> ${text}`)
             .addClass('loading');
@@ -183,7 +183,7 @@ class TimeTrackingApp {
     hideButtonLoading(button) {
         const $btn = $(button);
         const originalHtml = $btn.data('original-html');
-        
+
         if (originalHtml) {
             $btn.prop('disabled', false)
                 .html(originalHtml)
@@ -195,13 +195,13 @@ class TimeTrackingApp {
     setupFormEnhancements() {
         // Real-time validation
         this.setupRealTimeValidation();
-        
+
         // Auto-resize textareas
         this.setupAutoResizeTextareas();
-        
+
         // Enhanced file uploads
         this.setupFileUploadEnhancements();
-        
+
         // Form progress indicators
         this.setupFormProgress();
     }
@@ -216,7 +216,7 @@ class TimeTrackingApp {
     validateField(field) {
         const isValid = field.checkValidity();
         const errorElement = field.parentElement.querySelector('.field-error');
-        
+
         if (!isValid) {
             field.classList.add('error');
             if (!errorElement) {
@@ -228,7 +228,7 @@ class TimeTrackingApp {
         } else {
             this.clearFieldError(field);
         }
-        
+
         return isValid;
     }
 
@@ -253,35 +253,35 @@ class TimeTrackingApp {
         document.querySelectorAll('input[type="file"]').forEach(input => {
             const wrapper = document.createElement('div');
             wrapper.className = 'file-upload-wrapper';
-            
+
             const label = document.createElement('label');
             label.className = 'file-upload-label';
             label.innerHTML = `
                 <i class="fas fa-cloud-upload-alt"></i>
                 <span>Choose file or drag here</span>
             `;
-            
+
             input.parentElement.insertBefore(wrapper, input);
             wrapper.appendChild(label);
             wrapper.appendChild(input);
-            
+
             // Drag and drop
             wrapper.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 wrapper.classList.add('dragover');
             });
-            
+
             wrapper.addEventListener('dragleave', () => {
                 wrapper.classList.remove('dragover');
             });
-            
+
             wrapper.addEventListener('drop', (e) => {
                 e.preventDefault();
                 wrapper.classList.remove('dragover');
                 input.files = e.dataTransfer.files;
                 this.updateFileLabel(input, label);
             });
-            
+
             input.addEventListener('change', () => {
                 this.updateFileLabel(input, label);
             });
@@ -299,7 +299,7 @@ class TimeTrackingApp {
             if (fields.length > 0) {
                 const progress = this.createProgressBar();
                 form.insertBefore(progress, form.firstChild);
-                
+
                 fields.forEach(field => {
                     field.addEventListener('input', () => this.updateFormProgress(form, fields, progress));
                 });
@@ -322,13 +322,13 @@ class TimeTrackingApp {
     updateFormProgress(form, fields, progressContainer) {
         const filledFields = Array.from(fields).filter(field => field.value.trim() !== '').length;
         const percentage = Math.round((filledFields / fields.length) * 100);
-        
+
         const progressFill = progressContainer.querySelector('.progress-fill');
         const progressText = progressContainer.querySelector('.progress-text');
-        
+
         progressFill.style.width = `${percentage}%`;
         progressText.textContent = `${percentage}% Complete`;
-        
+
         if (percentage === 100) {
             progressContainer.classList.add('complete');
         } else {
@@ -366,21 +366,21 @@ class TimeTrackingApp {
         const tbody = table.querySelector('tbody');
         const rows = Array.from(tbody.querySelectorAll('tr'));
         const isAscending = !table.dataset.sortAsc || table.dataset.sortAsc === 'false';
-        
+
         rows.sort((a, b) => {
             const aText = a.cells[columnIndex].textContent.trim();
             const bText = b.cells[columnIndex].textContent.trim();
-            
+
             if (isAscending) {
                 return aText.localeCompare(bText, undefined, { numeric: true });
             } else {
                 return bText.localeCompare(aText, undefined, { numeric: true });
             }
         });
-        
+
         rows.forEach(row => tbody.appendChild(row));
         table.dataset.sortAsc = isAscending.toString();
-        
+
         // Update header indicators
         table.querySelectorAll('th').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
         table.querySelectorAll('th')[columnIndex].classList.add(isAscending ? 'sort-asc' : 'sort-desc');
@@ -392,9 +392,9 @@ class TimeTrackingApp {
         filterInput.type = 'text';
         filterInput.placeholder = 'Filter table...';
         filterInput.className = 'table-filter';
-        
+
         wrapper.insertBefore(filterInput, table);
-        
+
         filterInput.addEventListener('input', (e) => {
             this.filterTable(table, e.target.value);
         });
@@ -403,7 +403,7 @@ class TimeTrackingApp {
     filterTable(table, searchTerm) {
         const rows = table.querySelectorAll('tbody tr');
         const term = searchTerm.toLowerCase();
-        
+
         rows.forEach(row => {
             const text = row.textContent.toLowerCase();
             row.style.display = text.includes(term) ? '' : 'none';
@@ -420,7 +420,7 @@ class TimeTrackingApp {
                 setTimeout(() => firstInput.focus(), 100);
             }
         });
-        
+
         // Close modal on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -430,7 +430,7 @@ class TimeTrackingApp {
                 }
             }
         });
-        
+
         // Close modal on backdrop click
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
@@ -447,7 +447,7 @@ class TimeTrackingApp {
             modal.style.display = 'flex';
             modal.classList.add('show');
             document.body.classList.add('modal-open');
-            
+
             // Dispatch custom event
             modal.dispatchEvent(new CustomEvent('show.modal'));
         }
@@ -457,14 +457,14 @@ class TimeTrackingApp {
         if (typeof modal === 'string') {
             modal = document.getElementById(modal);
         }
-        
+
         if (modal) {
             modal.classList.remove('show');
             setTimeout(() => {
                 modal.style.display = 'none';
                 document.body.classList.remove('modal-open');
             }, 300);
-            
+
             // Dispatch custom event
             modal.dispatchEvent(new CustomEvent('hide.modal'));
         }
@@ -496,7 +496,7 @@ class TimeTrackingApp {
                     searchInput.focus();
                 }
             }
-            
+
             // Ctrl/Cmd + Enter to submit forms
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 const activeForm = document.activeElement.closest('form');
@@ -512,10 +512,10 @@ class TimeTrackingApp {
 
     setupAutoSave() {
         let autoSaveTimeout;
-        
+
         document.querySelectorAll('form[data-autosave]').forEach(form => {
             const inputs = form.querySelectorAll('input, select, textarea');
-            
+
             inputs.forEach(input => {
                 input.addEventListener('input', () => {
                     clearTimeout(autoSaveTimeout);
@@ -530,10 +530,10 @@ class TimeTrackingApp {
     autoSaveForm(form) {
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-        
+
         // Save to localStorage
         localStorage.setItem(`autosave_${form.id}`, JSON.stringify(data));
-        
+
         // Show subtle notification
         this.showNotification('Draft saved', 'info', 2000);
     }
@@ -543,14 +543,14 @@ class TimeTrackingApp {
         if (saved) {
             const data = JSON.parse(saved);
             const form = document.getElementById(formId);
-            
+
             Object.entries(data).forEach(([name, value]) => {
                 const field = form.querySelector(`[name="${name}"]`);
                 if (field) {
                     field.value = value;
                 }
             });
-            
+
             this.showNotification('Draft restored', 'info', 2000);
         }
     }
@@ -562,7 +562,7 @@ class TimeTrackingApp {
     // Error Handling
     handleAjaxError(xhr, error) {
         let message = 'An error occurred. Please try again.';
-        
+
         if (xhr.status === 422) {
             // Validation errors
             const errors = xhr.responseJSON?.errors;
@@ -574,7 +574,7 @@ class TimeTrackingApp {
         } else if (xhr.status === 0) {
             message = 'Network error. Please check your connection.';
         }
-        
+
         this.showNotification(message, 'error', 6000);
     }
 
@@ -685,7 +685,7 @@ const animationStyles = `
 .file-upload-wrapper {
     position: relative;
     border: 2px dashed var(--gray-300);
-    border-radius: var(--radius-md);
+    border-radius: 5px;
     padding: 2rem;
     text-align: center;
     transition: var(--transition);
@@ -722,7 +722,7 @@ const animationStyles = `
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     border: 1px solid var(--gray-300);
-    border-radius: var(--radius-md);
+    border-radius: 5px;
     font-size: 0.875rem;
     position: sticky;
     left: 0;

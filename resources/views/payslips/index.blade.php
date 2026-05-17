@@ -5,6 +5,9 @@
 
 @push('page-styles')
 <style>
+    .card{
+        margin-top: 2rem;
+    }
     .payslips-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -14,7 +17,7 @@
     
     .payslip-card {
         background: white;
-        border-radius: 12px;
+        border-radius: 5px;
         padding: 24px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         border: 1px solid #e5e7eb;
@@ -39,7 +42,7 @@
         width: 48px;
         height: 48px;
         background: linear-gradient(135deg, var(--secondary), var(--primary));
-        border-radius: 10px;
+        border-radius: 5px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -91,7 +94,7 @@
         color: white;
         border: none;
         padding: 10px 16px;
-        border-radius: 8px;
+        border-radius: 5px;
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
@@ -140,12 +143,12 @@
     .year-navigation {
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
         gap: 20px;
         margin-bottom: 30px;
         padding: 20px;
         background: white;
-        border-radius: 12px;
+        border-radius: 5px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         border: 1px solid #e5e7eb;
     }

@@ -183,24 +183,86 @@
     }
     
     .applications-history {
-        margin-top: 5rem;
+        margin-top: 2rem;
     }
-    
+
+    .history-card {
+        background: white;
+        border-radius: 5px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+
+    .history-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .history-card-title {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .history-card-title i {
+        color: var(--secondary);
+        font-size: 1rem;
+    }
+
     .history-filters {
         display: flex;
-        gap: 15px;
-        margin-bottom: 20px;
+        gap: 10px;
+        padding: 0.85rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
         flex-wrap: wrap;
+        align-items: flex-end;
+        background: #fafbfc;
     }
-    
+
+    .history-filters .filter-group label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+    }
+
+    .history-filters select,
+    .history-filters input[type="date"] {
+        padding: 6px 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 5px;
+        font-size: 0.8rem;
+        background: white;
+        color: #374151;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .history-filters select:focus,
+    .history-filters input[type="date"]:focus {
+        border-color: var(--secondary);
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
+    }
+
     .tableflow {
         width: 100%;
         overflow-x: auto;
         background: white;
-        border-radius: 5px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e5e7eb;
-        
+        border-radius: 0;
+        border: none;
     }
     
     .tableflow::-webkit-scrollbar {
@@ -587,6 +649,15 @@
             color: var(--dark);
         }
     }
+
+    @media (max-width: 460px){
+        #checkfilter{
+            transform:scale(0.8);
+        }
+        #resetFilter{
+            transform:scale(0.8);
+        }
+    }
 </style>
 @endpush
 
@@ -760,57 +831,60 @@
                 
                 
                 <div class="applications-history">
-                    <h3 class="section-title">
-                        <i class="fas fa-history"></i>
-                        Application History
-                    </h3>
-                    
-                    <div class="history-filters">
-                        <div class="filter-group">
-                            <label for="statusFilter">Status</label>
-                            <select id="statusFilter">
-                                <option value="all">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="approved">Approved</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
+                    <div class="history-card">
+
+                        <div class="history-card-header">
+                            <div class="history-card-title">
+                                <i class="fas fa-history"></i>
+                                Application History
+                            </div>
                         </div>
-                        
-                        <div class="filter-group">
-                            <label for="typeFilter">Type</label>
-                            <select id="typeFilter">
-                                <option value="all">All Types</option>
-                                <option value="casual_leave">Casual Leave</option>
-                                <option value="sick_leave">Sick Leave</option>
-                                <option value="half_leave">Half Day Leave</option>
-                                <option value="complaint">Complaint</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        
-                        <div class="filter-group">
-                            <label for="dateFilter">Date Range</label>
-                            <select id="dateFilter" class="form-control">
-                                <option value="all">All Time</option>
-                                <option value="month">This Month</option>
-                                <option value="quarter">This Quarter</option>
-                                <option value="year">This Year</option>
-                                <option value="custom">Custom Range</option>
-                            </select>
-                        </div>
-                        
-                        <div class="filter-group" id="customDateGroup" style="display: none;">
-                            <label for="startDateFilter">From Date</label>
-                            <input type="date" id="startDateFilter" class="form-input">
-                        </div>
-                        
-                        <div class="filter-group" id="customEndDateGroup" style="display: none;">
-                            <label for="endDateFilter">To Date</label>
-                            <input type="date" id="endDateFilter" class="form-input">
-                        </div>
-                        
-                        <div class="filter-group">
-                            <div style="display: flex; gap: 10px; align-items: end;">
+
+                        <div class="history-filters">
+                            <div class="filter-group">
+                                <label for="statusFilter">Status</label>
+                                <select id="statusFilter">
+                                    <option value="all">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="typeFilter">Type</label>
+                                <select id="typeFilter">
+                                    <option value="all">All Types</option>
+                                    <option value="casual_leave">Casual Leave</option>
+                                    <option value="sick_leave">Sick Leave</option>
+                                    <option value="half_leave">Half Day Leave</option>
+                                    <option value="complaint">Complaint</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="dateFilter">Date Range</label>
+                                <select id="dateFilter">
+                                    <option value="all">All Time</option>
+                                    <option value="month">This Month</option>
+                                    <option value="quarter">This Quarter</option>
+                                    <option value="year">This Year</option>
+                                    <option value="custom">Custom Range</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-group" id="customDateGroup" style="display: none;">
+                                <label for="startDateFilter">From</label>
+                                <input type="date" id="startDateFilter">
+                            </div>
+
+                            <div class="filter-group" id="customEndDateGroup" style="display: none;">
+                                <label for="endDateFilter">To</label>
+                                <input type="date" id="endDateFilter">
+                            </div>
+
+                            <div class="filter-group" style="display:flex; gap:8px; align-items:flex-end;">
                                 <button type="button" class="btn btn-primary" id="checkfilter">
                                     <i class="fas fa-search"></i> Filter
                                 </button>
@@ -819,28 +893,24 @@
                                 </button>
                             </div>
                         </div>
-                        
-                        
-                        
-                    </div>
-                    
-                    
-                    <div class="tableflow">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Type</th>
-                                    <th>Subject</th>
-                                    <th width="25%">Period</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="Tbody">
 
-                            </tbody>
-                        </table>
+                        <div class="tableflow">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Subject</th>
+                                        <th width="25%">Period</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="Tbody">
+                                </tbody>
+                            </table>
+                        </div>
+
                     </div>
                 </div>
             </main>

@@ -83,7 +83,7 @@
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: var(--radius-xl);
+        border-radius: 5px;
         padding: 0.8rem;
         box-shadow: var(--shadow-xl);
         animation: fadeIn 0.6s ease-out;
@@ -107,7 +107,7 @@
         width: 100px;
         height: 2px;
         background: linear-gradient(90deg, var(--primary), var(--secondary));
-        border-radius: 1px;
+        border-radius: 5px;
     }
     
     .profile-image {
@@ -160,11 +160,12 @@
     }
     
     .profile-info .emp-id {
-        background: var(--primary-light);
-        color: var(--primary-dark);
+        background: #081d83ff;
+        color: #ffffff;
+
         display: inline-block;
         padding: 2px 8px;
-        border-radius: 4px;
+        border-radius: 5px;
         font-size: 0.8rem;
         font-weight: 700;
         margin-top: 0.5rem;
@@ -186,7 +187,7 @@
     
     .settings-list {
         background: white;
-        border-radius: var(--radius-lg);
+        border-radius: 5px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         overflow: hidden;
         border: 1px solid var(--gray-200);
@@ -216,9 +217,10 @@
     .settings-icon {
         width: 36px;
         height: 36px;
-        border-radius: var(--radius);
-        background: var(--primary-light);
-        color: var(--primary);
+        border-radius: 5px;
+        background: #193df0ff;
+        color: #fbfbfb;
+
         display: flex;
         align-items: center;
         justify-content: center;
@@ -286,7 +288,7 @@
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: var(--radius-xl);
+        border-radius: 5px;
         width: 90%;
         max-width: 500px;
         padding: 2rem;
@@ -360,7 +362,7 @@
         width: 100%;
         padding: 0.875rem 1rem;
         border: 1px solid var(--gray-300);
-        border-radius: var(--radius-md);
+        border-radius: 5px;
         font-size: 0.875rem;
         font-family: inherit;
         transition: var(--transition);

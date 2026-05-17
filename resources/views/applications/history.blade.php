@@ -62,7 +62,7 @@
 
     .form-input {
         border: 1px solid rgba(100, 116, 139, 0.2);
-        border-radius: 0.75rem;
+        border-radius: 5px;
         padding: 0.8rem 1rem;
         min-width: 170px;
         background: #ffffff;
@@ -119,12 +119,12 @@
 
     .table tbody tr {
         background: rgba(99, 102, 241, 0.04);
-        border-radius: 1rem;
+        /* border-radius: 1rem; */
         box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
     }
 
     .table tbody tr td {
-        border-radius: 0.85rem;
+        border-radius: 5px;
         background: #ffffff;
     }
 
@@ -227,7 +227,7 @@
     <div class="card-header">
         <div class="header-title">
             <h2 class="card-title">
-                <a href="{{ route('schedule') }}" class="btn btn-secondary" style="padding: 5px 12px; margin-right: 10px; border-radius: 8px;">
+                <a href="{{ route('schedule') }}" class="btn btn-secondary" style="padding: 5px 12px; margin-right: 10px; border-radius: 5px;">
                     <i class="fas fa-arrow-left" style="margin:0; color: inherit;"></i>
                 </a>
                 <i class="fas fa-clock"></i>
